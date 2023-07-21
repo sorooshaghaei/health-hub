@@ -10,11 +10,18 @@ const Navbar = () => {
       style={{ backgroundColor: "#FFD0D0" }}
     >
       <div className="container">
-        <div className="row w-100">
+        <div className="row">
           {/* Logo and tagline section */}
-          <div className="col-3 mt-3">
-          <img className="logo w-50 " src={logo} alt="Logo" />
-            <h3 className="tagline mt-5">
+          <div className="col-md-3 col-12 mt-3 ">
+            <img
+              className="logo w-50 "
+              src={logo}
+              alt="Logo"
+              style={{ float: "left" }}
+            />
+          </div>
+          <div >
+            <h3 className="tagline mt-4" style={{ textAlign: "left" }}>
               We Provide Better Care Experience For Patients And Providers
             </h3>
           </div>
