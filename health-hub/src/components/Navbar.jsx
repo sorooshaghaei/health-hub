@@ -4,39 +4,72 @@ import "../styles/HeaderStyle.css";
 
 const Navbar = () => {
   return (
-    <nav className="navbar navbar-light frosted-glass" style={{ backgroundColor: "#FFD0D0" }}>
+    <nav
+      className="navbar navbar-light frosted-glass"
+      style={{ backgroundColor: "#FFD0D0" }}
+    >
       <div className="container">
         <div className="row w-100">
+          {/* Logo and tagline section */}
           <div className="col-3">
-            <div className="row">
-              <i className="fa fa-hard-of-hearing p-5">LOGO IS HERE</i>
-            </div>
-            <div className="row">
-              
-              <h2>
-                We Provide Better Care Experience For Patients And Providers
-              </h2>
+            <i className="fa fa-hard-of-hearing p-5">LOGO IS HERE</i>
+            <h3>
+              We Provide Better Care Experience For Patients And Providers
+            </h3>
+          </div>
+
+          {/* Search bar and dropdown section */}
+          <div
+            className="p-3 rounded mt-5 mb-5"
+            style={{ backgroundColor: "#ffffff" }}
+          >
+            {/* Search label */}
+            <label htmlFor="basic-url" className="search-label p-2">
+              <i className="fa fa-search search-icon"></i>
+              <span className="search-text">
+                <b>Search physicians, specialists, or clinics</b>
+              </span>
+            </label>
+
+            <div className="input-group mb-3">
+              <div className="input-group-prepend">
+                {/* Dropdown */}
+                <div className="dropdown">
+                  <button
+                    className="btnColor btn dropdown-toggle text-white"
+                    type="button"
+                    id="dropdownMenuButton"
+                    data-toggle="dropdown"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                  >
+                    <i className="fa fa-map-marker text-white"></i> All Cities
+                  </button>
+                  {/* Dropdown menu */}
+                  <div
+                    className="dropdown-menu"
+                    aria-labelledby="dropdownMenuButton"
+                  ></div>
+                </div>
+              </div>
+              {/* Search input */}
+              <input
+                type="text"
+                className="form-control"
+                id="basic-url"
+                aria-describedby="basic-addon3"
+              />
             </div>
           </div>
+
+          {/* Routes section */}
           <div className="col-10">
-            {/* routes for sign in and contact us and about and experties */}
+            {/* Define routes for sign in, contact us, about, and expertise */}
             <Routes>
-              <Route
-                path="/signIn"
-                element={<h1>Sign In</h1>} // replace this with Sign In component
-              />
-              <Route
-                path="/contact"
-                element={<h1>Contact us</h1>} // replace this with Contact component
-              />
-              <Route
-                path="/about"
-                element={<h1>About</h1>} // replace this with About component
-              />
-              <Route
-                path="/experties"
-                element={<h1>Expertise</h1>} // replace this with Expertise component
-              />
+              <Route path="/signIn" element={<h1>Sign In</h1>} />
+              <Route path="/contact" element={<h1>Contact us</h1>} />
+              <Route path="/about" element={<h1>About</h1>} />
+              <Route path="/experties" element={<h1>Expertise</h1>} />
             </Routes>
           </div>
         </div>
