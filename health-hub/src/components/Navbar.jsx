@@ -1,6 +1,7 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import "../styles/HeaderStyle.css";
+import logo from "../assets/logo.png";
 
 const Navbar = () => {
   return (
@@ -11,9 +12,9 @@ const Navbar = () => {
       <div className="container">
         <div className="row w-100">
           {/* Logo and tagline section */}
-          <div className="col-3">
-            <i className="fa fa-hard-of-hearing p-5">LOGO IS HERE</i>
-            <h3>
+          <div className="col-3 mt-3">
+          <img className="logo w-50 " src={logo} alt="Logo" />
+            <h3 className="tagline mt-5">
               We Provide Better Care Experience For Patients And Providers
             </h3>
           </div>
