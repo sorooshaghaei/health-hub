@@ -1,0 +1,9 @@
+/* Frosted glass effect */
+.frosted-glass {
+  /* background blur */
+  position: relative;
+  z-index: 1;
+  background-image: url("../assets/image.png");
+  background-size: cover;
+  background-position: center;
+}
