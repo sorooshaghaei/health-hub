@@ -7,15 +7,15 @@ const Navbar = () => {
     <nav className="navbar navbar-light frosted-glass" style={{ backgroundColor: "#FFD0D0" }}>
       <div className="container">
         <div className="row w-100">
-          <div className="col-2">
+          <div className="col-3">
             <div className="row">
               <i className="fa fa-hard-of-hearing p-5">LOGO IS HERE</i>
             </div>
             <div className="row">
-              {/* a user icon */}
-              <i className="fa fa-user p-5">
+              
+              <h2>
                 We Provide Better Care Experience For Patients And Providers
-              </i>
+              </h2>
             </div>
           </div>
           <div className="col-10">
