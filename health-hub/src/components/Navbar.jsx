@@ -58,6 +58,7 @@ const Navbar = () => {
                 type="text"
                 className="form-control"
                 id="basic-url"
+                placeholder="Search..."
                 aria-describedby="basic-addon3"
               />
             </div>
