@@ -32,6 +32,128 @@ const Navbar = () => {
             />
           </div>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div className="col-md-9 mt-4">
+  <div className="navbar navbar-expand-md">
+    <div className="navbar-nav ms-auto">
+      
+      <div className="nav-item dropdown">
+        <a
+          className="nav-link"
+          href="#"
+          role="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+        >
+          Expertise
+        </a>
+        <ul className="dropdown-menu" aria-labelledby="navbarDropdown">
+          <li>
+            <a className="dropdown-item" href="#">
+              Action
+            </a>
+          </li>
+          <li>
+            <a className="dropdown-item" href="#">
+              Another action
+            </a>
+          </li>
+        </ul>
+      </div>
+      <a className="nav-link" href="#">
+        Contact Us
+      </a>
+      <a className="nav-link" href="#">
+        About
+      </a>
+
+      <div className="nav-item dropdown">
+        <a
+          className="nav-link"
+          href="#"
+          role="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+        >
+          Sign in
+        </a>
+        <ul className="dropdown-menu" aria-labelledby="navbarDropdown">
+          <li>
+            <a className="dropdown-item" href="#">
+              Log in
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div>
             <h3
               className="tagline mt-5 col-5"
