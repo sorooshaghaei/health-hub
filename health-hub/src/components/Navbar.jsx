@@ -1,5 +1,7 @@
-import React from "react";
-import { Route, Routes } from "react-router-dom";
+import { React } from "react";
+
+import { Route, Routes, Navigate } from "react-router-dom";
+
 import "../styles/HeaderStyle.css";
 import logo from "../assets/logo.png";
 
@@ -13,6 +15,11 @@ const Navbar = () => {
       className="navbar navbar-light frosted-glass"
       style={{ backgroundColor: "#FFD0D0" }}
     >
+      {/* Routes section */}
+      <Routes>
+        <Route path="/" element={<Navigate to="/Home" />} />
+      </Routes>
+
       <div className="container">
         <div className="row">
           {/* Logo and tagline section */}
@@ -24,6 +31,7 @@ const Navbar = () => {
               style={{ float: "left" }}
             />
           </div>
+
           <div>
             <h3
               className="tagline mt-5 col-5"
@@ -54,17 +62,6 @@ const Navbar = () => {
             <div className="p-2">
               <SearchNav />
             </div>
-          </div>
-
-          {/* Routes section */}
-          <div className="col-10">
-            {/* Define routes for sign in, contact us, about, and expertise */}
-            <Routes>
-              <Route path="/signIn" element={<h1>Sign In</h1>} />
-              <Route path="/contact" element={<h1>Contact us</h1>} />
-              <Route path="/about" element={<h1>About</h1>} />
-              <Route path="/experties" element={<h1>Expertise</h1>} />
-            </Routes>
           </div>
         </div>
       </div>
