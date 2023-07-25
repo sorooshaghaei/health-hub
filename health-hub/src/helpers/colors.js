@@ -24,3 +24,6 @@ export const Red = "#E31A1A"; // Red
 
 // Button text Colors
 export const White = "#FFFFFF"; // White
+
+// text light color
+export const LightWhite = "#E0E5F2";
