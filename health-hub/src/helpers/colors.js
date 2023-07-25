@@ -5,6 +5,8 @@ export const Background = "#F9F9F9"; // Off-White
 
 // Primary Colors
 export const Teal = "#3AA6B9"; // Teal
+export const LightTeal = "#70BDCB"; // Teal
+
 
 // Secondary Colors
 export const Salmon = "#FF9EAA"; // Salmon Pink

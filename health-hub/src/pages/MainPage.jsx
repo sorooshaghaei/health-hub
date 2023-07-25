@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Calendar from "react-calendar"; // Import the Calendar component from react-calendar
 import "react-calendar/dist/Calendar.css"; // Import the default stylesheet for react-calendar
+import OveralVisitorsCard from "../components/OveralVisitorsCard";
 
 const MainPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date()); // State to keep track of selected date
@@ -24,18 +25,15 @@ const MainPage = () => {
             value={selectedDate} // Use the selected date state
           />
         </div>
-        <div className="cards-container">
-          <div className="card visitor-card">
-            <h3>Overall Visitors</h3>
-            <p>1,000</p>
+        <div className="cards-container row justify-content-center">
+          <div className=" visitor-card col-3 ">
+            <OveralVisitorsCard />
           </div>
-          <div className="card total-patient-card">
-            <h3>Total Patients</h3>
-            <p>500</p>
+          <div className=" visitor-card col-3 ">
+            <OveralVisitorsCard />
           </div>
-          <div className="card total-surgery-card">
-            <h3>Total Surgeries</h3>
-            <p>200</p>
+          <div className=" visitor-card col-3 ">
+            <OveralVisitorsCard />
           </div>
         </div>
         <div className="increase-decrease-table">
