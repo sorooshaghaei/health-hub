@@ -20,21 +20,6 @@ const MainPage = () => {
       </Routes>
 
       <div className="content ">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         <div className="row my-5  " style={{ justifyContent: "center" }}>
           <div className="col-5">
             <h5>
@@ -42,61 +27,37 @@ const MainPage = () => {
             </h5>
             <Calendar
               className="rounded shadow border-0"
-             
               onChange={setSelectedDate} // Set the selected date on change
               value={selectedDate} // Use the selected date state
             />
           </div>
 
-
-
           <div className="col-4">
-          <h3>Increase/Decrease Table</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Increase</th>
-                <th>Decrease</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Patients</td>
-                <td>25</td>
-                <td>10</td>
-              </tr>
-              <tr>
-                <td>Surgeries</td>
-                <td>15</td>
-                <td>5</td>
-              </tr>
-              {/* Add more rows as needed */}
-            </tbody>
-          </table>
+            <h3>Increase/Decrease Table</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Increase</th>
+                  <th>Decrease</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Patients</td>
+                  <td>25</td>
+                  <td>10</td>
+                </tr>
+                <tr>
+                  <td>Surgeries</td>
+                  <td>15</td>
+                  <td>5</td>
+                </tr>
+                {/* Add more rows as needed */}
+              </tbody>
+            </table>
+          </div>
         </div>
-
-
-
-
-
-
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-
-
-
 
         <div className="cards-container row justify-content-center my-5">
           <div className=" visitor-card col-3 ">
