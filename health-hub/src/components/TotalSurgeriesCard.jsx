@@ -1,8 +1,8 @@
 import React from "react";
 import { LightTeal, LightWhite, Salmon } from "../helpers/colors";
-import patientIcon from "../assets/🦆 icon _people_.svg"
+import hospitalBedIcon from "../assets/hospital-bed.svg"
 
-const TotalPatientsCard = () => {
+const TotalSurgeriesCard = () => {
   return (
     <div>
       <div className="card text-white shadow" style={{ backgroundColor: LightTeal }}>
@@ -11,9 +11,9 @@ const TotalPatientsCard = () => {
             className="card-title col-md-7 my-3 mx-3"
             style={{ textAlign: "left" }}
           >
-            <b>Total Patients</b>
+            <b>Total Surgeries</b>
           </h6>
-          <img className="mx-3" src={patientIcon} alt="barchartIcon" />
+          <img className="mx-3" src={hospitalBedIcon} alt="barchartIcon" />
         </div>
 
         <div className="row">
@@ -24,7 +24,7 @@ const TotalPatientsCard = () => {
           </div>
           <div className="col">
             <div className=" card-body">
-              <b style={{ color: LightWhite }}>2.77%</b>
+              <b style={{ color: LightWhite }}>3.54%</b>
             </div>
             <div
               class=" badge rounded-pill "
@@ -38,7 +38,7 @@ const TotalPatientsCard = () => {
         <p className="card-text my-3">Last updated 3 mins ago</p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default TotalPatientsCard;
+export default TotalSurgeriesCard;

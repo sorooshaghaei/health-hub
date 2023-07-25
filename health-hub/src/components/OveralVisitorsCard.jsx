@@ -5,7 +5,7 @@ import barchartIcon from "../assets/bar_chart.svg";
 const OveralVisitorsCard = () => {
   return (
     <div>
-      <div className="card text-white" style={{ backgroundColor: LightTeal }}>
+      <div className="card text-white shadow " style={{ backgroundColor: LightTeal }}>
         <div className="d-flex align-items-center justify-content-between">
           <h6
             className="card-title col-md-7 my-3 mx-3"
@@ -19,11 +19,7 @@ const OveralVisitorsCard = () => {
         <div className="row">
           <div className="col">
             <p className=" mx-3 my-3 " style={{ textAlign: "left" }}>
-              Increase in data by
-              <br />
-              500+ inpatients in the
-              <br />
-              last 7 days
+              Increase in data by 500+ inpatients in the last 7 days
             </p>
           </div>
           <div className="col">
