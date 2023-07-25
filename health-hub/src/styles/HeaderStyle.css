@@ -8,18 +8,4 @@
   background-position: center;
 }
 
-.search-label {
-  font-family: "Vazir", sans-serif;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
 
-.search-icon {
-  font-size: 18px; /* Adjust the font size as needed */
-  margin-right: 5px; /* Add some space between the icon and text */
-}
-
-.search-text {
-  font-size: 16px; /* Adjust the font size as needed */
-}
