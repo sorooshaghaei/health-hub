@@ -7,9 +7,14 @@ import "react-calendar/dist/Calendar.css"; // Import the default stylesheet for 
 import OveralVisitorsCard from "../components/OveralVisitorsCard";
 import TotalPatientsCard from "../components/TotalPatientsCard";
 import TotalSurgeriesCard from "../components/TotalSurgeriesCard";
+import SparkLineChart from "../components/SparkLineChart";
 
 const MainPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date()); // State to keep track of selected date
+
+  const data = [5, 10, 8, 15, 12, 6, 14, 10];
+    const color = '#007bff'; // Replace this with the desired color
+
 
   return (
     <div>
@@ -33,29 +38,14 @@ const MainPage = () => {
           </div>
 
           <div className="col-4">
-            <h3>Increase/Decrease Table</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Increase</th>
-                  <th>Decrease</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Patients</td>
-                  <td>25</td>
-                  <td>10</td>
-                </tr>
-                <tr>
-                  <td>Surgeries</td>
-                  <td>15</td>
-                  <td>5</td>
-                </tr>
-                {/* Add more rows as needed */}
-              </tbody>
-            </table>
+          
+      <h1>Sparkline Chart Example</h1>
+      <div className="row">
+        <div className="col">
+          <SparkLineChart data={data} color={color} />
+        </div>
+     
+    </div>
           </div>
         </div>
 
