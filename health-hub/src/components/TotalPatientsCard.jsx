@@ -1,6 +1,6 @@
 import React from "react";
 import { LightTeal, LightWhite, Salmon } from "../helpers/colors";
-import patientIcon from "../assets/🦆 icon _people_.svg"
+import patientIcon from "../assets/ActorsIcon.svg"
 
 const TotalPatientsCard = () => {
   return (
