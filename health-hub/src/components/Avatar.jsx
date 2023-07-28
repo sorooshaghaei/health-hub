@@ -8,18 +8,18 @@ const Avatar = () => {
  
         {/* <!-- Avatar --> */}
         <ul className="navbar-nav">
-          <li className="nav-item dropdown">
+          <li className="nav-item dropstart">
             <a
-              className="nav-link dropdown-toggle"
+              className="nav-link dropdown-toggle  "
               href="#"
               id="avatarDropdown"
               role="button"
               data-bs-toggle="dropdown"
-              aria-expanded="false"
+            
             >
               <img src={avatar} height="48" alt="Avatar" loading="lazy" />
             </a>
-            <ul className="dropdown-menu" aria-labelledby="avatarDropdown">
+            <ul className="dropdown-menu " aria-labelledby="avatarDropdown">
               <li>
                 <a className="dropdown-item" href="#">
                   My profile
@@ -27,12 +27,12 @@ const Avatar = () => {
               </li>
               <li>
                 <a className="dropdown-item" href="#">
-                  Settings
+                  Patients
                 </a>
               </li>
               <li>
                 <a className="dropdown-item" href="#">
-                  Logout
+                  Appointments
                 </a>
               </li>
             </ul>
