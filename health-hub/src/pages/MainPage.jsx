@@ -19,12 +19,14 @@ const MainPage = () => {
       </Routes>
 
       <div className="row my-5">
-        <div className="col-6" style={{ justifyContent: "center" }}>
+        <div className="col-6 mx-1" style={{ justifyContent: "center" }}>
           <MyCalendar />
         </div>
-        <div className="col-5" style={{ justifyContent: "center" }}>
-          <h4>Sparkline Chart Example</h4>
+        <div className="col-4 my-5 ">
+          <div className="card rounded shadow border-0 ">
           <SparkLineChart data={data} />
+
+          </div>
         </div>
       </div>
 
