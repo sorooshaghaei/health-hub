@@ -9,17 +9,15 @@ const MyCalendar = () => {
 
   return (
     <div>
-      <div className="row" style={{ justifyContent: "center" }}>
-        <h5>
-          <b>July 2023</b>
-        </h5>
+     
+       
         <Calendar
           className="rounded shadow border-0"
           onChange={setSelectedDate} // Set the selected date on change
           value={selectedDate} // Use the selected date state
         />
       </div>
-    </div>
+  
   );
 };
 

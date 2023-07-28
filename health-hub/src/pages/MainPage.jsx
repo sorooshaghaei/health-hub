@@ -17,6 +17,7 @@ const MainPage = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/Home" />} />
       </Routes>
+      <div className="container">
 
       <div className="row my-5">
         <div className="col-6 mx-1" style={{ justifyContent: "center" }}>
@@ -30,7 +31,6 @@ const MainPage = () => {
         </div>
       </div>
 
-      <div className="content">
         <div className="cards-container row justify-content-center my-5">
           <div className=" visitor-card col-3 ">
             <OveralVisitorsCard />

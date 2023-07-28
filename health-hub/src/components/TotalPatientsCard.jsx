@@ -13,21 +13,21 @@ const TotalPatientsCard = () => {
           >
             <b>Total Patients</b>
           </h6>
-          <img className="mx-3" src={patientIcon} alt="barchartIcon" />
+          <img className="mx-3" src={patientIcon} alt="patientIcon" />
         </div>
 
-        <div className="row">
+        <div className="row card-body">
           <div className="col">
-            <p className=" mx-3 my-3 " style={{ textAlign: "left" }}>
+            <p style={{ textAlign: "left" }}>
               Increase in data by 500+ inpatients in the last 7 days
             </p>
           </div>
           <div className="col">
-            <div className=" card-body">
+            <div>
               <b style={{ color: LightWhite }}>2.77%</b>
             </div>
             <div
-              class=" badge rounded-pill "
+              class="col badge rounded-pill "
               style={{ backgroundColor: Salmon }}
             >
               <span>New</span>

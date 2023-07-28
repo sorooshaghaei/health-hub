@@ -8,7 +8,7 @@ const SparkLineChart = ({ data }) => {
   return (
       
       <div> 
-      <Sparklines data={data} limit={20} width={400} height={210} margin={5}  >
+      <Sparklines data={data} limit={20} width={400} height={310} margin={5}  >
         <SparklinesLine color={Teal} />
       </Sparklines>
     </div>
