@@ -18,7 +18,7 @@ const MainPage = () => {
         <Route path="/" element={<Navigate to="/Home" />} />
       </Routes>
       
-      <div className="container ">
+      <div className="container-fluid ">
         <div className="row my-5 justify-content-center">
           <div className="col-3 mx-5">
             <MyCalendar />
