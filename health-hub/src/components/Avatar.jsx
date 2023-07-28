@@ -1,6 +1,9 @@
 import React from "react";
 import avatar from "../assets/Avatar.png";
 
+import Patients from "../pages/Patients";
+import Appointments from "../pages/Appointments";
+
 const Avatar = () => {
   return (
     // Wrap the Avatar component inside a navbar container
@@ -26,12 +29,12 @@ const Avatar = () => {
                 </a>
               </li>
               <li>
-                <a className="dropdown-item" href="#">
+                <a className="dropdown-item" href=".//Patients">
                   Patients
                 </a>
               </li>
               <li>
-                <a className="dropdown-item" href="#">
+                <a className="dropdown-item" href="./Appointments">
                   Appointments
                 </a>
               </li>

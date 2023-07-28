@@ -11,7 +11,7 @@ const OveralVisitorsCard = () => {
           className="card-title col-md-7 my-3 mx-3"
           style={{ textAlign: "left" }}
         >
-          <b>Total Patients</b>
+          <b>OveralVisitorsCard</b>
         </h6>
         <img className="mx-3" src={barchartIcon} alt="barchartIcon" />
       </div>
