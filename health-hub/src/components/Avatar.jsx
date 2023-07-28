@@ -29,7 +29,7 @@ const Avatar = () => {
                 </a>
               </li>
               <li>
-                <a className="dropdown-item" href=".//Patients">
+                <a className="dropdown-item" href="./Patients">
                   Patients
                 </a>
               </li>
