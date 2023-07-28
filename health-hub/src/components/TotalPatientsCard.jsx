@@ -5,7 +5,7 @@ import patientIcon from "../assets/ActorsIcon.svg"
 const TotalPatientsCard = () => {
   return (
     <div>
-      <div className="card text-white shadow" style={{ backgroundColor: LightTeal }}>
+      <div className="card text-white shadow border-0" style={{ backgroundColor: LightTeal }}>
         <div className="d-flex align-items-center justify-content-between">
           <h6
             className="card-title col-md-7 my-3 mx-3"
