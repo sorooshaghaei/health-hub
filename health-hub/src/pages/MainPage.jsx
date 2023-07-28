@@ -17,13 +17,13 @@ const MainPage = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/Home" />} />
       </Routes>
-      <div className="container">
+      <div className="container ">
 
-      <div className="row my-5">
-        <div className="col-6 mx-1" style={{ justifyContent: "center" }}>
+      <div className="row my-5 justify-content-center">
+        <div className="col-3 mx-5" >
           <MyCalendar />
         </div>
-        <div className="col-4 my-5 ">
+        <div className="col-4 mx-5">
           <div className="card rounded shadow border-0 ">
           <SparkLineChart data={data} />
 
@@ -31,7 +31,7 @@ const MainPage = () => {
         </div>
       </div>
 
-        <div className="cards-container row justify-content-center my-5">
+        <div className="row justify-content-center my-5">
           <div className=" visitor-card col-3 ">
             <OveralVisitorsCard />
           </div>
