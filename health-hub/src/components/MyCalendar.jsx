@@ -9,15 +9,12 @@ const MyCalendar = () => {
 
   return (
     <div>
-     
-       
-        <Calendar
-          className="rounded shadow border-0"
-          onChange={setSelectedDate} // Set the selected date on change
-          value={selectedDate} // Use the selected date state
-        />
-      </div>
-  
+      <Calendar
+        className="rounded shadow border-0"
+        onChange={setSelectedDate} // Set the selected date on change
+        value={selectedDate} // Use the selected date state
+      />
+    </div>
   );
 };
 

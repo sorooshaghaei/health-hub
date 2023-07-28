@@ -17,19 +17,18 @@ const MainPage = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/Home" />} />
       </Routes>
+      
       <div className="container ">
-
-      <div className="row my-5 justify-content-center">
-        <div className="col-3 mx-5" >
-          <MyCalendar />
-        </div>
-        <div className="col-4 mx-5">
-          <div className="card rounded shadow border-0 ">
-          <SparkLineChart data={data} />
-
+        <div className="row my-5 justify-content-center">
+          <div className="col-3 mx-5">
+            <MyCalendar />
+          </div>
+          <div className="col-4 mx-5">
+            <div className="card rounded shadow border-0 ">
+              <SparkLineChart data={data} />
+            </div>
           </div>
         </div>
-      </div>
 
         <div className="row justify-content-center my-5">
           <div className=" visitor-card col-3 ">
