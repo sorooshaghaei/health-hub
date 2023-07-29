@@ -24,7 +24,7 @@ const Avatar = () => {
             </a>
             <ul className="dropdown-menu " aria-labelledby="avatarDropdown">
               <li>
-                <a className="dropdown-item" href="#">
+                <a className="dropdown-item" href="/">
                   My profile
                 </a>
               </li>
