@@ -7,6 +7,10 @@ import TotalSurgeriesCard from "../components/TotalSurgeriesCard";
 import SparkLineChart from "../components/SparkLineChart";
 import MyCalendar from "../components/MyCalendar";
 
+import Patients from "../pages/Patients";
+import Appointments from "../pages/Appointments";
+
+
 const MainPage = () => {
   const data = [5, 10, 8, 15, 12, 6, 14, 18];
 
@@ -16,6 +20,8 @@ const MainPage = () => {
       {/* Routes section */}
       <Routes>
         <Route path="/" element={<Navigate to="/Home" />} />
+        <Route path="/Patients" element={<Patients />} />
+        <Route path="/Appointments" element={<Appointments />} />
       </Routes>
       
       <div className="container-fluid ">
