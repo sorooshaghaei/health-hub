@@ -1,5 +1,5 @@
 import { Footer, Navbar } from "../components";
-import { Routes, Route, Navigate } from "react-router-dom";
+
 
 import OveralVisitorsCard from "../components/OveralVisitorsCard";
 import TotalPatientsCard from "../components/TotalPatientsCard";
@@ -7,8 +7,6 @@ import TotalSurgeriesCard from "../components/TotalSurgeriesCard";
 import SparkLineChart from "../components/SparkLineChart";
 import MyCalendar from "../components/MyCalendar";
 
-import Patients from "../pages/Patients";
-import Appointments from "../pages/Appointments";
 
 
 const MainPage = () => {
@@ -17,13 +15,6 @@ const MainPage = () => {
   return (
     <div>
       <Navbar />
-      {/* Routes section */}
-      <Routes>
-        <Route path="/" element={<Navigate to="/Home" />} />
-        <Route path="/Patients" element={<Patients />} />
-        <Route path="/Appointments" element={<Appointments />} />
-      </Routes>
-      
       <div className="container-fluid ">
         <div className="row my-5 justify-content-center">
           <div className="col-3 mx-5">

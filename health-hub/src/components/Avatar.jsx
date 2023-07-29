@@ -9,7 +9,7 @@ const Avatar = () => {
         <li className="nav-item dropstart">
           <a
             className="nav-link dropdown-toggle"
-            href="#"
+            href="/"
             id="avatarDropdown"
             role="button"
             data-bs-toggle="dropdown"
