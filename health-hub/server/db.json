@@ -1,0 +1,9 @@
+{
+    "patients": [],
+    "groups": [
+        {
+            "id": 1,
+            "name": "Patients"
+        }
+    ]
+}
