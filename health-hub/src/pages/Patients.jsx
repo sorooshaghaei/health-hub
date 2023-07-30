@@ -1,9 +1,12 @@
 import React from "react";
 import { Navbar } from "../components";
+
+import Spinner from "../components/Spinner";
 import Patient from "../components/Patient";
+
 import { LightTeal } from "../helpers/colors";
 
-const Patients = () => {
+const Patients = ({ patient, loading }) => {
   return (
     <div>
       <Navbar />
@@ -19,9 +22,20 @@ const Patients = () => {
         </button>
       </div>
 
-      <div className="mx-3 mt-3">
-        <Patient />
-      </div>
+      {loading ? (
+        <Spinner />
+      ) : (
+        <div className="row mx-3 mt-3">
+          {patient.length > 0 ? (
+            patient.map((p) => <Patient key={p.id} patient={p} />)
+          ) : (
+            <div className="text-center mt-5">
+              <p className="h3">not found!</p>
+              {/* <img src={notfound} alt="not found!" className="w-25" /> */}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* <div className="container mt-5 mb-5 ">
         <table class="table table-hover dropshadow">
