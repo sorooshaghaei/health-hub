@@ -27,3 +27,6 @@ export const White = "#FFFFFF"; // White
 
 // text light color
 export const LightWhite = "#E0E5F2";
+
+// very light pink
+export const VeryLightPink = "#FADADB";

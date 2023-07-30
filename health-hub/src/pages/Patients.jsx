@@ -1,52 +1,29 @@
 import React from "react";
 import { Navbar } from "../components";
+import Patient from "../components/Patient";
+import { LightTeal } from "../helpers/colors";
 
 const Patients = () => {
   return (
     <div>
       <Navbar />
 
+      <div className="mx-3 mt-3">
+        <button
+          type="button"
+          className="btn text-white"
+          style={{ backgroundColor: LightTeal }}
+        >
+          {" "}
+          <i className="fa fa-plus"></i> Add Patient
+        </button>
+      </div>
 
+      <div className="mx-3 mt-3">
+        <Patient />
+      </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      <div className="container mt-5 mb-5 ">
+      {/* <div className="container mt-5 mb-5 ">
         <table class="table table-hover dropshadow">
           <thead>
             <tr>
@@ -119,57 +96,7 @@ const Patients = () => {
           </tbody>
         </table>
       </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ */}
     </div>
   );
 };
