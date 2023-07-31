@@ -4,6 +4,10 @@ import Patients from "./pages/Patients";
 import Appointments from "./pages/Appointments";
 import "./App.css";
 
+import AddPatient from "./components/AddPatient";
+import ViewPatient from "./components/ViewPatient";
+import EditPatient from "./components/EditPatient";
+
 import { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -57,17 +61,9 @@ function App() {
           element={<Patients patient={getPatient} loading={loading} />}
         />
 
-        {/* Route for adding a new contact */}
-
-        {/* Route for viewing a specific contact */}
-
-        {/* Route for editing a specific contact */}
-        {/*  
-
-<Route path="/contacts/add" element={<AddContacts />} />
-<Route path="/contacts/:contactId" element={<ViewContacts />} />
-<Route path="/contacts/edit/:contactId" element={<EditContacts />} />
-*/}
+        <Route path="/patients/addPatient" element={<AddPatient />} />
+        <Route path="/patients/:patientId" element={<ViewPatient />} />
+        <Route path="/patients/edit/:patientId" element={<EditPatient />} />
 
         <Route path="/Appointments" element={<Appointments />} />
 
