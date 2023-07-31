@@ -25,8 +25,8 @@ const Patients = ({ patient, loading }) => {
         <div className="row mx-4">
           {patient.length > 0 ? (
             patient.map((p) => (
-              <div className="col d-flex justify-content-center align-items-center">
-                <Patient patient={p} key={p.id} />
+              <div className="col d-flex justify-content-center align-items-center" key={p.id}>
+                <Patient patient={p}  />
               </div>
             ))
           ) : (
