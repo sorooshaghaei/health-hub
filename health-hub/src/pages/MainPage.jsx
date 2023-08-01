@@ -1,4 +1,3 @@
-import { Footer, Navbar } from "../components";
 
 
 import OveralVisitorsCard from "../components/OveralVisitorsCard";
@@ -14,7 +13,7 @@ const MainPage = () => {
 
   return (
     <div>
-      <Navbar />
+    
       <div className="container-fluid ">
         <div className="row my-5 justify-content-center">
           <div className="col-3 mx-5">
@@ -39,7 +38,6 @@ const MainPage = () => {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

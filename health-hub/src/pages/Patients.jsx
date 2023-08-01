@@ -1,5 +1,4 @@
 import React from "react";
-import { Navbar } from "../components";
 import Spinner from "../components/Spinner";
 import Patient from "../components/Patient";
 import { LightTeal } from "../helpers/colors";
@@ -7,7 +6,6 @@ import { LightTeal } from "../helpers/colors";
 const Patients = ({ patient, loading }) => {
   return (
     <div>
-      <Navbar />
 
       <div className="mx-3 mt-3">
         <button

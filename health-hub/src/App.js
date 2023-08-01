@@ -10,6 +10,7 @@ import EditPatient from "./components/EditPatient";
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { Footer, Navbar } from "./components";
 
 function App() {
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,7 @@ function App() {
 
   return (
     <div className="App">
+      <Navbar/>
       <Routes>
         {/* Redirect to MainPage when the path is "/" */}
         <Route path="/" element={<Navigate to="/MainPage" />} />
@@ -84,6 +86,7 @@ function App() {
           }
         />
       </Routes>
+      <Footer/>
     </div>
   );
 }
