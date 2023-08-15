@@ -1,19 +1,14 @@
-
-
-import OveralVisitorsCard from "../components/OveralVisitorsCard";
-import TotalPatientsCard from "../components/TotalPatientsCard";
-import TotalSurgeriesCard from "../components/TotalSurgeriesCard";
+import OveralVisitorsCard from "../components/cards/OveralVisitorsCard";
+import TotalPatientsCard from "../components/cards/TotalPatientsCard";
+import TotalSurgeriesCard from "../components/cards/TotalSurgeriesCard";
 import SparkLineChart from "../components/SparkLineChart";
 import MyCalendar from "../components/MyCalendar";
-
-
 
 const MainPage = () => {
   const data = [5, 10, 8, 15, 12, 6, 14, 18];
 
   return (
     <div>
-    
       <div className="container-fluid ">
         <div className="row my-5 justify-content-center">
           <div className="col-3 mx-5">

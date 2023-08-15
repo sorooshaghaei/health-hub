@@ -1,19 +1,22 @@
 import React from "react";
-import { LightTeal, LightWhite, Salmon } from "../helpers/colors";
-import patientIcon from "../assets/ActorsIcon.svg"
+import { LightTeal, LightWhite, Salmon } from "../../helpers/colors";
+import barchartIcon from "../../assets/bar_chart.svg";
 
-const TotalPatientsCard = () => {
+const OveralVisitorsCard = () => {
   return (
     <div>
-      <div className="card text-white shadow border-0" style={{ backgroundColor: LightTeal }}>
+      <div
+        className="card text-white shadow border-0"
+        style={{ backgroundColor: LightTeal }}
+      >
         <div className="d-flex align-items-center justify-content-between">
           <h6
             className="card-title col-md-7 my-3 mx-3"
             style={{ textAlign: "left" }}
           >
-            <b>Total Patients</b>
+            <b>OveralVisitorsCard</b>
           </h6>
-          <img className="mx-3" src={patientIcon} alt="patientIcon" />
+          <img className="mx-3" src={barchartIcon} alt="barchartIcon" />
         </div>
 
         <div className="row card-body">
@@ -27,7 +30,7 @@ const TotalPatientsCard = () => {
               <b style={{ color: LightWhite }}>2.77%</b>
             </div>
             <div
-              class="col badge rounded-pill "
+              className="col badge rounded-pill "
               style={{ backgroundColor: Salmon }}
             >
               <span>New</span>
@@ -41,4 +44,4 @@ const TotalPatientsCard = () => {
   );
 };
 
-export default TotalPatientsCard;
+export default OveralVisitorsCard;

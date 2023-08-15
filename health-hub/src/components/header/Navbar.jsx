@@ -1,21 +1,17 @@
 import React from "react";
-import logo from "../assets/logo.png";
-import { SearchNav, Avatar } from "../components";
+import logo from "../../assets/logo.png";
 
-
-
-
-import "../styles/HeaderStyle.css";
-import { LightPink } from "../helpers/colors";
-
-
+import "../../styles/HeaderStyle.css";
+import { LightPink } from "../../helpers/colors";
+import SearchNav from "./SearchNav";
+import Avatar from "./Avatar";
 
 const Navbar = () => {
   return (
-    <nav className="navbar frosted-glass" style={{backgroundColor: LightPink}} >
-
-    
-
+    <nav
+      className="navbar frosted-glass"
+      style={{ backgroundColor: LightPink }}
+    >
       <div className="container-fluid">
         <div className="col-md-1 col-2 mx-2">
           <img className="logo img-fluid" src={logo} alt="Logo" />

@@ -1,6 +1,6 @@
 import React from "react";
-import avatar from "../assets/Avatar.png";
-import user_doctor from "../assets/user-doctor.svg";
+import avatar from "../../assets/Avatar.png";
+import user_doctor from "../../assets/user-doctor.svg";
 
 const Avatar = () => {
   return (
@@ -20,7 +20,7 @@ const Avatar = () => {
           <ul className="dropdown-menu" aria-labelledby="avatarDropdown">
             <li>
               <a className="dropdown-item" href="/">
-              <img src={user_doctor} alt="user_doctor" /> My profile
+                <img src={user_doctor} alt="user_doctor" /> My profile
               </a>
             </li>
             <li>
@@ -32,7 +32,7 @@ const Avatar = () => {
             <li>
               {/* Redirect to the "Appointments" page */}
               <a className="dropdown-item" href="/Appointments">
-              <i className="fa fa-calendar"></i> Appointments
+                <i className="fa fa-calendar"></i> Appointments
               </a>
             </li>
           </ul>

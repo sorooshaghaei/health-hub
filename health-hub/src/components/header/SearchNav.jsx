@@ -1,4 +1,4 @@
-import { Teal } from "../helpers/colors";
+import { Teal } from "../../helpers/colors";
 
 const SearchNav = () => {
   return (
@@ -10,8 +10,12 @@ const SearchNav = () => {
           placeholder="Search patients..."
           aria-label="Search"
         />
-        <button className="btn text-white" style={{ backgroundColor: Teal }} type="submit">
-           Search
+        <button
+          className="btn text-white"
+          style={{ backgroundColor: Teal }}
+          type="submit"
+        >
+          Search
         </button>
       </form>
     </div>

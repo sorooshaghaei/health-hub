@@ -1,8 +1,8 @@
 import React from "react";
-import { VeryLightPink } from "../helpers/colors";
-import assignment from "../assets/assignment.svg";
-import date_range from "../assets/date_range.svg";
-import alarm from "../assets/alarm.svg";
+import { VeryLightPink } from "../../helpers/colors";
+import assignment from "../../assets/assignment.svg";
+import date_range from "../../assets/date_range.svg";
+import alarm from "../../assets/alarm.svg";
 
 const Patient = ({ patient }) => {
   return (

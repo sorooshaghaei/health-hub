@@ -1,12 +1,11 @@
 import React from "react";
 import Spinner from "../components/Spinner";
-import Patient from "../components/Patient";
+import Patient from "../components/patients/Patient";
 import { LightTeal } from "../helpers/colors";
 
 const Patients = ({ patient, loading }) => {
   return (
     <div>
-
       <div className="mx-3 mt-3">
         <button
           type="button"
@@ -23,8 +22,11 @@ const Patients = ({ patient, loading }) => {
         <div className="row mx-4">
           {patient.length > 0 ? (
             patient.map((p) => (
-              <div className="col d-flex justify-content-center align-items-center" key={p.id}>
-                <Patient patient={p}  />
+              <div
+                className="col d-flex justify-content-center align-items-center"
+                key={p.id}
+              >
+                <Patient patient={p} />
               </div>
             ))
           ) : (

@@ -4,9 +4,9 @@ import Patients from "./pages/Patients";
 import Appointments from "./pages/Appointments";
 import "./App.css";
 
-import AddPatient from "./components/AddPatient";
-import ViewPatient from "./components/ViewPatient";
-import EditPatient from "./components/EditPatient";
+import AddPatient from "./components/patients/AddPatient";
+import ViewPatient from "./components/patients/ViewPatient";
+import EditPatient from "./components/patients/EditPatient";
 
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -15,6 +15,7 @@ import { Footer, Navbar } from "./components";
 function App() {
   const [loading, setLoading] = useState(false);
   const [getPatient, setPatient] = useState([]);
+  // eslint-disable-next-line
   const [getGroups, setGroups] = useState([]);
 
   // useEffect hook is used to fetch data when the component mounts
@@ -52,7 +53,7 @@ function App() {
 
   return (
     <div className="App">
-      <Navbar/>
+      <Navbar />
       <Routes>
         {/* Redirect to MainPage when the path is "/" */}
         <Route path="/" element={<Navigate to="/MainPage" />} />
@@ -86,7 +87,7 @@ function App() {
           }
         />
       </Routes>
-      <Footer/>
+      <Footer />
     </div>
   );
 }
