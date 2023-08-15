@@ -16,7 +16,7 @@ const Patient = ({ patient }) => {
       }}
     >
       <Link
-        to="/Patients"
+        to={`/Patients/${patient.id}`}
         className="btn"
         style={{ display: "block", textDecoration: "none" }}
       >
