@@ -1,14 +1,22 @@
 import React from "react";
-import { LightRed, Teal, VeryLightPink } from "../../helpers/colors";
+import { LightRed, LightTeal, Teal, VeryLightPink } from "../../helpers/colors";
 import nurse_save_patient_info from "../../assets/nurse_save_patient_info.svg";
 
 const AddPatient = () => {
   return (
     <>
-      <section className="m-5 p-5">
+    
+      <section className="m-5">
+      <p
+                    className="h4 fw-bold text-center mb-5"
+                    style={{color:LightTeal}}
+                  >
+                   Add a new patient
+                  </p>
         <div className="row">
+        
           <div
-            className="card shadow border-0 m-3 col-6"
+            className="card border-0 m-3 col-6"
             style={{
               backgroundColor: VeryLightPink,
               textAlign: "left",
