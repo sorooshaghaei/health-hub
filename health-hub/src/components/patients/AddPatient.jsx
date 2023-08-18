@@ -36,7 +36,7 @@ const AddPatient = () => {
                 </button>
                 <button
                   type="discard"
-                  className="btn mt-3"
+                  className="btn mt-3 mx-2"
                   style={{ backgroundColor: LightRed }}
                 >
                   discard
@@ -49,7 +49,6 @@ const AddPatient = () => {
             src={nurse_save_patient_info}
             className="col-5"
             style={{
-              
               opacity: "50%",
             }}
           />
