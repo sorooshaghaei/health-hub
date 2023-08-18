@@ -64,9 +64,9 @@ function App() {
           element={<Patients patient={getPatient} loading={loading} />}
         />
 
-        <Route path="/patients/addPatient" element={<AddPatient />} />
-        <Route path="/patients/:patientId" element={<ViewPatient />} />
-        <Route path="/patients/edit/:patientId" element={<EditPatient />} />
+        <Route path="/Patients/addPatient" element={<AddPatient />} />
+        <Route path="/Patients/:patientId" element={<ViewPatient />} />
+        <Route path="/Patients/edit/:patientId" element={<EditPatient />} />
 
         <Route path="/Appointments" element={<Appointments />} />
 

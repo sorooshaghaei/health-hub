@@ -2,18 +2,19 @@ import React from "react";
 import Spinner from "../components/Spinner";
 import Patient from "../components/patients/Patient";
 import { LightTeal } from "../helpers/colors";
+import { Link } from "react-router-dom";
 
 const Patients = ({ patient, loading }) => {
   return (
     <div>
       <div className="mx-3 mt-3">
-        <button
-          type="button"
+        <Link
+          to={"/Patients/addPatient"}
           className="btn text-white"
           style={{ backgroundColor: LightTeal }}
         >
           <i className="fa fa-plus"></i> Add Patient
-        </button>
+        </Link>
       </div>
 
       {loading ? (

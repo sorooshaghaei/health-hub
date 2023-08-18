@@ -26,19 +26,11 @@ const Patient = ({ patient }) => {
           </h5>
           <div className="card-text m-3 mt-5">
             <div className="d-flex align-items-start mt-2">
-              <img
-                src={assignment}
-                alt="assignment"
-                className="mx-2"
-              />
+              <img src={assignment} alt="assignment" className="mx-2" />
               <span>{patient.sickness}</span>
             </div>
             <div className="d-flex align-items-start mt-2">
-              <img
-                src={date_range}
-                alt="date_range"
-                className="mx-2"
-              />
+              <img src={date_range} alt="date_range" className="mx-2" />
               <span>{patient.appointmentDate}</span>
             </div>
             <div className="d-flex align-items-start mt-2">
