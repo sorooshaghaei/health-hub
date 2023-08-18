@@ -30,3 +30,8 @@ export const LightWhite = "#E0E5F2";
 
 // very light pink
 export const VeryLightPink = "#FADADB";
+
+// light Red
+export const LightRed = "#EB5F5F";
+
+
