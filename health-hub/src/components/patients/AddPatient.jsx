@@ -5,7 +5,7 @@ import nurse_save_patient_info from "../../assets/nurse_save_patient_info.svg";
 const AddPatient = () => {
   return (
     <>
-      <section className="p-5">
+      <section className="m-5 p-5">
         <div className="row">
           <div
             className="card shadow border-0 m-3 col-6"
@@ -47,9 +47,9 @@ const AddPatient = () => {
           <img
             alt="nurse_save_patient_info"
             src={nurse_save_patient_info}
-            className="col-4"
+            className="col-5"
             style={{
-              zIndex: "-1",
+              
               opacity: "50%",
             }}
           />
