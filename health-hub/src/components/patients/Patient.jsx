@@ -1,8 +1,9 @@
 import React from "react";
-import { VeryLightPink } from "../../helpers/colors";
+import { LightRed, VeryLightPink } from "../../helpers/colors";
 import assignment from "../../assets/assignment.svg";
 import date_range from "../../assets/date_range.svg";
 import alarm from "../../assets/alarm.svg";
+import warning from "../../assets/warning.svg";
 import { Link } from "react-router-dom";
 
 const Patient = ({ patient }) => {
@@ -27,7 +28,7 @@ const Patient = ({ patient }) => {
           <div className="card-text m-3 mt-5">
             <div className="d-flex align-items-start mt-2">
               <img src={assignment} alt="assignment" className="mx-2" />
-              <span>{patient.sickness}</span>
+              <span>{patient.typeOfSickness}</span>
             </div>
             <div className="d-flex align-items-start mt-2">
               <img src={date_range} alt="date_range" className="mx-2" />
@@ -36,6 +37,10 @@ const Patient = ({ patient }) => {
             <div className="d-flex align-items-start mt-2">
               <img src={alarm} alt="alarm" className="mx-2" />
               <span>{patient.appointmentTime}</span>
+            </div>
+            <div className="d-flex align-items-start mt-5">
+              <img src={warning} alt="warning" className="mx-2 rounded-pill p-1 " style={{backgroundColor:LightRed}} />
+              <span>{patient.levelOfUrgency}</span>
             </div>
           </div>
         </div>
