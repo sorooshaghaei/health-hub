@@ -38,8 +38,9 @@ const AddPatient = () => {
                   type="text"
                   className="form-control"
                   id="exampleInputFullName"
-                  aria-describedby="FullNameHelp"
+                  aria-describedby="name"
                   placeholder="Enter Full Name"
+                  required={true}
                 />
               </div>
               <div className="form-group">
@@ -50,7 +51,8 @@ const AddPatient = () => {
                   type="Date"
                   className="form-control"
                   id="appointmentDate"
-                  aria-describedby="FullNameHelp"
+                  aria-describedby="date"
+                  required={true}
                 />
               </div>
               <div className="form-group">
@@ -61,7 +63,7 @@ const AddPatient = () => {
                   type="time"
                   className="form-control"
                   id="appointmentTime"
-                  aria-describedby="FullNameHelp"
+                  aria-describedby="time"
                 />
               </div>
 
@@ -82,6 +84,17 @@ const AddPatient = () => {
                 <option value="1">urgent</option>
                 <option value="2">low</option>
               </select>
+
+              <label htmlFor="phoneNumber" className="mt-3">
+                Enter Phone Number
+              </label>
+              <input
+                type="phone"
+                className="form-control"
+                id="phone"
+                aria-describedby="phone"
+                required={true}
+              />
 
               <button
                 type="submit"
