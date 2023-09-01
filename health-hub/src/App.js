@@ -9,8 +9,9 @@ import ViewPatient from "./components/patients/ViewPatient";
 import EditPatient from "./components/patients/EditPatient";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+
 import { Footer, Navbar } from "./components";
+import { getAllGroups, getAllPatients } from "./services/patientService";
 
 function App() {
   const [loading, setLoading] = useState(false);
@@ -27,14 +28,10 @@ function App() {
         setLoading(true);
 
         // Fetch contacts data from the server using Axios
-        const { data: patientsData } = await axios.get(
-          "http://localhost:9000/patients"
-        );
+        const { data: patientsData } = await getAllPatients();
 
         // Fetch groups data from the server using Axios
-        const { data: groupsData } = await axios.get(
-          "http://localhost:9000/groups"
-        );
+        const { data: groupsData } = await getAllGroups();
 
         // Update the state variables with the fetched data and set loading state to false
         setPatient(patientsData);
