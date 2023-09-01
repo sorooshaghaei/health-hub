@@ -37,6 +37,7 @@
       "id": 4
     }
   ],
+
   "groups": [
     {
       "id": 1,
@@ -51,6 +52,7 @@
       "levelOfUrgency": "low"
     }
   ],
+
   "sickness": [
     {
       "id": 1,
