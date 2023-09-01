@@ -15,9 +15,28 @@ import { getAllGroups, getAllPatients } from "./services/patientService";
 
 function App() {
   const [loading, setLoading] = useState(false);
-  const [getPatient, setPatient] = useState([]);
+  const [getPatients, setPatients] = useState([]);
   // eslint-disable-next-line
   const [getGroups, setGroups] = useState([]);
+
+
+
+
+
+
+  const [getPatient, setPatient] = useState({
+    name: "",
+    phone: "",
+    appointmentDate: "",
+    appointmentTime: "",
+    levelOfUrgency: "",
+    typeOfSickness: "",
+  });
+
+
+
+
+
 
   // useEffect hook is used to fetch data when the component mounts
   useEffect(() => {
@@ -34,7 +53,7 @@ function App() {
         const { data: groupsData } = await getAllGroups();
 
         // Update the state variables with the fetched data and set loading state to false
-        setPatient(patientsData);
+        setPatients(patientsData);
         setGroups(groupsData);
         setLoading(false);
       } catch (err) {
@@ -48,6 +67,19 @@ function App() {
     fetchData();
   }, []);
 
+
+
+const setPatientInfo = (event) =>{
+  
+}
+const createPatientForm = (event) =>{
+
+}
+
+
+
+
+
   return (
     <div className="App">
       <Navbar />
@@ -58,7 +90,7 @@ function App() {
         <Route path="/MainPage" element={<MainPage />} />
         <Route
           path="/Patients"
-          element={<Patients patient={getPatient} loading={loading} />}
+          element={<Patients patient={getPatients} loading={loading} />}
         />
 
         <Route path="/Patients/addPatient" element={<AddPatient />} />
