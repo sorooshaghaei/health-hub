@@ -1,5 +1,5 @@
 import MainPage from "./pages/MainPage";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Patients from "./pages/Patients";
 import Appointments from "./pages/Appointments";
 import "./App.css";
@@ -11,32 +11,30 @@ import EditPatient from "./components/patients/EditPatient";
 import { useState, useEffect } from "react";
 
 import { Footer, Navbar } from "./components";
-import { getAllGroups, getAllPatients } from "./services/patientService";
+import {
+  createPatient,
+  getAllGroups,
+  getAllPatients,
+  getAllSicknesses,
+} from "./services/patientService";
 
 function App() {
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [getPatients, setPatients] = useState([]);
-  // eslint-disable-next-line
+
   const [getGroups, setGroups] = useState([]);
-
-
-
-
-
+  const [getSicknesses, setSicknesses] = useState([]);
 
   const [getPatient, setPatient] = useState({
     name: "",
-    phone: "",
     appointmentDate: "",
     appointmentTime: "",
-    levelOfUrgency: "",
     typeOfSickness: "",
+    levelOfUrgency: "",
+    phone: "",
   });
-
-
-
-
-
 
   // useEffect hook is used to fetch data when the component mounts
   useEffect(() => {
@@ -49,11 +47,14 @@ function App() {
         // Fetch contacts data from the server using Axios
         const { data: patientsData } = await getAllPatients();
 
+        const { data: sicknessData } = await getAllSicknesses();
+
         // Fetch groups data from the server using Axios
         const { data: groupsData } = await getAllGroups();
 
         // Update the state variables with the fetched data and set loading state to false
         setPatients(patientsData);
+        setSicknesses(sicknessData);
         setGroups(groupsData);
         setLoading(false);
       } catch (err) {
@@ -67,18 +68,24 @@ function App() {
     fetchData();
   }, []);
 
-
-
-const setPatientInfo = (event) =>{
-  
-}
-const createPatientForm = (event) =>{
-
-}
-
-
-
-
+  const setPatientInfo = (event) => {
+    setPatient({
+      ...getPatient,
+      [event.target.name]: event.target.value,
+    });
+  };
+  const createPatientForm = async (event) => {
+    event.preventDefault();
+    try {
+      const { status } = await createPatient(getPatient);
+      if (status === 201) {
+        setPatient({});
+        navigate("/Patients");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <div className="App">
@@ -93,7 +100,19 @@ const createPatientForm = (event) =>{
           element={<Patients patient={getPatients} loading={loading} />}
         />
 
-        <Route path="/Patients/addPatient" element={<AddPatient />} />
+        <Route
+          path="/Patients/addPatient"
+          element={
+            <AddPatient
+              loading={loading}
+              setPatientInfo={setPatientInfo}
+              patient={getPatient}
+              groups={getGroups}
+              sicknesses={getSicknesses}
+              createPatientForm={createPatientForm}
+            />
+          }
+        />
         <Route path="/Patients/:patientId" element={<ViewPatient />} />
         <Route path="/Patients/edit/:patientId" element={<EditPatient />} />
 

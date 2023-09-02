@@ -2,42 +2,41 @@
   "patients": [
     {
       "name": "soroosh aghaei",
-      "phone": "09131231202",
       "appointmentDate": "2022-12-12",
       "appointmentTime": "7:30",
-      "levelOfUrgency": "urgent",
       "typeOfSickness": "butox",
+      "levelOfUrgency": "urgent",
+      "phone": "09131231202",
       "id": 1
     },
     {
       "name": "sadeq masoodi",
-      "phone": "09131230000",
       "appointmentDate": "2023-12-1",
       "appointmentTime": "10:00",
-      "levelOfUrgency": "low",
       "typeOfSickness": "surgery",
+      "levelOfUrgency": "low",
+      "phone": "09131230000",
       "id": 2
     },
     {
       "name": "amir akbari",
-      "phone": "09131230000",
       "appointmentDate": "2023-12-1",
       "appointmentTime": "11:00",
-      "levelOfUrgency": "normal",
       "typeOfSickness": "butox",
+      "levelOfUrgency": "normal",
+      "phone": "09131230000",
       "id": 3
     },
     {
       "name": "hossein moradi",
-      "phone": "03030202001",
       "appointmentDate": "2023-12-1",
       "appointmentTime": "11:00",
-      "levelOfUrgency": "urgent",
       "typeOfSickness": "butox",
+      "levelOfUrgency": "urgent",
+      "phone": "03030202001",
       "id": 4
     }
   ],
-
   "groups": [
     {
       "id": 1,
@@ -52,7 +51,6 @@
       "levelOfUrgency": "low"
     }
   ],
-
   "sickness": [
     {
       "id": 1,

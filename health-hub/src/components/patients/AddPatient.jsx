@@ -4,7 +4,14 @@ import nurse_save_patient_info from "../../assets/nurse_save_patient_info.svg";
 import { Link } from "react-router-dom";
 import Spinner from "../Spinner";
 
-const AddPatient = ({loading}) => {
+const AddPatient = ({
+  loading,
+  patient,
+  setPatientInfo,
+  sicknesses,
+  groups,
+  createPatientForm,
+}) => {
   return (
     <>
       {loading ? (
@@ -39,14 +46,15 @@ const AddPatient = ({loading}) => {
               }}
             >
               <div>
-                <form className="p-5">
+                <form onSubmit={createPatientForm} className="p-5">
                   <div className="form-group">
                     <label htmlFor="name">Full Name</label>
                     <input
+                      name="name"
                       type="text"
                       className="form-control"
-                      id="exampleInputFullName"
-                      aria-describedby="name"
+                      value={patient.name}
+                      onChange={setPatientInfo}
                       placeholder="Enter Full Name"
                       required={true}
                     />
@@ -56,10 +64,11 @@ const AddPatient = ({loading}) => {
                       Pick a Date
                     </label>
                     <input
+                      name="appointmentDate"
                       type="Date"
                       className="form-control"
-                      id="appointmentDate"
-                      aria-describedby="date"
+                      value={patient.appointmentDate}
+                      onChange={setPatientInfo}
                       required={true}
                     />
                   </div>
@@ -68,39 +77,57 @@ const AddPatient = ({loading}) => {
                       Pick a Time
                     </label>
                     <input
+                      name="appointmentTime"
                       type="time"
                       className="form-control"
-                      id="appointmentTime"
-                      aria-describedby="time"
+                      value={patient.appointmentTime}
+                      onChange={setPatientInfo}
                     />
                   </div>
 
                   <label htmlFor="typeOfSickness" className="mt-3">
                     Type Of Sickness
                   </label>
-                  <select className="form-select" aria-label="Default">
-                    <option selected>default</option>
-                    <option value="1">butox</option>
-                    <option value="2">surgery</option>
-                    <option value="3">gel</option>
+                  <select
+                    name="typeOfSickness"
+                    className="form-select"
+                    value={patient.typeOfSickness}
+                    onChange={setPatientInfo}
+                  >
+                    {sicknesses.length > 0 &&
+                      sicknesses.map((sickness) => (
+                        <option key={sickness.id} value={sickness.id}>
+                          {sickness.typeOfSickness}
+                        </option>
+                      ))}
                   </select>
+
                   <label htmlFor="levelOfUrgency" className="mt-3">
                     Level Of Urgency
                   </label>
-                  <select className="form-select" aria-label="Default">
-                    <option selected>normal</option>
-                    <option value="1">urgent</option>
-                    <option value="2">low</option>
+                  <select
+                    name="levelOfUrgency"
+                    className="form-select"
+                    value={patient.levelOfUrgency}
+                    onChange={setPatientInfo}
+                  >
+                    {groups.length > 0 &&
+                      groups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.levelOfUrgency}
+                        </option>
+                      ))}
                   </select>
 
                   <label htmlFor="phoneNumber" className="mt-3">
                     Enter Phone Number
                   </label>
                   <input
+                    name="phone"
                     type="phone"
                     className="form-control"
-                    id="phone"
-                    aria-describedby="phone"
+                    value={patient.phone}
+                    onChange={setPatientInfo}
                     required={true}
                   />
 
