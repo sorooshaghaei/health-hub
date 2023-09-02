@@ -35,6 +35,15 @@
       "levelOfUrgency": "urgent",
       "phone": "03030202001",
       "id": 4
+    },
+    {
+      "name": "dsa",
+      "appointmentDate": "2023-09-11",
+      "appointmentTime": "03:45",
+      "typeOfSickness": "gel",
+      "levelOfUrgency": "normal",
+      "phone": "2",
+      "id": 5
     }
   ],
   "groups": [

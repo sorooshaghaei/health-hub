@@ -96,7 +96,7 @@ const AddPatient = ({
                   >
                     {sicknesses.length > 0 &&
                       sicknesses.map((sickness) => (
-                        <option key={sickness.id} value={sickness.id}>
+                        <option key={sickness.id} value={sickness.typeOfSickness}>
                           {sickness.typeOfSickness}
                         </option>
                       ))}
@@ -113,7 +113,7 @@ const AddPatient = ({
                   >
                     {groups.length > 0 &&
                       groups.map((group) => (
-                        <option key={group.id} value={group.id}>
+                        <option key={group.id} value={group.levelOfUrgency}>
                           {group.levelOfUrgency}
                         </option>
                       ))}
