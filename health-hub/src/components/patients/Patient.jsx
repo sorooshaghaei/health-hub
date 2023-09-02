@@ -39,7 +39,12 @@ const Patient = ({ patient }) => {
               <span>{patient.appointmentTime}</span>
             </div>
             <div className="d-flex align-items-start mt-5">
-              <img src={warning} alt="warning" className="mx-2 rounded-pill p-1 " style={{backgroundColor:LightRed}} />
+              <img
+                src={warning}
+                alt="warning"
+                className="mx-2 rounded-pill p-1 "
+                style={{ backgroundColor: LightRed }}
+              />
               <span>{patient.levelOfUrgency}</span>
             </div>
           </div>
