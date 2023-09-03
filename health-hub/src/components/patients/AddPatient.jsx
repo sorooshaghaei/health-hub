@@ -94,6 +94,7 @@ const AddPatient = ({
                     value={patient.typeOfSickness}
                     onChange={setPatientInfo}
                   >
+                    <option value="">choose one</option>
                     {sicknesses.length > 0 &&
                       sicknesses.map((sickness) => (
                         <option key={sickness.id} value={sickness.typeOfSickness}>
@@ -111,6 +112,7 @@ const AddPatient = ({
                     value={patient.levelOfUrgency}
                     onChange={setPatientInfo}
                   >
+                     <option value="">choose one</option>
                     {groups.length > 0 &&
                       groups.map((group) => (
                         <option key={group.id} value={group.levelOfUrgency}>

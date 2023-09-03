@@ -44,6 +44,15 @@
       "levelOfUrgency": "normal",
       "phone": "2",
       "id": 5
+    },
+    {
+      "name": "fwf",
+      "appointmentDate": "2023-10-27",
+      "appointmentTime": "03:15",
+      "typeOfSickness": "surgery",
+      "levelOfUrgency": "normal",
+      "phone": "1323",
+      "id": 6
     }
   ],
   "groups": [
@@ -63,18 +72,14 @@
   "sickness": [
     {
       "id": 1,
-      "typeOfSickness": "default"
-    },
-    {
-      "id": 2,
       "typeOfSickness": "butox"
     },
     {
-      "id": 3,
+      "id": 2,
       "typeOfSickness": "surgery"
     },
     {
-      "id": 4,
+      "id": 3,
       "typeOfSickness": "gel"
     }
   ]
