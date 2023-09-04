@@ -113,8 +113,8 @@ function App() {
             />
           }
         />
-        <Route path="/Patients/:patientId" element={<ViewPatient />} />
-        <Route path="/Patients/edit/:patientId" element={<EditPatient />} />
+        <Route path="/Patients/:patientID" element={<ViewPatient/>} />
+        <Route path="/Patients/edit/:patientID" element={<EditPatient />} />
 
         <Route path="/Appointments" element={<Appointments />} />
 

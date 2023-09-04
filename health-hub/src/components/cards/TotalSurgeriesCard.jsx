@@ -30,7 +30,7 @@ const TotalSurgeriesCard = () => {
               <b style={{ color: LightWhite }}>2.77%</b>
             </div>
             <div
-              class="col badge rounded-pill "
+              className="col badge rounded-pill "
               style={{ backgroundColor: Salmon }}
             >
               <span>New</span>
