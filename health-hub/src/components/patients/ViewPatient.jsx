@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { LightRed, Teal, VeryLightPink} from "../../helpers/colors";
+import { LightRed, Teal, VeryLightPink, White } from "../../helpers/colors";
 import Spinner from "../Spinner";
 import { useParams } from "react-router-dom";
 import { getPatientInfo } from "../../services/patientService";
@@ -52,41 +52,54 @@ const ViewPatient = () => {
                   >
                     <div>
                       <div className="p-5">
-                        <h5 name="name" className="form-group mb-4">
-                          Full Name: <b>{patient.name}</b>
-                        </h5>
-
-                        <h5 name="typeOfSickness" className="form-group mb-4">
-                          Type Of Sickness: <b>{patient.typeOfSickness}</b>
-                        </h5>
-                        <h5 name="appointmentDate" className="form-group mb-4">
-                          Date: <b>{patient.appointmentDate}</b>
-                        </h5>
-                        <h5 name="appointmentTime" className="form-group mb-4">
-                          Time: <b>{patient.appointmentTime}</b>
-                        </h5>
-                        <h5 name="levelOfUrgency" className="form-group mb-4">
-                          Urgency: <b>{patient.levelOfUrgency}</b>
-                        </h5>
-                        <h5 name="phone" className="form-group mb-4">
-                          Phone Number: <b>{patient.phone}</b>
-                        </h5>
-
-                        <button
-                          type="submit"
-                          className="btn mt-3 text-white"
-                          style={{ backgroundColor: Teal }}
+                        <div
+                          className="card rounded-3 p-4"
+                          style={{ backgroundColor: White }}
                         >
-                          save changes
-                        </button>
-                        <button
-                          to={"/Patients"}
-                          type="delete"
-                          className="btn mt-3 mx-3 text-white"
-                          style={{ backgroundColor: LightRed }}
-                        >
-                          delete patient
-                        </button>
+                          <h5 name="name" className="form-group mb-4">
+                            Full Name: <b>{patient.name}</b>
+                          </h5>
+
+                          <h5 name="typeOfSickness" className="form-group mb-4">
+                            Type Of Sickness: <b>{patient.typeOfSickness}</b>
+                          </h5>
+                          <h5
+                            name="appointmentDate"
+                            className="form-group mb-4"
+                          >
+                            Date: <b>{patient.appointmentDate}</b>
+                          </h5>
+                          <h5
+                            name="appointmentTime"
+                            className="form-group mb-4"
+                          >
+                            Time: <b>{patient.appointmentTime}</b>
+                          </h5>
+                          <h5 name="levelOfUrgency" className="form-group mb-4">
+                            Urgency: <b>{patient.levelOfUrgency}</b>
+                          </h5>
+                          <h5 name="phone" className="form-group mb-4">
+                            Phone Number: <b>{patient.phone}</b>
+                          </h5>
+                          <div>
+                            <button
+                              // to={"/Patients"}
+                              type="delete"
+                              className="btn mt-3 text-white"
+                              style={{ backgroundColor: LightRed }}
+                            >
+                              <i className="fa fa-trash"></i> delete patient
+                            </button>
+                            <button
+                              // to={"/Patients"}
+                              type="delete"
+                              className="btn mt-3 mx-3 text-white"
+                              style={{ backgroundColor: Teal }}
+                            >
+                              <i className="fa fa-pencil"></i> edit patient
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
