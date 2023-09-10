@@ -1,7 +1,6 @@
 import React from "react";
 import FullCalendar from "@fullcalendar/react";
 import daygridPlugin from "@fullcalendar/daygrid";
-import { Navbar } from "../components";
 
 const Appointments = () => {
   return (
