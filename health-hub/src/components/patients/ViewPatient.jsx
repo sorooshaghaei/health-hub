@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { LightRed, Teal, VeryLightPink, White } from "../../helpers/colors";
 import Spinner from "../Spinner";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { getPatientInfo } from "../../services/patientService";
 
 const ViewPatient = () => {
@@ -90,14 +90,14 @@ const ViewPatient = () => {
                             >
                               <i className="fa fa-trash"></i> delete patient
                             </button>
-                            <button
-                              // to={"/Patients"}
-                              type="delete"
+                            <Link
+                              to={`/Patients/edit/${patient.id}`}
+                              type="edit"
                               className="btn mt-3 mx-3 text-white"
                               style={{ backgroundColor: Teal }}
                             >
                               <i className="fa fa-pencil"></i> edit patient
-                            </button>
+                            </Link>
                           </div>
                         </div>
                       </div>

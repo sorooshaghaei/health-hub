@@ -1,7 +1,9 @@
 {
   "patients": [
     {
-      "name": "soroosh aghaei",
+      "name": [
+        "soroosh aghaei"
+      ],
       "appointmentDate": "2022-12-12",
       "appointmentTime": "7:30",
       "typeOfSickness": "butox",
