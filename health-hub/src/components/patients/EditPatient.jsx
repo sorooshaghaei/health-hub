@@ -68,11 +68,6 @@ const EditPatient = () => {
     event.preventDefault();
     try {
       setState({ ...state, loading: true });
-
-      const url = `/patients/edit/${patientID}`;
-      console.log("Request URL:", url);
-
-
       const { data: updated } = await updatePatient(state.patient, patientID);
 
       setState({ ...state, loading: false });
