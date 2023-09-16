@@ -48,10 +48,14 @@
       "id": 5
     },
     {
-      "name": "fwf",
+      "name": [
+        "new patient"
+      ],
       "appointmentDate": "2023-10-27",
       "appointmentTime": "03:15",
-      "typeOfSickness": "surgery",
+      "typeOfSickness": [
+        "butox"
+      ],
       "levelOfUrgency": "normal",
       "phone": "1323",
       "id": 6
