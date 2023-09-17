@@ -2,6 +2,32 @@ import React from 'react'
 
 const deletePatient = () => {
 
+
+
+// i shoud create this delete component and use it in all the web
+// it is not created yet. only the elements are here. 
+
+// things I should do: 
+// 1) create this delete component and make sure it works everywhere
+// 2) design delete confirm better!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const confirm = () => {
         confirmAlert({
           customUI: ({ onClose }) => {
