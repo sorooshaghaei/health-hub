@@ -1,6 +1,7 @@
 import React from "react";
+// import { LightRed } from "../helpers/colors";
 
-const PatientTable = ({ patient }) => {
+const PatientTable = ({ patient}) => {
   return (
     <div>
       <table className="table table-hover border rounded">
@@ -20,7 +21,16 @@ const PatientTable = ({ patient }) => {
               <td>{p.name}</td>
               <td>{p.phone}</td>
               <td>{p.appointmentDate}</td>
-              <td>Handle Data</td>
+              <td>
+                {/* <button
+                  onClick={confirmDelete}
+                  type="delete"
+                  className="btn text-white"
+                  style={{ backgroundColor: LightRed }}
+                >
+                  <i className="fa fa-trash"></i>
+                </button> */}
+              </td>
             </tr>
           ))}
         </tbody>

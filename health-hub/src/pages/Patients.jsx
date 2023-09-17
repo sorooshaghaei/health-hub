@@ -5,7 +5,7 @@ import { LightTeal } from "../helpers/colors";
 import { Link } from "react-router-dom";
 import PatientTable from "../components/PatientTable";
 
-const Patients = ({ patient, loading }) => {
+const Patients = ({ patient, loading, confirmDelete }) => {
   return (
     <div>
       <div className="mx-3 mt-3">
@@ -25,7 +25,12 @@ const Patients = ({ patient, loading }) => {
           <div className="col m-5">
             <div>
               {patient.length > 0 ? (
-                <PatientTable patient={patient} />
+                <PatientTable
+                  patient={patient}
+                  confirmDelete={() => {
+                    confirmDelete(patient.id, patient.name);
+                  }}
+                />
               ) : (
                 <p>No patient data available</p>
               )}

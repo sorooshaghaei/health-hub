@@ -52,6 +52,7 @@ const EditPatient = () => {
       }
     };
     fetchData();
+    // eslint-disable-next-line
   }, [patientID]);
 
   const setPatientInfo = (event) => {

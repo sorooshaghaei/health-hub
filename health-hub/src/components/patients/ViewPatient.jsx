@@ -1,11 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { LightRed, Teal, VeryLightPink, White } from "../../helpers/colors";
+import {
+  DarkGray,
+  LightPink,
+  LightRed,
+  Red,
+  Teal,
+  VeryLightPink,
+  White,
+} from "../../helpers/colors";
 import Spinner from "../Spinner";
 import { Link, useParams } from "react-router-dom";
-import { getPatientInfo } from "../../services/patientService";
+import {
+  deletePatient,
+  getAllPatients,
+  getPatientInfo,
+} from "../../services/patientService";
+
+import { confirmAlert } from "react-confirm-alert"; // Import the confirmAlert function
 
 const ViewPatient = () => {
   const { patientID } = useParams();
+
+  const [loading, setLoading] = useState(false);
+  const [getPatients, setPatients] = useState([]);
 
   const [state, setState] = useState({
     loading: false,
@@ -31,7 +48,63 @@ const ViewPatient = () => {
     fetchData();
   }, [patientID]);
 
-  const { loading, patient } = state;
+  const { patient } = state;
+
+  const confirm = () => {
+    confirmAlert({
+      customUI: ({ onClose }) => {
+        return (
+          <>
+            <div
+              style={{
+                backgroundColor: Teal,
+                border: `1px solid ${LightPink}`,
+                borderRadius: "1em",
+              }}
+              className="p-4"
+            >
+              <h1 style={{ color: DarkGray }}>Delete Patient</h1>
+              <p style={{ color: DarkGray }}>
+                Are you sure, you wanna delete {patient.name}?
+              </p>
+              <button
+                onClick={() => {
+                  removePatient(patientID);
+                  onClose();
+                }}
+                className="btn mx-2"
+                style={{ backgroundColor: Teal }}
+              >
+                yes!
+              </button>
+              <button
+                onClick={onClose}
+                className="btn "
+                style={{ backgroundColor: Red }}
+              >
+                no!
+              </button>
+            </div>
+          </>
+        );
+      },
+    });
+  };
+
+  const removePatient = async (patientID) => {
+    try {
+      setLoading(false);
+      const response = await deletePatient(patientID);
+      if (response) {
+        const { data: patientsData } = await getAllPatients();
+        setPatients(patientsData);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.log(error);
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -83,7 +156,7 @@ const ViewPatient = () => {
                           </h5>
                           <div>
                             <button
-                              // to={"/Patients"}
+                              onClick={confirm}
                               type="delete"
                               className="btn mt-3 text-white"
                               style={{ backgroundColor: LightRed }}

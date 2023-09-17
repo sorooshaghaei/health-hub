@@ -1,26 +1,6 @@
 {
   "patients": [
     {
-      "name": [
-        "soroosh aghaei"
-      ],
-      "appointmentDate": "2022-12-12",
-      "appointmentTime": "7:30",
-      "typeOfSickness": "butox",
-      "levelOfUrgency": "urgent",
-      "phone": "09131231202",
-      "id": 1
-    },
-    {
-      "name": "sadeq masoodi",
-      "appointmentDate": "2023-12-1",
-      "appointmentTime": "10:00",
-      "typeOfSickness": "surgery",
-      "levelOfUrgency": "low",
-      "phone": "09131230000",
-      "id": 2
-    },
-    {
       "name": "amir akbari",
       "appointmentDate": "2023-12-1",
       "appointmentTime": "11:00",
@@ -39,26 +19,22 @@
       "id": 4
     },
     {
-      "name": "dsa",
-      "appointmentDate": "2023-09-11",
-      "appointmentTime": "03:45",
+      "name": "soroosh",
+      "appointmentDate": "2023-09-12",
+      "appointmentTime": "19:52",
       "typeOfSickness": "gel",
       "levelOfUrgency": "normal",
-      "phone": "2",
-      "id": 5
+      "phone": "09023232322",
+      "id": 6
     },
     {
-      "name": [
-        "new patient"
-      ],
-      "appointmentDate": "2023-10-27",
-      "appointmentTime": "03:15",
-      "typeOfSickness": [
-        "butox"
-      ],
-      "levelOfUrgency": "normal",
-      "phone": "1323",
-      "id": 6
+      "name": "yas",
+      "appointmentDate": "2023-09-01",
+      "appointmentTime": "15:57",
+      "typeOfSickness": "surgery",
+      "levelOfUrgency": "urgent",
+      "phone": "423423423",
+      "id": 7
     }
   ],
   "groups": [
