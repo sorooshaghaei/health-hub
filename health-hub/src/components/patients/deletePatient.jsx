@@ -1,5 +1,5 @@
 import React from "react";
-import { DarkGray, LightPink, LightRed, Red, Teal } from "../../helpers/colors";
+import { DarkGray, LightPink, LightRed, LightTeal } from "../../helpers/colors";
 import { deletePatient } from "../../services/patientService";
 import { confirmAlert } from "react-confirm-alert";
 
@@ -10,11 +10,11 @@ const DeletePatient = ({ patient, onDelete }) => {
         return (
           <div
             style={{
-              backgroundColor: Teal,
+              backgroundColor: LightPink,
               border: `1px solid ${LightPink}`,
               borderRadius: "1em",
             }}
-            className="p-4"
+            className="p-4 text-center"
           >
             <h1 style={{ color: DarkGray }}>Delete Patient</h1>
             <p style={{ color: DarkGray }}>
@@ -32,16 +32,16 @@ const DeletePatient = ({ patient, onDelete }) => {
                 }
               }}
               className="btn mx-2"
-              style={{ backgroundColor: Teal }}
+              style={{ backgroundColor: LightRed }}
             >
-              Yes
+              Yes!
             </button>
             <button
               onClick={onClose}
               className="btn"
-              style={{ backgroundColor: Red }}
+              style={{ backgroundColor: LightTeal }}
             >
-              No
+              No!
             </button>
           </div>
         );
