@@ -1,26 +1,15 @@
 import React, { useEffect, useState } from "react";
-import {
-  DarkGray,
-  LightPink,
-  LightRed,
-  Red,
-  Teal,
-  VeryLightPink,
-  White,
-} from "../../helpers/colors";
+import { Teal, VeryLightPink, White } from "../../helpers/colors";
 import Spinner from "../Spinner";
 import { Link, useParams } from "react-router-dom";
-import {
-  deletePatient,
-  getAllPatients,
-  getPatientInfo,
-} from "../../services/patientService";
+import { getPatientInfo } from "../../services/patientService";
 
-import { confirmAlert } from "react-confirm-alert"; // Import the confirmAlert function
+import DeletePatient from "./deletePatient"; // Import the DeletePatient component
 
 const ViewPatient = () => {
   const { patientID } = useParams();
 
+  // eslint-disable-next-line
   const [loading, setLoading] = useState(false);
   const [getPatients, setPatients] = useState([]);
 
@@ -50,60 +39,69 @@ const ViewPatient = () => {
 
   const { patient } = state;
 
-  const confirm = () => {
-    confirmAlert({
-      customUI: ({ onClose }) => {
-        return (
-          <>
-            <div
-              style={{
-                backgroundColor: Teal,
-                border: `1px solid ${LightPink}`,
-                borderRadius: "1em",
-              }}
-              className="p-4"
-            >
-              <h1 style={{ color: DarkGray }}>Delete Patient</h1>
-              <p style={{ color: DarkGray }}>
-                Are you sure, you wanna delete {patient.name}?
-              </p>
-              <button
-                onClick={() => {
-                  removePatient(patientID);
-                  onClose();
-                }}
-                className="btn mx-2"
-                style={{ backgroundColor: Teal }}
-              >
-                yes!
-              </button>
-              <button
-                onClick={onClose}
-                className="btn "
-                style={{ backgroundColor: Red }}
-              >
-                no!
-              </button>
-            </div>
-          </>
-        );
-      },
-    });
-  };
+  // const confirm = () => {
+  //   confirmAlert({
+  //     customUI: ({ onClose }) => {
+  //       return (
+  //         <>
+  //           <div
+  //             style={{
+  //               backgroundColor: Teal,
+  //               border: `1px solid ${LightPink}`,
+  //               borderRadius: "1em",
+  //             }}
+  //             className="p-4"
+  //           >
+  //             <h1 style={{ color: DarkGray }}>Delete Patient</h1>
+  //             <p style={{ color: DarkGray }}>
+  //               Are you sure, you wanna delete {patient.name}?
+  //             </p>
+  //             <button
+  //               onClick={() => {
+  //                 removePatient(patientID);
+  //                 onClose();
+  //               }}
+  //               className="btn mx-2"
+  //               style={{ backgroundColor: Teal }}
+  //             >
+  //               yes!
+  //             </button>
+  //             <button
+  //               onClick={onClose}
+  //               className="btn "
+  //               style={{ backgroundColor: Red }}
+  //             >
+  //               no!
+  //             </button>
+  //           </div>
+  //         </>
+  //       );
+  //     },
+  //   });
+  // };
 
-  const removePatient = async (patientID) => {
-    try {
-      setLoading(false);
-      const response = await deletePatient(patientID);
-      if (response) {
-        const { data: patientsData } = await getAllPatients();
-        setPatients(patientsData);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.log(error);
-      setLoading(false);
-    }
+  // const removePatient = async (patientID) => {
+  //   try {
+  //     setLoading(false);
+  //     const response = await deletePatient(patientID);
+  //     if (response) {
+  //       const { data: patientsData } = await getAllPatients();
+  //       setPatients(patientsData);
+  //       setLoading(false);
+  //     }
+  //   } catch (error) {
+  //     console.log(error);
+  //     setLoading(false);
+  //   }
+  // };
+
+  const onDelete = (deletedPatientID) => {
+    // Handle the deletion in your local state or perform any necessary actions
+    // For example, you can update the patient list after deletion
+    const updatedPatients = getPatients.filter(
+      (patient) => patient.id !== deletedPatientID
+    );
+    setPatients(updatedPatients);
   };
 
   return (
@@ -155,14 +153,11 @@ const ViewPatient = () => {
                             Phone Number: <b>{patient.phone}</b>
                           </h5>
                           <div>
-                            <button
-                              onClick={confirm}
-                              type="delete"
-                              className="btn mt-3 text-white"
-                              style={{ backgroundColor: LightRed }}
-                            >
-                              <i className="fa fa-trash"></i> delete patient
-                            </button>
+                            <DeletePatient
+                              patient={patient}
+                              onDelete={onDelete}
+                            />
+
                             <Link
                               to={`/Patients/edit/${patient.id}`}
                               type="edit"
