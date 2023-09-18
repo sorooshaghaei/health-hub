@@ -53,7 +53,7 @@ const DeletePatient = ({ patient, onDelete }) => {
     <button
       onClick={confirmDelete}
       type="delete"
-      className="btn mt-3 text-white"
+      className="btn text-white"
       style={{ backgroundColor: LightRed }}
     >
       <i className="fa fa-trash"></i> Delete Patient

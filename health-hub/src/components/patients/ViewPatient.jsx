@@ -96,7 +96,7 @@ const ViewPatient = () => {
                           <h5 name="phone" className="form-group mb-4">
                             Phone Number: <b>{patient.phone}</b>
                           </h5>
-                          <div>
+                          <div className="mt-3">
                             <DeletePatient
                               patient={patient}
                               onDelete={onDelete}
@@ -105,7 +105,7 @@ const ViewPatient = () => {
                             <Link
                               to={`/Patients/edit/${patient.id}`}
                               type="edit"
-                              className="btn mt-3 mx-3 text-white"
+                              className="btn mx-3 text-white"
                               style={{ backgroundColor: Teal }}
                             >
                               <i className="fa fa-pencil"></i> edit patient

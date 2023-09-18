@@ -1,7 +1,18 @@
-import React from "react";
-// import { LightRed } from "../helpers/colors";
+import React, { useState } from "react";
+import DeletePatient from "./patients/deletePatient"; // Import the DeletePatient component
 
-const PatientTable = ({ patient}) => {
+const PatientTable = ({ patient }) => {
+  const [getPatients, setPatients] = useState([]);
+
+  const onDelete = (deletedPatientID) => {
+    // Handle the deletion in your local state or perform any necessary actions
+    // For example, you can update the patient list after deletion
+    const updatedPatients = getPatients.filter(
+      (patient) => patient.id !== deletedPatientID
+    );
+    setPatients(updatedPatients);
+  };
+
   return (
     <div>
       <table className="table table-hover border rounded">
@@ -14,6 +25,7 @@ const PatientTable = ({ patient}) => {
             <th scope="col">Handle</th>
           </tr>
         </thead>
+
         <tbody>
           {patient.map((p) => (
             <tr key={p.id}>
@@ -22,14 +34,7 @@ const PatientTable = ({ patient}) => {
               <td>{p.phone}</td>
               <td>{p.appointmentDate}</td>
               <td>
-                {/* <button
-                  onClick={confirmDelete}
-                  type="delete"
-                  className="btn text-white"
-                  style={{ backgroundColor: LightRed }}
-                >
-                  <i className="fa fa-trash"></i>
-                </button> */}
+                <DeletePatient patient={patient} onDelete={onDelete} />
               </td>
             </tr>
           ))}
