@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Teal, VeryLightPink, White } from "../../helpers/colors";
 import Spinner from "../Spinner";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { getPatientInfo } from "../../services/patientService";
 
 import DeletePatient from "./deletePatient"; // Import the DeletePatient component
 
 const ViewPatient = () => {
   const { patientID } = useParams();
+  const navigate = useNavigate();
 
   // eslint-disable-next-line
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,8 @@ const ViewPatient = () => {
       (patient) => patient.id !== deletedPatientID
     );
     setPatients(updatedPatients);
+
+    navigate("/Patients");
   };
 
   return (
