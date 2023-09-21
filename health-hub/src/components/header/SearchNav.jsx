@@ -6,6 +6,7 @@ const SearchNav = ({ patient }) => {
   const [query, setQuery] = useState({ text: "" });
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   const handleInputChange = (event) => {
     const searchText = event.target.value;
@@ -25,8 +26,7 @@ const SearchNav = ({ patient }) => {
   const handlePatientClick = (selectedPatient) => {
     setQuery({ text: selectedPatient.name });
     setShowDropdown(false); // Hide the dropdown when a patient is selected.
-
-    // window.location.href = `/Patients/${selectedPatient.id}`;
+    setSelectedPatient(selectedPatient); // Set the selected patient
   };
 
   return (
@@ -48,10 +48,25 @@ const SearchNav = ({ patient }) => {
                 {filteredPatients.map((patient) => (
                   <li
                     key={patient.id}
-                    className="dropdown-item "
+                    className="dropdown-item patient-item"
                     onClick={() => handlePatientClick(patient)}
                   >
-                    {patient.name}
+                    <div className="row ">
+                      <div className="col" style={{ fontSize: "14px" }}>
+                        {patient.name}
+                      </div>
+                      <div className="col" style={{ fontSize: "14px" }}>
+                        {patient.phone}
+                      </div>
+
+                      <hr
+                        style={{
+                          borderTop: "2px solid ",
+                          margin: "5px 0",
+                          color: Teal,
+                        }}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -59,27 +74,14 @@ const SearchNav = ({ patient }) => {
           )}
         </div>
         <div className="col-3">
-          {/* Always render the search button */}
+          {/* Always render the search button ===> ba komak in: ?.id || ""  */}
           <Link
-            to={`patients/${filteredPatients[0]?.id || ""}`}
+            to={`patients/${selectedPatient?.id || ""}`}
             className="btn text-white"
             style={{ backgroundColor: Teal }}
-            onClick={() => handlePatientClick(filteredPatients[0])}
           >
             Search
           </Link>
-
-          {/* 
-          // Render the search button only if there are filtered patients
-              {filteredPatients.length > 0 &&  (
-              <Link
-              to={`patients/${filteredPatients[0].id}`}
-    
-              className="btn text-white"
-                style={{ backgroundColor: Teal }}
-                onClick={() => handlePatientClick(filteredPatients[0])}>
-                  Search
-            </Link> */}
         </div>
       </form>
     </div>
