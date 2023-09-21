@@ -2,24 +2,24 @@ import React, { useState } from "react";
 import { Teal } from "../../helpers/colors";
 import { Link } from "react-router-dom";
 
-const SearchNav = ({ patient, setPatient }) => {
+const SearchNav = ({ patient }) => {
   const [query, setQuery] = useState({ text: "" });
+  const [filteredPatients, setFilteredPatients] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const handleInputChange = (event) => {
-    setQuery({ ...query, text: event.target.value });
-    const allPatients = patient.filter((p) => {
-      return p.name.toLowerCase().includes(event.target.value.toLowerCase());
+    const searchText = event.target.value;
+    setQuery({ text: searchText });
+
+    // Filter patients based on the search text
+    const filteredPatients = patient.filter((patient) => {
+      return patient.name.toLowerCase().includes(searchText.toLowerCase());
     });
 
-    setPatient(allPatients);
+    setFilteredPatients(filteredPatients);
 
     // Check if the input is null and set showDropdown accordingly
-    if (event.target.value === "") {
-      setShowDropdown(false);
-    } else {
-      setShowDropdown(true);
-    }
+    setShowDropdown(searchText !== "");
   };
 
   const handlePatientClick = (selectedPatient) => {
@@ -40,10 +40,10 @@ const SearchNav = ({ patient, setPatient }) => {
             aria-label="Search"
           />
 
-          {showDropdown && patient.length > 0 && (
+          {showDropdown && filteredPatients.length > 0 && (
             <div className="dropdown">
               <ul className="dropdown-menu" style={{ display: "block" }}>
-                {patient.map((patient) => (
+                {filteredPatients.map((patient) => (
                   <li
                     key={patient.id}
                     className="dropdown-item "
@@ -57,6 +57,7 @@ const SearchNav = ({ patient, setPatient }) => {
           )}
         </div>
         <div className="col-3">
+          {/* Here you should specify which patient you want to link to */}
           <Link
             to={`/Patients/${patient.id}`}
             className="btn text-white"
