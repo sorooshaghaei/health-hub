@@ -12,9 +12,13 @@ const SearchNav = ({ patient }) => {
     const searchText = event.target.value;
     setQuery({ text: searchText });
 
-    // Filter patients based on the search text
+    // Filter patients based on the search text (name or phone number)
     const filteredPatients = patient.filter((patient) => {
-      return patient.name.toLowerCase().includes(searchText.toLowerCase());
+      const nameMatch = patient.name
+        .toLowerCase()
+        .includes(searchText.toLowerCase());
+      const phoneMatch = patient.phone.includes(searchText);
+      return nameMatch || phoneMatch;
     });
 
     setFilteredPatients(filteredPatients);
@@ -51,22 +55,21 @@ const SearchNav = ({ patient }) => {
                     className="dropdown-item patient-item"
                     onClick={() => handlePatientClick(patient)}
                   >
-                    <div className="row ">
+                    <div className="row">
                       <div className="col" style={{ fontSize: "14px" }}>
                         {patient.name}
                       </div>
                       <div className="col" style={{ fontSize: "14px" }}>
                         {patient.phone}
                       </div>
-
-                      <hr
-                        style={{
-                          borderTop: "2px solid ",
-                          margin: "5px 0",
-                          color: Teal,
-                        }}
-                      />
                     </div>
+                    <hr
+                      style={{
+                        borderTop: "2px solid ",
+                        margin: "5px 0",
+                        color: Teal,
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -74,7 +77,7 @@ const SearchNav = ({ patient }) => {
           )}
         </div>
         <div className="col-3">
-          {/* Always render the search button ===> ba komak in: ?.id || ""  */}
+          {/* Always render the search button */}
           <Link
             to={`patients/${selectedPatient?.id || ""}`}
             className="btn text-white"
