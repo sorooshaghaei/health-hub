@@ -25,6 +25,8 @@ const SearchNav = ({ patient }) => {
   const handlePatientClick = (selectedPatient) => {
     setQuery({ text: selectedPatient.name });
     setShowDropdown(false); // Hide the dropdown when a patient is selected.
+
+    // window.location.href = `/Patients/${selectedPatient.id}`;
   };
 
   return (
@@ -57,15 +59,27 @@ const SearchNav = ({ patient }) => {
           )}
         </div>
         <div className="col-3">
-          {/* Here you should specify which patient you want to link to */}
+          {/* Always render the search button */}
           <Link
-            to={`/Patients/${patient.id}`}
+            to={`patients/${filteredPatients[0]?.id || ""}`}
             className="btn text-white"
             style={{ backgroundColor: Teal }}
-            type="submit"
+            onClick={() => handlePatientClick(filteredPatients[0])}
           >
             Search
           </Link>
+
+          {/* 
+          // Render the search button only if there are filtered patients
+              {filteredPatients.length > 0 &&  (
+              <Link
+              to={`patients/${filteredPatients[0].id}`}
+    
+              className="btn text-white"
+                style={{ backgroundColor: Teal }}
+                onClick={() => handlePatientClick(filteredPatients[0])}>
+                  Search
+            </Link> */}
         </div>
       </form>
     </div>
