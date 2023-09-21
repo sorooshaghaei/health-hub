@@ -7,35 +7,25 @@ const SearchNav = ({ patient }) => {
   const [patients, setPatients] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // const handleInputChange = (event) => {
-  //   setQuery({ ...query, text: event.target.value });
-  //   const allPatients = patient.filter((p) => {
-  //     return p.name.toLowerCase().includes(event.target.value.toLowerCase());
-  //   });
-
-  //   setPatients(allPatients);
-  //   setShowDropdown(true); // Show the dropdown when there are search results.
-  // };
   const handleInputChange = (event) => {
     setQuery({ ...query, text: event.target.value });
     const allPatients = patient.filter((p) => {
       return p.name.toLowerCase().includes(event.target.value.toLowerCase());
     });
-  
+
     setPatients(allPatients);
-  
-    // Add the conditional check here to hide the dropdown when input is null.
-    if (event.target.value === null) {
+
+    // Check if the input is null and set showDropdown accordingly
+    if (event.target.value === "") {
       setShowDropdown(false);
     } else {
-      setShowDropdown(true); // Show the dropdown when there are search results.
+      setShowDropdown(true);
     }
   };
 
   const handlePatientClick = (selectedPatient) => {
     setQuery({ text: selectedPatient.name });
     setShowDropdown(false); // Hide the dropdown when a patient is selected.
-    
   };
 
   return (
