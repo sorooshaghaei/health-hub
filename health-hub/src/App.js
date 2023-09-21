@@ -89,7 +89,7 @@ function App() {
 
   return (
     <div className="App">
-      <Navbar patient={getPatients} />
+      <Navbar patient={getPatients} setPatient={setPatient} />
       <Routes>
         {/* Redirect to MainPage when the path is "/" */}
         <Route path="/" element={<Navigate to="/MainPage" />} />

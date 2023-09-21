@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { Teal } from "../../helpers/colors";
 import { Link } from "react-router-dom";
 
-const SearchNav = ({ patient }) => {
+const SearchNav = ({ patient, setPatient }) => {
   const [query, setQuery] = useState({ text: "" });
-  const [patients, setPatients] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const handleInputChange = (event) => {
@@ -13,7 +12,7 @@ const SearchNav = ({ patient }) => {
       return p.name.toLowerCase().includes(event.target.value.toLowerCase());
     });
 
-    setPatients(allPatients);
+    setPatient(allPatients);
 
     // Check if the input is null and set showDropdown accordingly
     if (event.target.value === "") {
@@ -41,10 +40,10 @@ const SearchNav = ({ patient }) => {
             aria-label="Search"
           />
 
-          {showDropdown && patients.length > 0 && (
+          {showDropdown && patient.length > 0 && (
             <div className="dropdown">
               <ul className="dropdown-menu" style={{ display: "block" }}>
-                {patients.map((patient) => (
+                {patient.map((patient) => (
                   <li
                     key={patient.id}
                     className="dropdown-item "

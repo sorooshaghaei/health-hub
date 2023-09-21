@@ -6,7 +6,7 @@ import { LightPink } from "../../helpers/colors";
 import SearchNav from "./SearchNav";
 import Avatar from "./Avatar";
 
-const Navbar = ({patient}) => {
+const Navbar = ({patient , setPatient}) => {
   return (
     <nav
       className="navbar frosted-glass"
@@ -18,7 +18,7 @@ const Navbar = ({patient}) => {
         </div>
 
         <div className="col-md-4 col-5">
-          <SearchNav patient={patient}/>
+          <SearchNav patient={patient} setPatient={setPatient}/>
         </div>
 
         <div className="mx-2">
