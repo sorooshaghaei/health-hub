@@ -60,7 +60,9 @@ const AddPatient = ({
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="idNumber">ID Number</label>
+                    <label htmlFor="idNumber" className="mt-3">
+                      ID Number
+                    </label>
                     <input
                       name="idNumber"
                       type="number"
