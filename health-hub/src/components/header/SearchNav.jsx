@@ -18,7 +18,8 @@ const SearchNav = ({ patient }) => {
         .toLowerCase()
         .includes(searchText.toLowerCase());
       const phoneMatch = patient.phone.includes(searchText);
-      return nameMatch || phoneMatch;
+      const idNumberMatch = patient.idNumber.includes(searchText);
+      return nameMatch || phoneMatch || idNumberMatch;
     });
 
     setFilteredPatients(filteredPatients);
@@ -61,6 +62,9 @@ const SearchNav = ({ patient }) => {
                       </div>
                       <div className="col" style={{ fontSize: "14px" }}>
                         {patient.phone}
+                      </div>
+                      <div className="col" style={{ fontSize: "14px" }}>
+                        <b>ID: {patient.idNumber}</b>
                       </div>
                     </div>
                     <hr

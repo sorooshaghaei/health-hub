@@ -21,6 +21,7 @@ const EditPatient = () => {
     loading: false,
     patient: {
       name: "",
+      idNumber: "",
       appointmentDate: "",
       appointmentTime: "",
       typeOfSickness: "",
@@ -114,6 +115,16 @@ const EditPatient = () => {
                       value={patient.name}
                       onChange={setPatientInfo}
                       placeholder="Enter Full Name"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input
+                      name="idNumber"
+                      type="number"
+                      className="form-control"
+                      value={patient.idNumber}
+                      onChange={setPatientInfo}
+                      placeholder="Enter ID Number"
                     />
                   </div>
                   <div className="form-group">

@@ -20,6 +20,7 @@ const PatientTable = ({ patient }) => {
           <tr>
             <th scope="col">ID</th>
             <th scope="col">Name</th>
+            <th scope="col">ID NUMBER</th>
             <th scope="col">Phone</th>
             <th scope="col">Appointment Date</th>
             <th scope="col">Handle</th>
@@ -31,6 +32,7 @@ const PatientTable = ({ patient }) => {
             <tr key={p.id}>
               <th scope="row">{p.id}</th>
               <td>{p.name}</td>
+              <td>{p.idNumber}</td>
               <td>{p.phone}</td>
               <td>{p.appointmentDate}</td>
               <td>

@@ -60,6 +60,18 @@ const AddPatient = ({
                     />
                   </div>
                   <div className="form-group">
+                    <label htmlFor="idNumber">ID Number</label>
+                    <input
+                      name="idNumber"
+                      type="number"
+                      className="form-control"
+                      value={patient.idNmber}
+                      onChange={setPatientInfo}
+                      placeholder="Enter ID Number"
+                      required={true}
+                    />
+                  </div>
+                  <div className="form-group">
                     <label htmlFor="appointmentDate" className="mt-3">
                       Pick a Date
                     </label>
@@ -97,7 +109,10 @@ const AddPatient = ({
                     <option value="">choose one</option>
                     {sicknesses.length > 0 &&
                       sicknesses.map((sickness) => (
-                        <option key={sickness.id} value={sickness.typeOfSickness}>
+                        <option
+                          key={sickness.id}
+                          value={sickness.typeOfSickness}
+                        >
                           {sickness.typeOfSickness}
                         </option>
                       ))}
@@ -112,7 +127,7 @@ const AddPatient = ({
                     value={patient.levelOfUrgency}
                     onChange={setPatientInfo}
                   >
-                     <option value="">choose one</option>
+                    <option value="">choose one</option>
                     {groups.length > 0 &&
                       groups.map((group) => (
                         <option key={group.id} value={group.levelOfUrgency}>

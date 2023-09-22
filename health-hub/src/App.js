@@ -29,6 +29,7 @@ function App() {
 
   const [getPatient, setPatient] = useState({
     name: "",
+    idNumber: "",
     appointmentDate: "",
     appointmentTime: "",
     typeOfSickness: "",

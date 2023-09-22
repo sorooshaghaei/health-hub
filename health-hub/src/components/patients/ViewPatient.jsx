@@ -77,6 +77,9 @@ const ViewPatient = () => {
                           <h5 name="name" className="form-group mb-4">
                             Full Name: <b>{patient.name}</b>
                           </h5>
+                          <h5 name="idNumber" className="form-group mb-4">
+                            ID Number: <b>{patient.idNumber}</b>
+                          </h5>
 
                           <h5 name="typeOfSickness" className="form-group mb-4">
                             Type Of Sickness: <b>{patient.typeOfSickness}</b>
