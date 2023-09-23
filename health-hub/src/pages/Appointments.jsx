@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom"; // Import the Link component
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { Teal, LightPink, DarkGray } from "../helpers/colors";
@@ -9,6 +10,7 @@ const Appointments = ({ patients }) => {
     title: `${patient.name} (${patient.idNumber})`,
     start: new Date(patient.appointmentDate),
     backgroundColor: Teal,
+    id: patient.id, // Assign the patient's ID to the 'id' property
   }));
 
   const renderDayCellContent = ({ date }) => {
@@ -28,12 +30,13 @@ const Appointments = ({ patients }) => {
   };
 
   const renderEventContent = ({ event }) => {
+    // Create a Link to the patient's page using the patient's ID
     return (
-      <>
+      <Link to={`/Patients/${event.id}`}>
         <div className="btn btn-sm text-white">
           <p>{event.title}</p>
         </div>
-      </>
+      </Link>
     );
   };
 
