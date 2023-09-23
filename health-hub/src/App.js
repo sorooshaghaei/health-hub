@@ -117,7 +117,10 @@ function App() {
         <Route path="/Patients/:patientID" element={<ViewPatient />} />
         <Route path="/Patients/edit/:patientID" element={<EditPatient />} />
 
-        <Route path="/Appointments" element={<Appointments patient={getPatient} />} />
+        <Route
+          path="/Appointments"
+          element={<Appointments patients={getPatients} />}
+        />
 
         {/* anything else from upper Routes will be rendered here as a 404 or not found! */}
         <Route
