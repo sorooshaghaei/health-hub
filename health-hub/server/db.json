@@ -37,18 +37,6 @@
       ]
     },
     {
-      "name": "yas",
-      "appointmentDate": "2023-09-01",
-      "appointmentTime": "15:57",
-      "typeOfSickness": "surgery",
-      "levelOfUrgency": "urgent",
-      "phone": "423423423",
-      "id": 7,
-      "idNumber": [
-        "12123434345565565"
-      ]
-    },
-    {
       "name": "soroosh",
       "appointmentDate": "2023-09-07",
       "appointmentTime": "16:21",

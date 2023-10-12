@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import DeletePatient from "./patients/deletePatient"; // Import the DeletePatient component
+import { VeryLightPink } from "../helpers/colors";
 
 const PatientTable = ({ patient }) => {
   const [getPatients, setPatients] = useState([]);
@@ -14,8 +15,11 @@ const PatientTable = ({ patient }) => {
   };
 
   return (
-    <div>
-      <table className="table table-hover border rounded">
+    <div
+      className="mt-3"
+      style={{ backgroundColor: VeryLightPink, borderRadius: 10 }}
+    >
+      <table className="table table-hover table-borderless shadow">
         <thead>
           <tr>
             <th scope="col">ID</th>
@@ -36,7 +40,10 @@ const PatientTable = ({ patient }) => {
               <td>{p.phone}</td>
               <td>{p.appointmentDate}</td>
               <td>
-                <DeletePatient patient={patient} onDelete={onDelete} />
+                <div className="m-2">
+                <DeletePatient patient={p} onDelete={onDelete} />
+
+                </div>
               </td>
             </tr>
           ))}
