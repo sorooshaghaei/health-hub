@@ -18,6 +18,8 @@ import {
   getAllSicknesses,
 } from "./services/patientService";
 import Dashboard from "./pages/Dashboard";
+import Login from "./components/auth/Login";
+import Register from "./components/auth/Register";
 
 function App() {
   const navigate = useNavigate();
@@ -97,7 +99,10 @@ function App() {
         <Route path="/" element={<Navigate to="/HomePage" />} />
 
         <Route path="/HomePage" element={<HomePage />} />
-       < Route path="/Dashboard" element={<Dashboard/>} />
+        <Route path="/HomePage/Login" element={<Login />} />
+        <Route path="/HomePage/Register" element={<Register />} />
+
+        <Route path="/Dashboard" element={<Dashboard />} />
         <Route
           path="/Patients"
           element={<Patients patient={getPatients} loading={loading} />}
