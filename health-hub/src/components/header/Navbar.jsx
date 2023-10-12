@@ -5,6 +5,7 @@ import "../../styles/HeaderStyle.css";
 import { LightPink } from "../../helpers/colors";
 import SearchNav from "./SearchNav";
 import Avatar from "./Avatar";
+import { Link } from "react-router-dom";
 
 const Navbar = ({ patient }) => {
   return (
@@ -13,9 +14,9 @@ const Navbar = ({ patient }) => {
       style={{ backgroundColor: LightPink }}
     >
       <div className="container-fluid">
-        <div className="col-md-1 col-2 mx-2">
+        <Link to={"./HomePage"} className="col-md-1 col-2 mx-2">
           <img className="logo img-fluid" src={logo} alt="Logo" />
-        </div>
+        </Link>
 
         <div className="col-md-4 col-5">
           <SearchNav patient={patient} />

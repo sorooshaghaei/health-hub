@@ -4,7 +4,7 @@ import TotalSurgeriesCard from "../components/cards/TotalSurgeriesCard";
 import SparkLineChart from "../components/SparkLineChart";
 import MyCalendar from "../components/MyCalendar";
 
-const MainPage = () => {
+const Dashboard = () => {
   const data = [5, 10, 8, 15, 12, 6, 14, 18];
 
   return (
@@ -37,4 +37,4 @@ const MainPage = () => {
   );
 };
 
-export default MainPage;
+export default Dashboard;

@@ -36,8 +36,11 @@ const Patients = ({ patient, loading, confirmDelete }) => {
               )}
             </div>
           </div>
-          <div className="col">
-            <div className=" m-5">
+          <div className="col-4">
+            <div
+              className=" m-5 overflow-auto border border-secondary rounded"
+              style={{ height: "450px" }}
+            >
               {patient.length > 0 ? (
                 patient.map((p) => (
                   <div

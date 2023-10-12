@@ -15,10 +15,7 @@ const PatientTable = ({ patient }) => {
   };
 
   return (
-    <div
-      className="mt-3"
-      style={{ backgroundColor: VeryLightPink, borderRadius: 10 }}
-    >
+    <div style={{ backgroundColor: VeryLightPink, borderRadius: 10 }}>
       <table className="table table-hover table-borderless shadow">
         <thead>
           <tr>
@@ -41,8 +38,7 @@ const PatientTable = ({ patient }) => {
               <td>{p.appointmentDate}</td>
               <td>
                 <div className="m-2">
-                <DeletePatient patient={p} onDelete={onDelete} />
-
+                  <DeletePatient patient={p} onDelete={onDelete} />
                 </div>
               </td>
             </tr>

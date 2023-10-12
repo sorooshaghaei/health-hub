@@ -1,4 +1,4 @@
-import MainPage from "./pages/MainPage";
+import HomePage from "./pages/HomePage";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Patients from "./pages/Patients";
 import Appointments from "./pages/Appointments";
@@ -17,6 +17,7 @@ import {
   getAllPatients,
   getAllSicknesses,
 } from "./services/patientService";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   const navigate = useNavigate();
@@ -93,9 +94,10 @@ function App() {
       <Navbar patient={getPatients} />
       <Routes>
         {/* Redirect to MainPage when the path is "/" */}
-        <Route path="/" element={<Navigate to="/MainPage" />} />
+        <Route path="/" element={<Navigate to="/HomePage" />} />
 
-        <Route path="/MainPage" element={<MainPage />} />
+        <Route path="/HomePage" element={<HomePage />} />
+       < Route path="/Dashboard" element={<Dashboard/>} />
         <Route
           path="/Patients"
           element={<Patients patient={getPatients} loading={loading} />}
