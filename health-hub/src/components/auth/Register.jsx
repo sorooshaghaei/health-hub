@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Salmon, Teal } from "../../helpers/colors";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -28,89 +29,113 @@ const Register = () => {
   };
 
   return (
-    <div className="">
-      <div className=" top-0">
-        <form onSubmit={handleSubmit}>
-          <div className="">
-            <label>نام:</label>
-            <input
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="">
-            <label>نام خانوادگی:</label>
-            <input
-              type="text"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="">
-            <label>شماره تماس:</label>
-            <input
-              type="text"
-              name="number"
-              value={formData.number}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="">
-            <label>ایمیل:</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="">
-            <label>آدرس:</label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="">
-            <label>رمز عبور:</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="">
-            <label>تکرار رمز عبور:</label>
-            <input
-              type="password"
-              name="rePassword"
-              value={formData.rePassword}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <button className="" type="submit">
-            ثبت
-          </button>
-        </form>
-        <p className="" onClick={() => navigate("/HomePage/login")}>
-          وارد حساب کاربری شوید
-        </p>
-      </div>
-      <div className="">
-        {/* <img className="auth_img" src="https://img.freepik.com/free-photo/flat-lay-medicinal-spices-herbs_23-2148776461.jpg?w=1380&t=st=1693006414~exp=1693007014~hmac=8825f8f79ef1f2a96e55bf2efeeef6dbe0f26d53e2b4606a3dbbf282bedb5116" alt="" /> */}
+    <div className="container">
+      <div className="row justify-content-center">
+        <div className="col-md-6">
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="firstName">name:</label>
+              <input
+                type="text"
+                className="form-control"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="lastName">familyname:</label>
+              <input
+                type="text"
+                className="form-control"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="number">phone number:</label>
+              <input
+                type="text"
+                className="form-control"
+                id="number"
+                name="number"
+                value={formData.number}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="email">email:</label>
+              <input
+                type="email"
+                className="form-control"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="address">address:</label>
+              <input
+                type="text"
+                className="form-control"
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="password">password</label>
+              <input
+                type="password"
+                className="form-control"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="rePassword">double check password</label>
+              <input
+                type="password"
+                className="form-control"
+                id="rePassword"
+                name="rePassword"
+                value={formData.rePassword}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <button
+              className="btn text-white"
+              type="submit"
+              style={{ backgroundColor: Teal }}
+            >
+              submit
+            </button>
+          </form>
+          <p className="mt-3">
+            <span>Have an account?</span>
+            <button
+              className="btn btn-link"
+              style={{ color: Salmon }}
+              onClick={() => navigate("/HomePage/login")}
+            >
+              <b>sign in here</b>
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
