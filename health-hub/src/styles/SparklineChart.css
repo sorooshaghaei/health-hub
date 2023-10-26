@@ -1,0 +1,41 @@
+/* Add this CSS to your stylesheet or style tag in your React component */
+
+.sparkline-container {
+    background-color: #f5f5f5; /* Light gray background */
+    border: 1px solid #e0e0e0; /* Light gray border */
+    padding: 10px; /* Increased padding for a clean look */
+    border-radius: 10px; /* Slightly rounded corners */
+    text-align: center; /* Center-align the content */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  }
+  
+  .month-list {
+    list-style: none;
+    padding: 0;
+    margin: 0; /* Remove margin to make it more compact */
+  }
+  
+  .month-item {
+    margin: 10px 0;
+    padding: 10px; /* Increased padding for clarity */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ffffff; /* White background */
+    border: 1px solid #e0e0e0; /* Light gray border */
+    border-radius: 5px; /* Slightly rounded corners */
+  }
+  
+  .month-name {
+    font-weight: bold;
+    color: #333;
+    /* Place the month name on the x-side (bottom) of the chart */
+    text-align: center;
+  }
+  
+  .patient-count {
+    color: #ff6347; /* Salmon color */
+    /* Place the patient count on the y-side (right) of the chart */
+    font-weight: bold;
+  }
+  
