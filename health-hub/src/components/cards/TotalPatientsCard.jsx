@@ -9,18 +9,37 @@ const TotalPatientsCard = () => {
   const [percentageChange, setPercentageChange] = useState(null);
   const [lastUpdated, setLastUpdated] = useState("Last updated: never");
 
-  // Function to fetch patients for the current year
   const getAllPatientsCurrentYear = async () => {
+    // Fetch patients for the current year using a service (similar to your code)
     const response = await getAllPatients();
     return response.data;
   };
 
-  // Fetch all patients using the same function
   const getAllPatientsLastYear = async () => {
-    const response = await getAllPatients();//--------------------------------------not working correct
-    return response.data;
+    const today = new Date();
+    const lastYearStart = new Date(today.getFullYear() - 1, 0, 1);
+    const lastYearEnd = new Date(today.getFullYear() - 1, 11, 31);
+
+    try {
+      const response = await getAllPatients(lastYearStart, lastYearEnd);
+
+      if (response.data && Array.isArray(response.data)) {
+        const filteredData = response.data.filter((patient) => {
+          const appointmentDate = new Date(patient.appointmentDate);
+          return (
+            appointmentDate >= lastYearStart && appointmentDate <= lastYearEnd
+          );
+        });
+
+        return filteredData.length;
+      } else {
+        return 0;
+      }
+    } catch (error) {
+      console.error("Error fetching patients for the last year:", error);
+      return 0;
+    }
   };
-  
 
   const fetchYearlyPatientCounts = async () => {
     try {
@@ -28,10 +47,10 @@ const TotalPatientsCard = () => {
       setCurrentYearPatients(currentYearResponse.length);
 
       const lastYearResponse = await getAllPatientsLastYear();
+
       if (lastYearResponse) {
         setLastYearPatients(lastYearResponse.length);
       } else {
-        // Set "No data available" when there's no data for the last year
         setLastYearPatients(0);
       }
     } catch (error) {
@@ -41,6 +60,7 @@ const TotalPatientsCard = () => {
 
   useEffect(() => {
     fetchYearlyPatientCounts();
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -50,8 +70,12 @@ const TotalPatientsCard = () => {
       } else {
         const difference = currentYearPatients - lastYearPatients;
         const percentage = ((difference / lastYearPatients) * 100).toFixed(2);
+
         setPercentageChange(percentage);
       }
+
+      console.log(currentYearPatients);
+      console.log(lastYearPatients);
 
       const now = new Date();
       const formattedTime = `${now.toLocaleTimeString()}`;
