@@ -26,18 +26,6 @@
     },
     {
       "name": "soroosh",
-      "appointmentDate": "2023-09-12",
-      "appointmentTime": "19:52",
-      "typeOfSickness": "gel",
-      "levelOfUrgency": "normal",
-      "phone": "09023232322",
-      "id": 6,
-      "idNumber": [
-        "121121212"
-      ]
-    },
-    {
-      "name": "soroosh",
       "appointmentDate": "2023-09-07",
       "appointmentTime": "16:21",
       "typeOfSickness": "butox",
@@ -65,10 +53,18 @@
     {
       "name": "checking calendar",
       "idNumber": "222",
-      "appointmentDate": "2023-09-23",
-      "appointmentTime": "23:30",
-      "typeOfSickness": "",
-      "levelOfUrgency": "",
+      "appointmentDate": [
+        "2023-10-13"
+      ],
+      "appointmentTime": [
+        "12:19"
+      ],
+      "typeOfSickness": [
+        "surgery"
+      ],
+      "levelOfUrgency": [
+        "urgent"
+      ],
       "phone": "121212",
       "id": 10
     },

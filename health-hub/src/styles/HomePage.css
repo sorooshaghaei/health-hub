@@ -1,0 +1,10 @@
+/* HomePage.css */
+.img-fade-in {
+    /* opacity: 0; Initially, the image is transparent */
+    transition: opacity 0.7s; /* Add a transition for a smooth fade-in effect */
+  }
+  
+  .img-fade-in.loaded {
+    opacity: 1; /* When the 'loaded' class is applied, the image becomes fully visible */
+  }
+  

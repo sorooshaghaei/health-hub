@@ -102,7 +102,7 @@ function App() {
         <Route path="/HomePage/Login" element={<Login />} />
         <Route path="/HomePage/Register" element={<Register />} />
 
-        <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/Dashboard" element={<Dashboard patients={getPatients} />} />
         <Route
           path="/Patients"
           element={<Patients patient={getPatients} loading={loading} />}

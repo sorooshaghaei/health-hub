@@ -130,7 +130,7 @@ const EditPatient = () => {
                   <div className="form-group">
                     <input
                       name="appointmentDate"
-                      type=""
+                      type="date"
                       className="form-control"
                       value={patient.appointmentDate}
                       onChange={setPatientInfo}
@@ -139,7 +139,7 @@ const EditPatient = () => {
                   <div className="form-group">
                     <input
                       name="appointmentTime"
-                      type=""
+                      type="time"
                       className="form-control"
                       value={patient.appointmentTime}
                       onChange={setPatientInfo}
