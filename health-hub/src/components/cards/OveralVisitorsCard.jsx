@@ -48,8 +48,10 @@ const OveralVisitorsCard = () => {
 
   useEffect(() => {
     if (weeklyPatientCounts.length >= 2) {
-      const currentWeekPatients = weeklyPatientCounts[weeklyPatientCounts.length - 1];
-      const previousWeekPatients = weeklyPatientCounts[weeklyPatientCounts.length - 2];
+      const currentWeekPatients =
+        weeklyPatientCounts[weeklyPatientCounts.length - 1];
+      const previousWeekPatients =
+        weeklyPatientCounts[weeklyPatientCounts.length - 2];
 
       const difference = currentWeekPatients - previousWeekPatients;
       const percentage = ((difference / previousWeekPatients) * 100).toFixed(2);
@@ -77,12 +79,20 @@ const OveralVisitorsCard = () => {
         <div className="row card-body">
           <div className="col">
             <p style={{ textAlign: "left" }}>
-              Increase in data by {percentageChange > 0 ? `+${percentageChange}%` : `${percentageChange}%`} inpatients in the last 7 days
+              Increase in data by{" "}
+              {percentageChange > 0
+                ? `+${percentageChange}%`
+                : `${percentageChange}%`}{" "}
+              inpatients in the last 7 days
             </p>
           </div>
           <div className="col">
             <div>
-              <b style={{ color: LightWhite }}>{percentageChange > 0 ? `+${percentageChange}%` : `${percentageChange}%`}</b>
+              <b style={{ color: LightWhite }}>
+                {percentageChange > 0
+                  ? `+${percentageChange}%`
+                  : `${percentageChange}%`}
+              </b>
             </div>
             <div
               className="col badge rounded-pill "
