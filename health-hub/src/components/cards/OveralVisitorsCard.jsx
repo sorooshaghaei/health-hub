@@ -7,6 +7,7 @@ const OveralVisitorsCard = () => {
   const [currentWeekPatients, setCurrentWeekPatients] = useState(0);
   const [lastWeekPatients, setLastWeekPatients] = useState(0);
   const [percentageChange, setPercentageChange] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState("Last updated: never"); // Initialize with "never"
 
   // Function to fetch patients for the current week
   const getAllPatientsCurrentWeek = async () => {
@@ -77,7 +78,7 @@ const OveralVisitorsCard = () => {
 
   useEffect(() => {
     fetchWeeklyPatientCounts();
-    // eslint-disable-next-line 
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -85,6 +86,11 @@ const OveralVisitorsCard = () => {
       // Calculate the percentage change
       const difference = currentWeekPatients - lastWeekPatients;
       const percentage = ((difference / lastWeekPatients) * 100).toFixed(2);
+
+      // Update the lastUpdated time
+      const now = new Date();
+      const formattedTime = `${now.toLocaleTimeString()}`;
+      setLastUpdated(`Last updated ${formattedTime}`);
 
       console.log("currentweek:", currentWeekPatients);
       console.log("lastweek:", lastWeekPatients);
@@ -137,7 +143,7 @@ const OveralVisitorsCard = () => {
             </div>
           </div>
 
-          <p className="card-text my-3">Last updated 3 mins ago</p>
+          <p className="card-text my-3">{lastUpdated}</p>
         </div>
       </div>
     </div>
