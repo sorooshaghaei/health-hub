@@ -22,7 +22,10 @@ const Dashboard = ({ patients }) => {
             const month = date.getMonth();
             monthlyCounts[month]++;
           } else {
-            console.warn("Patient data missing 'appointmentDate' property:", patient);
+            console.warn(
+              "Patient data missing 'appointmentDate' property:",
+              patient
+            );
           }
         });
 
@@ -56,15 +59,15 @@ const Dashboard = ({ patients }) => {
     };
 
     fetchData();
+    // eslint-disable-next-line
   }, []);
 
   return (
     <div>
       <div className="">
         <div className="row justify-content-center">
-          <div className="col-6 ">
-            {/* You may want to pass the patients data to the Appointments component */}
-            <Appointments patients={patients}  />
+          <div className="col-6">
+            <Appointments patients={patients} />
           </div>
           <div className="col-4 my-5 py-5 mx-5">
             <div className="card rounded shadow border-0">
@@ -78,7 +81,7 @@ const Dashboard = ({ patients }) => {
             <OveralVisitorsCard />
           </div>
           <div className="col-3 visitor-card">
-            <TotalPatientsCard patientCount={patientCount} />
+            <TotalPatientsCard />
           </div>
           <div className="col-3 visitor-card">
             <TotalSurgeriesCard />
