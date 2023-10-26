@@ -1,8 +1,64 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { LightTeal, LightWhite, Salmon } from "../../helpers/colors";
 import patientIcon from "../../assets/ActorsIcon.svg";
+import { getAllPatients } from "../../services/patientService";
 
 const TotalPatientsCard = () => {
+  const [currentYearPatients, setCurrentYearPatients] = useState(0);
+  const [lastYearPatients, setLastYearPatients] = useState(null);
+  const [percentageChange, setPercentageChange] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState("Last updated: never");
+
+  // Function to fetch patients for the current year
+  const getAllPatientsCurrentYear = async () => {
+    const response = await getAllPatients();
+    return response.data;
+  };
+
+  // Fetch all patients using the same function
+  const getAllPatientsLastYear = async () => {
+    const response = await getAllPatients();//--------------------------------------not working correct
+    return response.data;
+  };
+  
+
+  const fetchYearlyPatientCounts = async () => {
+    try {
+      const currentYearResponse = await getAllPatientsCurrentYear();
+      setCurrentYearPatients(currentYearResponse.length);
+
+      const lastYearResponse = await getAllPatientsLastYear();
+      if (lastYearResponse) {
+        setLastYearPatients(lastYearResponse.length);
+      } else {
+        // Set "No data available" when there's no data for the last year
+        setLastYearPatients(0);
+      }
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchYearlyPatientCounts();
+  }, []);
+
+  useEffect(() => {
+    if (currentYearPatients >= 2 && lastYearPatients !== null) {
+      if (lastYearPatients === 0) {
+        setPercentageChange("No data available");
+      } else {
+        const difference = currentYearPatients - lastYearPatients;
+        const percentage = ((difference / lastYearPatients) * 100).toFixed(2);
+        setPercentageChange(percentage);
+      }
+
+      const now = new Date();
+      const formattedTime = `${now.toLocaleTimeString()}`;
+      setLastUpdated(`Last updated ${formattedTime}`);
+    }
+  }, [currentYearPatients, lastYearPatients]);
+
   return (
     <div>
       <div
@@ -22,12 +78,27 @@ const TotalPatientsCard = () => {
         <div className="row card-body">
           <div className="col">
             <p style={{ textAlign: "left" }}>
-              Increase in data by 500+ inpatients in the last 7 days
+              {percentageChange === "No data available"
+                ? "No data available for the last year"
+                : percentageChange > 0
+                ? `Increase of ${percentageChange}%`
+                : percentageChange < 0
+                ? `Decrease of ${Math.abs(percentageChange)}%`
+                : "No change in patient count"}{" "}
+              in the last year
             </p>
           </div>
           <div className="col">
             <div>
-              <b style={{ color: LightWhite }}>2.77%</b>
+              <b style={{ color: LightWhite }}>
+                {percentageChange === "No data available"
+                  ? "N/A"
+                  : percentageChange > 0
+                  ? `+${percentageChange}%`
+                  : percentageChange < 0
+                  ? percentageChange
+                  : "0%"}
+              </b>
             </div>
             <div
               className="col badge rounded-pill "
@@ -36,9 +107,9 @@ const TotalPatientsCard = () => {
               <span>New</span>
             </div>
           </div>
-        </div>
 
-        <p className="card-text my-3">Last updated 3 mins ago</p>
+          <p className="card-text my-3">{lastUpdated}</p>
+        </div>
       </div>
     </div>
   );
