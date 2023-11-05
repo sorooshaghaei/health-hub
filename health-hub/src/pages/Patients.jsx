@@ -1,11 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import Spinner from "../components/Spinner";
 import Patient from "../components/patients/Patient";
 import { LightTeal } from "../helpers/colors";
 import { Link } from "react-router-dom";
 import PatientTable from "../components/PatientTable";
 
-const Patients = ({ patient, loading, confirmDelete }) => {
+const Patients = ({ patient, loading }) => {
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
+  const handlePatientSelect = (patient) => {
+    setSelectedPatient(patient);
+  };
+
   return (
     <div>
       <div className="mx-3 mt-3">
@@ -21,39 +27,31 @@ const Patients = ({ patient, loading, confirmDelete }) => {
       {loading ? (
         <Spinner />
       ) : (
-        <div className="row">
-          <div className="col m-5">
-            <div>
-              {patient.length > 0 ? (
-                <PatientTable
-                  patient={patient}
-                  confirmDelete={() => {
-                    confirmDelete(patient.id, patient.name);
-                  }}
-                />
-              ) : (
-                <p>No patient data available</p>
-              )}
+        <div className="container-fluid p-5">
+          <div className="row">
+            <div className="col-lg-8 col-md-12">
+              <div>
+                {patient.length > 0 ? (
+                  <PatientTable
+                    patient={patient}
+                    onPatientSelect={handlePatientSelect}
+                  />
+                ) : (
+                  <p>No patient data available</p>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="col-4">
-            <div
-              className=" m-5 overflow-auto border border-secondary rounded"
-              style={{ height: "450px" }}
-            >
-              {patient.length > 0 ? (
-                patient.map((p) => (
-                  <div
-                    className="col d-flex justify-content-center align-items-center"
-                    key={p.id}
-                  >
-                    <Patient patient={p} />
-                  </div>
-                ))
+            <div className="col-lg-4 col-md-12 mt-3">
+              {selectedPatient ? (
+                <Patient patient={selectedPatient} />
               ) : (
-                <div className="text-center mt-5">
-                  <p className="h3">not found!</p>
-                  {/* <img src={notfound} alt="not found!" className="w-25" /> */}
+                <div
+                  className="border rounded-3"
+                  style={{ height: "19rem", width: "18rem" }}
+                >
+                  <div className="text-center my-5">
+                    <p className="h4">Select a patient from the table</p>
+                  </div>
                 </div>
               )}
             </div>

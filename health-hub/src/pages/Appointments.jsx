@@ -41,7 +41,7 @@ const Appointments = ({ patients }) => {
   };
 
   return (
-    <div>
+    <div className="container pt-5 pb-5">
       <style>
         {`
           .fc-dayGridMonth-view .fc-scrollgrid-section-header {
@@ -49,7 +49,7 @@ const Appointments = ({ patients }) => {
           }
         `}
       </style>
-      <div className="m-5">
+      <div className="row">
         <FullCalendar
           headerToolbar={{
             start: "prev today next",

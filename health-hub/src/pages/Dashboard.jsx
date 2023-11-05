@@ -63,29 +63,27 @@ const Dashboard = ({ patients }) => {
   }, []);
 
   return (
-    <div>
-      <div className="">
-        <div className="row justify-content-center">
-          <div className="col-6">
-            <Appointments patients={patients} />
-          </div>
-          <div className="col-4 my-5 py-5 mx-5">
-            <div className="card rounded shadow border-0">
-              <SparkLineChart data={patientCount} />
-            </div>
+    <div className="container">
+      <div className="row">
+        <div className="col-lg-8 col-md-12">
+          <Appointments patients={patients} />
+        </div>
+        <div className="col-lg-4 col-md-12 d-none d-lg-block">
+          <div className="card rounded shadow border-0 my-5">
+            <SparkLineChart data={patientCount} />
           </div>
         </div>
+      </div>
 
-        <div className="row justify-content-center my-5">
-          <div className="col-3 visitor-card">
-            <OveralVisitorsCard />
-          </div>
-          <div className="col-3 visitor-card">
-            <TotalPatientsCard />
-          </div>
-          <div className="col-3 visitor-card">
-            <TotalSurgeriesCard />
-          </div>
+      <div className="row my-5">
+        <div className="col-lg-4 col-md-6 visitor-card">
+          <OveralVisitorsCard />
+        </div>
+        <div className="col-lg-4 col-md-6 visitor-card">
+          <TotalPatientsCard />
+        </div>
+        <div className="col-lg-4 col-md-6 visitor-card">
+          <TotalSurgeriesCard />
         </div>
       </div>
     </div>
