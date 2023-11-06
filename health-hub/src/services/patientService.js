@@ -80,3 +80,9 @@ export const deleteSickness = (sicknessId) => {
   const url = `${SERVER_URL}/sickness/${sicknessId}`;
   return axios.delete(url);
 };
+
+export const saveRegistrationData = async (user) => {
+  const url = `${SERVER_URL}/users`;
+  const response = await axios.post(url, user);
+  return response;
+};

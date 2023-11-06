@@ -68,5 +68,37 @@
       "id": 3,
       "typeOfSickness": "gel"
     }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "firstName": "John",
+      "lastName": "Doe",
+      "number": "1234567890",
+      "email": "john@example.com",
+      "address": "123 Main St",
+      "password": "hashed_password",
+      "rePassword": "hashed_password"
+    },
+    {
+      "firstName": "Soroosh",
+      "lastName": "Aghaei",
+      "number": "+989020771401",
+      "email": "soroosh77aghaei@gmail.com",
+      "address": "خیابان توحید، کوچه هما",
+      "password": "1",
+      "rePassword": "1",
+      "id": 2
+    },
+    {
+      "firstName": "Soroosh",
+      "lastName": "Aghaei",
+      "number": "+989020771401",
+      "email": "soroosh77aghaei@gmail.com",
+      "address": "خیابان توحید، کوچه هما",
+      "password": "s",
+      "rePassword": "s",
+      "id": 3
+    }
   ]
 }

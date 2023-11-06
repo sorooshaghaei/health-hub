@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Salmon, Teal } from "../../helpers/colors";
+import { saveRegistrationData } from "../../services/patientService";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -22,10 +23,32 @@ const Register = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you can handle the form submission, validation, etc.
-    console.log(formData);
+    
+    try {
+      const response = await saveRegistrationData(formData);
+      if (response.status === 201) {
+        // Successful registration
+        console.log("Registration successful:", response.data);
+        navigate("/HomePage/login");
+      } else {
+        console.error("Registration failed:", response.data);
+      }
+    } catch (error) {
+      console.error("Error during registration:", error);
+    }
+  
+    // Clear the form data if needed
+    setFormData({
+      firstName: "",
+      lastName: "",
+      number: "",
+      email: "",
+      address: "",
+      password: "",
+      rePassword: "",
+    });
   };
 
   return (
