@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Salmon, Teal } from "../../helpers/colors";
 import { saveRegistrationData } from "../../services/patientService";
+import WarningMessage from "../WarningMessage"; // Import your warning message component
 
 const Register = () => {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ const Register = () => {
     rePassword: "",
   });
 
+  const [showWarning, setShowWarning] = useState(false); // State to control the visibility of the warning message
+  const [warningMessage, setWarningMessage] = useState(""); // Warning message content
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -25,7 +29,14 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (formData.password !== formData.rePassword) {
+      // Passwords do not match, show a warning
+      setWarningMessage("Passwords do not match.");
+      setShowWarning(true);
+      return;
+    }
+
     try {
       const response = await saveRegistrationData(formData);
       if (response.status === 201) {
@@ -38,7 +49,7 @@ const Register = () => {
     } catch (error) {
       console.error("Error during registration:", error);
     }
-  
+
     // Clear the form data if needed
     setFormData({
       firstName: "",
@@ -140,6 +151,7 @@ const Register = () => {
                 required
               />
             </div>
+            {showWarning && <WarningMessage message={warningMessage} onClose={() => setShowWarning(false)} />}
             <button
               className="btn text-white"
               type="submit"
@@ -150,6 +162,7 @@ const Register = () => {
           </form>
           <p className="mt-3">
             <span>Have an account?</span>
+
             <button
               className="btn btn-link"
               style={{ color: Salmon }}
