@@ -81,6 +81,7 @@ export const deleteSickness = (sicknessId) => {
   return axios.delete(url);
 };
 
+// Update the saveRegistrationData function
 export const saveRegistrationData = async (user) => {
   const url = `${SERVER_URL}/users`;
   const response = await axios.post(url, user);

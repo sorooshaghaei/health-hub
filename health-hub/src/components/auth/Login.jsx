@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LightPink, Salmon, Teal } from "../../helpers/colors";
-
 import image from "../../assets/File-1.png";
-import axios from "axios"; // You may need to import axios
+import axios from "axios";
+import WarningMessage from "../WarningMessage"; // Import your warning message component
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,6 +12,9 @@ const Login = () => {
     lastName: "",
     password: "",
   });
+
+  const [showWarning, setShowWarning] = useState(false); // State to control the visibility of the warning message
+  const [warningMessage, setWarningMessage] = useState(""); // Warning message content
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,6 +28,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
+      
       const response = await axios.get("http://localhost:9000/users");
       const users = response.data;
 
@@ -40,7 +44,8 @@ const Login = () => {
         navigate("/Dashboard");
       } else {
         // Validation failed, show an error message
-        console.error("Login failed. Please check your credentials.");
+        setWarningMessage("User not found or incorrect password.");
+        setShowWarning(true);
       }
     } catch (error) {
       console.error("Error during login:", error);
@@ -109,6 +114,7 @@ const Login = () => {
           </button>
         </p>
       </div>
+      {showWarning && <WarningMessage message={warningMessage} onClose={() => setShowWarning(false)} />}
     </div>
   );
 };
