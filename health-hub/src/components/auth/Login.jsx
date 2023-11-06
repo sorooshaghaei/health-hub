@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { LightPink, Salmon, Teal } from "../../helpers/colors";
 
 import image from "../../assets/File-1.png";
+import axios from "axios"; // You may need to import axios
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,19 +21,29 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you can handle the form submission and validation
-    // Example: Check if the fields are not empty, and perform authentication
 
-    if (formData.firstName && formData.lastName && formData.password) {
-      // Validation successful, you can proceed with authentication
-      console.log("Login successful. Redirecting...");
-      // Optionally, you can navigate to another page after successful login
-      navigate("/Dashboard");
-    } else {
-      // Validation failed, show an error message to the user
-      console.error("Login failed. Please check your credentials.");
+    try {
+      const response = await axios.get("http://localhost:9000/users");
+      const users = response.data;
+
+      const { firstName, lastName, password } = formData;
+
+      const user = users.find(
+        (u) => u.firstName === firstName && u.lastName === lastName && u.password === password
+      );
+
+      if (user) {
+        // Validation successful, navigate to Dashboard
+        console.log("Login successful. Redirecting...");
+        navigate("/Dashboard");
+      } else {
+        // Validation failed, show an error message
+        console.error("Login failed. Please check your credentials.");
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
     }
   };
 
