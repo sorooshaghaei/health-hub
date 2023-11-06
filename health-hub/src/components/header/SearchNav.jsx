@@ -80,14 +80,24 @@ const SearchNav = ({ patient }) => {
             </div>
           )}
         </div>
-        <div className="col-3">
-          {/* Always render the search button */}
+        <div className="col-3 d-none d-lg-block">
+          {/* Always render the search button for larger screens */}
           <Link
             to={`patients/${selectedPatient?.id || ""}`}
             className="btn text-white"
             style={{ backgroundColor: Teal }}
           >
             Search
+          </Link>
+        </div>
+        <div className="col-3 d-block d-lg-none">
+          {/* Render a search icon for smaller screens */}
+          <Link
+            to={`patients/${selectedPatient?.id || ""}`}
+            className="btn text-white"
+            style={{ backgroundColor: Teal }}
+          >
+            <i className="fa fa-search"></i>
           </Link>
         </div>
       </form>

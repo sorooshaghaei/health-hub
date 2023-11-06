@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import DeletePatient from "./patients/deletePatient"; // Import the DeletePatient component
 import { VeryLightPink } from "../helpers/colors";
 
-const PatientTable = ({ patient, onPatientSelect }) => {
+const PatientTable = ({ patient, onPatientSelect, onDelete }) => {
   const [selectedPatient, setSelectedPatient] = useState(null); // Track selected patient
 
   const handlePatientSelect = (p) => {
@@ -12,14 +12,6 @@ const PatientTable = ({ patient, onPatientSelect }) => {
       setSelectedPatient(p); // Update selected patient state
     }
     onPatientSelect(p); // Notify parent component of selection
-  };
-
-  const onDelete = (deletedPatientID) => {
-    // Handle deletion in local state or perform necessary actions
-    // Update patient list after deletion
-    const updatedPatients = patient.filter((p) => p.id !== deletedPatientID);
-    // Update parent component with updated patient list
-    onPatientSelect(null); // Deselect patient when deleted
   };
 
   return (
