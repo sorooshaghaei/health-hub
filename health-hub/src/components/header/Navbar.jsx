@@ -9,16 +9,13 @@ import { Link } from "react-router-dom";
 
 const Navbar = ({ patient }) => {
   return (
-    <nav
-      className="navbar frosted-glass"
-      style={{ backgroundColor: LightPink }}
-    >
+    <nav className="navbar frosted-glass" style={{ backgroundColor: LightPink }}>
       <div className="container-fluid">
-        <Link to={"./HomePage"} className="col-md-1 col-2 mx-2">
-          <img className="logo img-fluid" src={logo} alt="Logo" />
+        <Link to={"./HomePage"} className="col-md-1 col-4 mx-2 flex-center">
+          <img className="logo img-fluid pt-2" src={logo} alt="Logo" />
         </Link>
 
-        <div className="col-md-4 col-5">
+        <div className="col-md-5 col-8">
           <SearchNav patient={patient} />
         </div>
 

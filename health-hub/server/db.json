@@ -1,17 +1,7 @@
 {
   "patients": [
     {
-      "name": "asal",
-      "idNumber": "555",
-      "appointmentDate": "2023-11-29",
-      "appointmentTime": "15:20",
-      "typeOfSickness": "butox",
-      "levelOfUrgency": "urgent",
-      "phone": "6500000",
-      "id": 23
-    },
-    {
-      "name": "reza",
+      "name": "reza ",
       "idNumber": "3322",
       "appointmentDate": "2023-11-06",
       "appointmentTime": "03:19",
@@ -39,6 +29,16 @@
       "levelOfUrgency": "urgent",
       "phone": "1212121212",
       "id": 26
+    },
+    {
+      "name": "asal",
+      "idNumber": "2222",
+      "appointmentDate": "2023-11-17",
+      "appointmentTime": "15:55",
+      "typeOfSickness": "butox",
+      "levelOfUrgency": "",
+      "phone": "22212",
+      "id": 27
     }
   ],
   "groups": [

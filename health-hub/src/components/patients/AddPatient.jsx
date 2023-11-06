@@ -21,14 +21,26 @@ const AddPatient = ({
           <section className="m-5">
             <img
               src={nurse_save_patient_info}
-              style={{
-                position: "absolute",
-                zIndex: -1,
-                height: "400px",
-                top: "300px",
-                right: "180px",
-                opacity: "50%",
-              }}
+              style={
+                window.innerWidth < 768
+                  ? {
+                      position: "absolute",
+                      zIndex: -1,
+                      height: "150px",
+                      top: "7rem",
+                      right: "7rem",
+                      opacity: "25%",
+                      filter: "blur(2px)",
+                    }
+                  : {
+                      position: "absolute",
+                      zIndex: -1,
+                      height: "400px",
+                      top: "300px",
+                      right: "180px",
+                      opacity: "50%",
+                    }
+              }
               alt="nurse_save_patient_info"
             />
             <p
@@ -39,10 +51,11 @@ const AddPatient = ({
             </p>
 
             <div
-              className="card border-0 m-3 col-6"
+              className="card border-0 m-3 col-lg-6 col-md-8 col-sm-10"
               style={{
                 backgroundColor: VeryLightPink,
                 textAlign: "left",
+                margin: "0 auto",
               }}
             >
               <div>
@@ -67,7 +80,7 @@ const AddPatient = ({
                       name="idNumber"
                       type="number"
                       className="form-control"
-                      value={patient.idNmber}
+                      value={patient.idNumber}
                       onChange={setPatientInfo}
                       placeholder="Enter ID Number"
                       required={true}

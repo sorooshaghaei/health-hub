@@ -41,8 +41,6 @@ const ViewPatient = () => {
   const { patient } = state;
 
   const onDelete = (deletedPatientID) => {
-    // Handle the deletion in your local state or perform any necessary actions
-    // For example, you can update the patient list after deletion
     const updatedPatients = getPatients.filter(
       (patient) => patient.id !== deletedPatientID
     );
@@ -62,7 +60,7 @@ const ViewPatient = () => {
               <>
                 <div className="m-5">
                   <div
-                    className="card border-0 m-3 col-6"
+                    className="card border-0 m-3 col-12 col-md-6"
                     style={{
                       backgroundColor: VeryLightPink,
                       textAlign: "left",
