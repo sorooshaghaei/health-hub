@@ -22,19 +22,29 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Here you can handle the form submission, validation, etc.
-    console.log(formData);
+    // Here you can handle the form submission and validation
+    // Example: Check if the fields are not empty, and perform authentication
+
+    if (formData.firstName && formData.lastName && formData.password) {
+      // Validation successful, you can proceed with authentication
+      console.log("Login successful. Redirecting...");
+      // Optionally, you can navigate to another page after successful login
+      navigate("/Dashboard");
+    } else {
+      // Validation failed, show an error message to the user
+      console.error("Login failed. Please check your credentials.");
+    }
   };
 
   return (
     <div className="row justify-content-center m-5">
-      <div className="col-12 col-md-6 col-lg-5 d-flex"> {/* Adjust column sizes */}
+      <div className="col-12 col-md-6 col-lg-5 d-flex">
         <img src={image} alt="img" />
       </div>
-      <div className="col-12 col-md-6 col-lg-4 rounded p-5" style={{ backgroundColor: LightPink }}> {/* Adjust column sizes */}
+      <div className="col-12 col-md-6 col-lg-4 rounded p-5" style={{ backgroundColor: LightPink }}>
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label htmlFor="firstName">Name:</label> {/* Changed label text to be capitalized */}
+            <label htmlFor="firstName">Name:</label>
             <input
               type="text"
               className="form-control"
@@ -46,7 +56,7 @@ const Login = () => {
             />
           </div>
           <div className="mb-3">
-            <label htmlFor="lastName">Family Name:</label> {/* Changed label text to be capitalized */}
+            <label htmlFor="lastName">Family Name:</label>
             <input
               type="text"
               className="form-control"
@@ -58,7 +68,7 @@ const Login = () => {
             />
           </div>
           <div className="mb-3">
-            <label htmlFor="password">Password:</label> {/* Changed label text to be capitalized */}
+            <label htmlFor="password">Password:</label>
             <input
               type="password"
               className="form-control"
