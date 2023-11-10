@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Salmon, Teal } from "../../helpers/colors";
+import { LightPink, Salmon, Teal } from "../../helpers/colors";
 import { saveRegistrationData } from "../../services/patientService";
 import WarningMessage from "../WarningMessage"; // Import your warning message component
 
@@ -11,7 +11,7 @@ const Register = () => {
     lastName: "",
     number: "",
     email: "",
-    address: "",
+
     password: "",
     rePassword: "",
   });
@@ -63,9 +63,12 @@ const Register = () => {
   };
 
   return (
-    <div className="container">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
+    <div className="container-fluid">
+      <div className="row justify-content-center m-5">
+        <div
+          className="col-12 col-md-6 col-lg-4 rounded p-5"
+          style={{ backgroundColor: LightPink }}
+        >
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <label htmlFor="firstName">name:</label>
@@ -80,7 +83,7 @@ const Register = () => {
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="lastName">familyname:</label>
+              <label htmlFor="lastName">family name:</label>
               <input
                 type="text"
                 className="form-control"
@@ -115,18 +118,7 @@ const Register = () => {
                 required
               />
             </div>
-            <div className="mb-3">
-              <label htmlFor="address">address:</label>
-              <input
-                type="text"
-                className="form-control"
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                required
-              />
-            </div>
+
             <div className="mb-3">
               <label htmlFor="password">password</label>
               <input
@@ -140,7 +132,7 @@ const Register = () => {
               />
             </div>
             <div className="mb-3">
-              <label htmlFor="rePassword">double check password</label>
+              <label htmlFor="rePassword">Double check password:</label>
               <input
                 type="password"
                 className="form-control"
@@ -151,24 +143,28 @@ const Register = () => {
                 required
               />
             </div>
-            {showWarning && <WarningMessage message={warningMessage} onClose={() => setShowWarning(false)} />}
+            {showWarning && (
+              <WarningMessage
+                message={warningMessage}
+                onClose={() => setShowWarning(false)}
+              />
+            )}
             <button
               className="btn text-white"
               type="submit"
               style={{ backgroundColor: Teal }}
             >
-              submit
+              Submit
             </button>
           </form>
           <p className="mt-3">
             <span>Have an account?</span>
-
             <button
               className="btn btn-link"
               style={{ color: Salmon }}
               onClick={() => navigate("/HomePage/login")}
             >
-              <b>sign in here</b>
+              <b>Sign in here</b>
             </button>
           </p>
         </div>
