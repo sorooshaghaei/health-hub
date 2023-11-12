@@ -3,73 +3,54 @@ import { LightTeal, LightWhite, Salmon } from "../../helpers/colors";
 import barchartIcon from "../../assets/bar_chart.svg";
 import { getAllPatients } from "../../services/patientService";
 
-const OveralVisitorsCard = () => {
-  const [currentWeekPatients, setCurrentWeekPatients] = useState(0);
-  const [lastWeekPatients, setLastWeekPatients] = useState(0);
+const OverallVisitorsCard = () => {
+  const [currentWeekPatients, setCurrentWeekPatients] = useState(null);
+  const [lastWeekPatients, setLastWeekPatients] = useState(null);
   const [percentageChange, setPercentageChange] = useState(0);
-  const [lastUpdated, setLastUpdated] = useState("Last updated: never"); // Initialize with "never"
-
-  // Function to fetch patients for the current week
-  const getAllPatientsCurrentWeek = async () => {
-    const today = new Date();
-    const currentWeekEnd = new Date(today);
-    currentWeekEnd.setDate(today.getDate() - today.getDay() + 6); // End of the current week
-    const currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - today.getDay()); // Start of the current week
-
-    // Filter patients with appointment dates in the current week
-    const response = await getAllPatients(currentWeekStart, currentWeekEnd);
-
-    return {
-      data: response.data.filter((patient) => {
-        const appointmentDate = new Date(patient.appointmentDate);
-        return (
-          appointmentDate >= currentWeekStart &&
-          appointmentDate <= currentWeekEnd
-        );
-      }),
-    };
-  };
-
-  // Function to fetch patients for the week before the current week
-  const getAllPatientsLastWeek = async () => {
-    const today = new Date();
-    const lastWeekEnd = new Date(today);
-    lastWeekEnd.setDate(today.getDate() - today.getDay() - 1); // Go back to the end of the previous week
-    const lastWeekStart = new Date(lastWeekEnd);
-    lastWeekStart.setDate(lastWeekStart.getDate() - 6); // Go back to the start of the previous week
-
-    // Filter patients with appointment dates in the last week
-    const response = await getAllPatients(lastWeekStart, lastWeekEnd);
-
-    return {
-      data: response.data.filter((patient) => {
-        const appointmentDate = new Date(patient.appointmentDate);
-        return (
-          appointmentDate >= lastWeekStart && appointmentDate <= lastWeekEnd
-        );
-      }),
-    };
-  };
+  const [lastUpdated, setLastUpdated] = useState("Last updated: never");
 
   const fetchWeeklyPatientCounts = async () => {
     try {
-      // Fetch patients for the current week
-      const currentWeekResponse = await getAllPatientsCurrentWeek();
-      if (currentWeekResponse.data) {
-        setCurrentWeekPatients(currentWeekResponse.data.length);
-      } else {
-        console.error("Response data for the current week is undefined.");
-      }
+      const allPatientsResponse = await getAllPatients();
 
-      // Fetch patients for the week before the current week
-      const lastWeekResponse = await getAllPatientsLastWeek();
-      if (lastWeekResponse.data) {
-        setLastWeekPatients(lastWeekResponse.data.length);
-      } else {
-        console.error(
-          "Response data for the week before the current week is undefined."
+      if (allPatientsResponse && allPatientsResponse.data) {
+        const allPatients = allPatientsResponse.data;
+        const today = new Date();
+        const currentWeekStart = new Date(today);
+        currentWeekStart.setDate(today.getDate() - today.getDay());
+        const currentWeekEnd = new Date(currentWeekStart);
+        currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+
+        const lastWeekStart = new Date(currentWeekStart);
+        lastWeekStart.setDate(currentWeekStart.getDate() - 7);
+        const lastWeekEnd = new Date(lastWeekStart);
+        lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+
+        setCurrentWeekPatients(
+          allPatients.filter(
+            (patient) =>
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) >= currentWeekStart &&
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) <= currentWeekEnd
+          ).length
         );
+
+        setLastWeekPatients(
+          allPatients.filter(
+            (patient) =>
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) >= lastWeekStart &&
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) <= lastWeekEnd
+          ).length
+        );
+      } else {
+        console.error("Error fetching patients: Response data is undefined.");
       }
     } catch (error) {
       console.error("Error fetching patients:", error);
@@ -78,22 +59,19 @@ const OveralVisitorsCard = () => {
 
   useEffect(() => {
     fetchWeeklyPatientCounts();
-    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
-    if (currentWeekPatients >= 2 && lastWeekPatients >= 2) {
-      // Calculate the percentage change
+    if (currentWeekPatients !== null && lastWeekPatients !== null) {
       const difference = currentWeekPatients - lastWeekPatients;
-      const percentage = ((difference / lastWeekPatients) * 100).toFixed(2);
+      const percentage =
+        lastWeekPatients > 0
+          ? ((difference / lastWeekPatients) * 100).toFixed(2) // Rounds the calculated percentage to two decimal places for precision.
+          : "N/A";
 
-      // Update the lastUpdated time
       const now = new Date();
       const formattedTime = `${now.toLocaleTimeString()}`;
       setLastUpdated(`Last updated ${formattedTime}`);
-
-      console.log("currentweek:", currentWeekPatients);
-      console.log("lastweek:", lastWeekPatients);
       setPercentageChange(percentage);
     }
   }, [currentWeekPatients, lastWeekPatients]);
@@ -142,7 +120,6 @@ const OveralVisitorsCard = () => {
               <span>New</span>
             </div>
           </div>
-
           <p className="card-text my-3">{lastUpdated}</p>
         </div>
       </div>
@@ -150,4 +127,4 @@ const OveralVisitorsCard = () => {
   );
 };
 
-export default OveralVisitorsCard;
+export default OverallVisitorsCard;
