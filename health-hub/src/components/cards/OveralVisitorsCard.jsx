@@ -26,6 +26,32 @@ const OverallVisitorsCard = () => {
         const lastWeekEnd = new Date(lastWeekStart);
         lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
 
+        console.log(
+          "Current Week Patients:",
+          allPatients.filter(
+            (patient) =>
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) >= currentWeekStart &&
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) <= currentWeekEnd
+          ).length
+        );
+
+        console.log(
+          "Last Week Patients:",
+          allPatients.filter(
+            (patient) =>
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) >= lastWeekStart &&
+              new Date(
+                `${patient.appointmentDate}T${patient.appointmentTime}:00`
+              ) <= lastWeekEnd
+          ).length
+        );
+
         setCurrentWeekPatients(
           allPatients.filter(
             (patient) =>
@@ -42,8 +68,6 @@ const OverallVisitorsCard = () => {
           allPatients.filter(
             (patient) =>
               new Date(
-                // Combines appointmentDate and appointmentTime to create a string in the format "YYYY-MM-DDTHH:mm:00".
-                // choon format dataBase intorie
                 `${patient.appointmentDate}T${patient.appointmentTime}:00`
               ) >= lastWeekStart &&
               new Date(
@@ -68,7 +92,7 @@ const OverallVisitorsCard = () => {
       const difference = currentWeekPatients - lastWeekPatients;
       const percentage =
         lastWeekPatients > 0
-          ? ((difference / lastWeekPatients) * 100).toFixed(2) // Rounds the calculated percentage to two decimal places for precision.
+          ? ((difference / lastWeekPatients) * 100).toFixed(2)
           : "N/A";
 
       const now = new Date();

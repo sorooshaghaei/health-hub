@@ -83,7 +83,7 @@ const Dashboard = ({ patients }) => {
           <TotalPatientsCard />
         </div>
         <div className="col-lg-4 col-md-6 visitor-card">
-          <TotalSurgeriesCard />
+          <TotalSurgeriesCard getAllPatients={patients} />
         </div>
       </div>
     </div>
