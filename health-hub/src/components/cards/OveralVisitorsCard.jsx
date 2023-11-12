@@ -42,6 +42,8 @@ const OverallVisitorsCard = () => {
           allPatients.filter(
             (patient) =>
               new Date(
+                // Combines appointmentDate and appointmentTime to create a string in the format "YYYY-MM-DDTHH:mm:00".
+                // choon format dataBase intorie
                 `${patient.appointmentDate}T${patient.appointmentTime}:00`
               ) >= lastWeekStart &&
               new Date(
