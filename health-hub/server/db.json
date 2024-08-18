@@ -36,7 +36,7 @@
       "appointmentDate": "2023-11-17",
       "appointmentTime": "15:55",
       "typeOfSickness": "butox",
-      "levelOfUrgency": "urgent",
+      "levelOfUrgency": "normal",
       "phone": "09025477288",
       "id": 27
     },
@@ -56,19 +56,9 @@
       "appointmentDate": "2023-12-19",
       "appointmentTime": "15:10",
       "typeOfSickness": "surgery",
-      "levelOfUrgency": "normal",
+      "levelOfUrgency": "urgent",
       "phone": "09017656333",
       "id": 29
-    },
-    {
-      "name": "sara",
-      "idNumber": "1256722999",
-      "appointmentDate": "2023-10-18",
-      "appointmentTime": "21:10",
-      "typeOfSickness": "butox",
-      "levelOfUrgency": "normal",
-      "phone": "091345677782",
-      "id": 30
     },
     {
       "name": "ahmad",
@@ -118,6 +108,15 @@
       "password": "1",
       "rePassword": "1",
       "id": 1
+    },
+    {
+      "firstName": "negin",
+      "lastName": "haseli",
+      "number": "09229189402",
+      "email": "negin.hasely@gmail.com",
+      "password": "12345678",
+      "rePassword": "12345678",
+      "id": 2
     }
   ]
 }
