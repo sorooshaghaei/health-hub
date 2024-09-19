@@ -1,28 +1,40 @@
 # Health-Hub Web App
 
 ## Introduction
-**Health-Hub** is a comprehensive web application designed for managing medical information, tracking patients, and scheduling appointments. This system provides an intuitive interface for monitoring key healthcare metrics and improving coordination among healthcare providers.
+**Health-Hub** is a comprehensive web application designed to manage medical information, track patients, and schedule appointments. It features an intuitive interface for monitoring key healthcare metrics and enhancing coordination among healthcare providers.
 
 ## Features
-- **Patient Management:** Manage and view patient records, including medical history and personal details.
-- **Appointment Scheduling:** Schedule and manage patient appointments efficiently.
-- **Data Visualization:** Visualize data trends with charts and graphs, such as patient visits and appointment statistics.
-- **Dashboard Overview:** Get an overview of key metrics like total patients, appointments, and visitors.
+- **Patient Management:** Efficiently manage and view patient records, including medical history and personal details.
+- **Appointment Scheduling:** Schedule and manage patient appointments seamlessly.
+- **Data Visualization:** Display data trends with charts and graphs, such as patient visits and appointment statistics.
+- **Dashboard Overview:** Get a comprehensive view of key metrics like total patients, appointments, and visitors.
 
 ## Screenshots
+### Web App Views
+<img width="445" alt="View Patient Page" src="https://github.com/user-attachments/assets/eef091f1-8d9c-4811-b774-de8b3196322a">
+<img width="445" alt="Edit Patient Page" src="https://github.com/user-attachments/assets/24a32215-beb5-410a-8aac-874933923166">
+<img width="445" alt="Delete Patient Warning" src="https://github.com/user-attachments/assets/7ddc8abf-883f-4878-9404-5f8ae63db2c5">
+<img width="445" alt="Dashboard" src="https://github.com/user-attachments/assets/a9dc8397-616f-4395-b799-f1cba71c57f4">
+<img width="445" alt="Add Patient Page" src="https://github.com/user-attachments/assets/e561b6ea-c504-4ea1-820e-8b60def5cd8e">
 
-### Dashboard
-![Dashboard](https://github.com/sorooshaghaei/health-hub/assets/dashboard-screenshot.png)
+## Entity-Relationship Diagram (ERD)
+### ERD Overview
+<img width="445" alt="ERD for System" src="https://github.com/user-attachments/assets/02bbf57a-20d2-4b12-af36-740f99f19d90">
 
-### Patient Management
-![Patient Management](https://github.com/sorooshaghaei/health-hub/assets/patient-management-screenshot.png)
+### ERD for Patients Page
+<img width="445" alt="ERD for Patients Page" src="https://github.com/user-attachments/assets/927ce789-fc74-400e-a8f8-231dcdce6c9a">
 
-### Appointment Scheduling
-![Appointment Scheduling](https://github.com/sorooshaghaei/health-hub/assets/appointment-scheduling-screenshot.png)
+### ERD for Appointment Date
+<img width="445" alt="ERD for Appointment Date" src="https://github.com/user-attachments/assets/854c371f-0df0-4980-8f94-ffa42db7c7a8">
+
+## Figma Design
+### Design Layouts
+<img width="445" alt="Figma Design Patient Info Page" src="https://github.com/user-attachments/assets/73efe7b1-c7a6-4540-961a-658af5cf2732">
+<img width="445" alt="Figma Design Dashboard" src="https://github.com/user-attachments/assets/5779a8ea-a86c-4670-afd5-a5b73495d02c">
+<img width="445" alt="Figma Design Appointment Page" src="https://github.com/user-attachments/assets/fe4b55b5-77fe-4d1f-8572-9e5277cc6925">
 
 ## Project Poster
 ![Project Poster](https://github.com/sorooshaghaei/health-hub/blob/main/health-hub/src/assets/Health-hub-poster.jpg)
-
 
 ## Installation
 
@@ -59,13 +71,13 @@
     npm start
     ```
 
-    This command will start a `json-server` instance, watching `db.json` on port 9000. You can access the server at:
+    This will start a `json-server` instance, watching `db.json` on port 9000. Access the server at:
     - [http://localhost:9000](http://localhost:9000)
     - Resources:
-        - [http://localhost:9000/patients](http://localhost:9000/patients)
-        - [http://localhost:9000/groups](http://localhost:9000/groups)
-        - [http://localhost:9000/sickness](http://localhost:9000/sickness)
-        - [http://localhost:9000/users](http://localhost:9000/users)
+        - [Patients](http://localhost:9000/patients)
+        - [Groups](http://localhost:9000/groups)
+        - [Sickness](http://localhost:9000/sickness)
+        - [Users](http://localhost:9000/users)
 
 ## Usage
 
