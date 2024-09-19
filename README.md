@@ -20,6 +20,10 @@
 ### Appointment Scheduling
 ![Appointment Scheduling](https://github.com/sorooshaghaei/health-hub/assets/appointment-scheduling-screenshot.png)
 
+## Project Poster
+![Project Poster](https://github.com/sorooshaghaei/health-hub/blob/main/assets/poster.png)
+
+
 ## Installation
 
 1. **Clone the Repository:**
