@@ -30,11 +30,11 @@
 ## Figma Design
 ### Design Layouts
 <img width="445" alt="Figma Design Patient Info Page" src="https://github.com/user-attachments/assets/73efe7b1-c7a6-4540-961a-658af5cf2732">
-<img width="445" alt="Figma Design Dashboard" src="https://github.com/user-attachments/assets/5779a8ea-a86c-4670-afd5-a5b73495d02c">
 <img width="445" alt="Figma Design Appointment Page" src="https://github.com/user-attachments/assets/fe4b55b5-77fe-4d1f-8572-9e5277cc6925">
+<img width="445" alt="Figma Design Dashboard" src="https://github.com/user-attachments/assets/5779a8ea-a86c-4670-afd5-a5b73495d02c">
 
 ## Project Poster
-![Project Poster](https://github.com/sorooshaghaei/health-hub/blob/main/health-hub/src/assets/Health-hub-poster.jpg)
+<img width="300" alt="Project Poster" src="https://github.com/sorooshaghaei/health-hub/blob/main/health-hub/src/assets/Health-hub-poster.jpg">
 
 ## Installation
 
