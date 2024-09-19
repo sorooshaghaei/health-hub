@@ -53,20 +53,22 @@
     npm install
     ```
 
-4. **Setup Environment Variables:**
-    Create a `.env` file in the root directory and add the necessary environment variables. Example:
+## Running the Application
+
+1. **Start the Health-Hub Application:**
     ```bash
-    PORT=9000
+    npm start
     ```
 
-## Running the Server
+    This will start the Health-Hub front-end application on the default port (usually 3000). Access the application at:
+    - [http://localhost:3000](http://localhost:3000)
 
-1. **Navigate to the Server Directory:**
+2. **Navigate to the Server Directory:**
     ```bash
     cd server
     ```
 
-2. **Start the Development Server:**
+3. **Start the Development Server:**
     ```bash
     npm start
     ```
@@ -81,7 +83,7 @@
 
 ## Usage
 
-1. **Open the Application:** Access the application in your browser at [http://localhost:9000](http://localhost:9000).
+1. **Open the Application:** Access the Health-Hub application in your browser at [http://localhost:3000](http://localhost:3000).
 2. **Dashboard:** View overall statistics and data trends on the dashboard.
 3. **Patient Management:** Manage patient records and view detailed information.
 4. **Appointment Scheduling:** Schedule new appointments and manage existing ones.
