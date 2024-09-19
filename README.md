@@ -21,7 +21,7 @@
 ![Appointment Scheduling](https://github.com/sorooshaghaei/health-hub/assets/appointment-scheduling-screenshot.png)
 
 ## Project Poster
-![Project Poster](https://github.com/sorooshaghaei/health-hub/blob/main/assets/Health-hub-poster.jpg)
+![Project Poster](https://github.com/sorooshaghaei/health-hub/src/assets/Health-hub-poster.jpg)
 
 
 ## Installation
