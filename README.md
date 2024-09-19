@@ -1,7 +1,7 @@
 # Health-Hub Web App
 
 ## Introduction
-Health-Hub is a comprehensive web application designed for managing medical information, tracking patients, and scheduling appointments. This system provides an intuitive interface for monitoring key healthcare metrics and improving coordination among healthcare providers.
+**Health-Hub** is a comprehensive web application designed for managing medical information, tracking patients, and scheduling appointments. This system provides an intuitive interface for monitoring key healthcare metrics and improving coordination among healthcare providers.
 
 ## Features
 - **Patient Management:** Manage and view patient records, including medical history and personal details.
@@ -40,23 +40,32 @@ Health-Hub is a comprehensive web application designed for managing medical info
 4. **Setup Environment Variables:**
     Create a `.env` file in the root directory and add the necessary environment variables. Example:
     ```bash
-    DB_CONNECTION_STRING=mongodb://localhost:27017/healthhub
-    PORT=3000
+    PORT=9000
     ```
 
 ## Running the Server
 
-1. **Start the Development Server:**
+1. **Navigate to the Server Directory:**
+    ```bash
+    cd server
+    ```
+
+2. **Start the Development Server:**
     ```bash
     npm start
     ```
 
-2. **Open the Application in Your Browser:**
-    Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
+    This command will start a `json-server` instance, watching `db.json` on port 9000. You can access the server at:
+    - [http://localhost:9000](http://localhost:9000)
+    - Resources:
+        - [http://localhost:9000/patients](http://localhost:9000/patients)
+        - [http://localhost:9000/groups](http://localhost:9000/groups)
+        - [http://localhost:9000/sickness](http://localhost:9000/sickness)
+        - [http://localhost:9000/users](http://localhost:9000/users)
 
 ## Usage
 
-1. **Open the Application:** Access the application in your browser at [http://localhost:3000](http://localhost:3000).
+1. **Open the Application:** Access the application in your browser at [http://localhost:9000](http://localhost:9000).
 2. **Dashboard:** View overall statistics and data trends on the dashboard.
 3. **Patient Management:** Manage patient records and view detailed information.
 4. **Appointment Scheduling:** Schedule new appointments and manage existing ones.
@@ -65,7 +74,6 @@ Health-Hub is a comprehensive web application designed for managing medical info
 
 - **Node.js:** Version 14 or higher.
 - **npm:** Node Package Manager.
-- **MongoDB:** For database management.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
