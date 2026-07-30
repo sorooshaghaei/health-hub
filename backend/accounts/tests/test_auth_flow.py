@@ -129,3 +129,51 @@ class AuthenticationFlowTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_clinic_context_requires_clinic_access(self):
+        response = self.client.get("/api/clinic/context/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_clinic_context_reports_both_created_roles(self):
+        clinic_payload = self.create_clinic()
+        token = clinic_payload["clinic_access_token"]
+        self.register_staff(token, "doctor", "doctor.one", "doctor@example.com")
+        self.register_staff(
+            token,
+            "assistant",
+            "assistant.one",
+            "assistant@example.com",
+        )
+
+        response = self.client.get(
+            "/api/clinic/context/",
+            HTTP_X_CLINIC_TOKEN=token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["roles"]["doctor"]["exists"])
+        self.assertTrue(response.data["roles"]["doctor"]["is_administrator"])
+        self.assertTrue(response.data["roles"]["assistant"]["exists"])
+        self.assertFalse(response.data["roles"]["assistant"]["is_administrator"])
+
+    def test_logout_invalidates_staff_session(self):
+        clinic_payload = self.create_clinic()
+        response = self.register_staff(
+            clinic_payload["clinic_access_token"],
+            "doctor",
+            "doctor.one",
+            "doctor@example.com",
+        )
+        authorization = f"Bearer {response.data['session_token']}"
+
+        logout_response = self.client.post(
+            "/api/staff/logout/",
+            HTTP_AUTHORIZATION=authorization,
+        )
+        me_response = self.client.get(
+            "/api/staff/me/",
+            HTTP_AUTHORIZATION=authorization,
+        )
+
+        self.assertEqual(logout_response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(me_response.status_code, status.HTTP_401_UNAUTHORIZED)
