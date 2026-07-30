@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend builds
+    name: Frontend tests and builds
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -34,6 +34,10 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
+
+      - name: Test browser demo flow
+        working-directory: frontend
+        run: npm test
 
       - name: Build application frontend
         working-directory: frontend
