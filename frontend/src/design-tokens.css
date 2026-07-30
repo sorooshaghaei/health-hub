@@ -1,0 +1,50 @@
+:root {
+  /* Brand */
+  --hh-clinic-green: #176448;
+  --hh-clinic-green-dark: #104b36;
+  --hh-clinic-mint: #dff0e7;
+  --hh-clinic-mint-soft: #edf7f1;
+  --hh-assistant-clay: #b86f42;
+  --hh-assistant-clay-dark: #86502f;
+  --hh-assistant-clay-soft: #f5e8dc;
+
+  /* Neutral surfaces */
+  --hh-ink: #17231f;
+  --hh-ink-secondary: #33423c;
+  --hh-muted: #6b7771;
+  --hh-line: #dce5df;
+  --hh-canvas: #f3f6f3;
+  --hh-surface: #ffffff;
+  --hh-surface-soft: #f8faf8;
+
+  /* Patient flow states */
+  --hh-arrived: #3e6f7b;
+  --hh-arrived-soft: #e1eef1;
+  --hh-waiting: #b78120;
+  --hh-waiting-soft: #fff2d8;
+  --hh-with-doctor: #6a5d8e;
+  --hh-with-doctor-soft: #ece9f5;
+  --hh-doctor-finished: #176448;
+  --hh-doctor-finished-soft: #dff0e7;
+  --hh-checkout: #86502f;
+  --hh-checkout-soft: #f5e8dc;
+  --hh-danger: #a64539;
+  --hh-danger-soft: #fbe9e6;
+
+  /* Shape and elevation */
+  --hh-radius-input: 10px;
+  --hh-radius-button: 14px;
+  --hh-radius-card: 20px;
+  --hh-radius-panel: 28px;
+  --hh-shadow-card: 0 10px 35px rgb(39 64 52 / 5%);
+  --hh-shadow-raised: 0 15px 38px rgb(30 69 51 / 9%);
+
+  /* Spacing: 8-point foundation with intermediate steps */
+  --hh-space-1: 8px;
+  --hh-space-2: 12px;
+  --hh-space-3: 16px;
+  --hh-space-4: 24px;
+  --hh-space-5: 32px;
+  --hh-space-6: 48px;
+  --hh-space-7: 64px;
+}
