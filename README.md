@@ -8,13 +8,37 @@ Health Hub is a deliberately simple clinic workflow application for one Doctor a
 
 Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
-The approved phased roadmap and the mandatory ask-before-implementation workflow are documented in [`docs/DEVELOPMENT_PLAN.md`](docs/DEVELOPMENT_PLAN.md).
+## Development sources of truth
+
+- New chat/session handoff: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
+- Approved phased roadmap: [`docs/DEVELOPMENT_PLAN.md`](docs/DEVELOPMENT_PLAN.md)
+- Approved Phase 1 patient specification: [`docs/PHASE_1_PATIENT_RECORDS.md`](docs/PHASE_1_PATIENT_RECORDS.md)
+- Visual direction and assets: [`docs/design/README.md`](docs/design/README.md)
+
+The project is developed directly on `main`, one approved phase at a time. Unresolved fields, actions, states, permissions, algorithms, libraries, and workflow behavior must be confirmed with the product owner before implementation. After each phase, stop until the product owner explicitly says **continue**.
 
 ## Current phase
 
-**Phase 0 — Foundation verification: repository implementation complete; current Actions and live Pages confirmation pending.**
+**Phase 1 — Patient specification and records: product specification approved; implementation not started.**
 
-The current foundation implements the approved two-level access flow:
+Phase 0 repository implementation is complete. Current external Actions and live Pages results may still require separate confirmation.
+
+The next approved implementation is limited to the reusable Patient profile described in `docs/PHASE_1_PATIENT_RECORDS.md`. It includes:
+
+- required full name;
+- required gender with `Man` and `Woman` values;
+- required country calling code and phone number, with Iran `+98` selected by default;
+- optional date of birth;
+- optional shared Patient note visible and editable by both Doctor and Assistant;
+- combined name, phone, and date-of-birth search;
+- one non-blocking **Possible duplicate patient** warning;
+- patient create, view, edit, search, and controlled deletion behavior.
+
+A Patient is the permanent reusable person profile. A Visit is a separate clinic attendance. Visits, appointments, working-day scheduling, and queue behavior are not part of Phase 1 and must not be implemented yet.
+
+## Current foundation
+
+The implemented two-level access flow is:
 
 1. Create a clinic or enter an existing clinic with its clinic email and shared clinic password.
 2. Choose Doctor or Assistant.
@@ -32,15 +56,16 @@ Implemented security boundaries:
 - role uniqueness is enforced in PostgreSQL and in the API;
 - role and clinic membership are checked again during staff login.
 
-The patient workflow, tasks, private notes, checkout indication, password recovery, and day-end estimate are intentionally not implemented in this foundation. Their unresolved behavior will not be invented.
-
 ## Repository structure
 
 ```text
-backend/                 Django REST Framework API
-frontend/                React/Vite application
-docs/DEVELOPMENT_PLAN.md Approved phased development plan
-docker-compose.yml       Local PostgreSQL service
+backend/                         Django REST Framework API
+frontend/                        React/Vite application
+docs/PROJECT_CONTEXT.md          New-session continuation context
+docs/DEVELOPMENT_PLAN.md         Approved phased development plan
+docs/PHASE_1_PATIENT_RECORDS.md  Approved Phase 1 source of truth
+docs/design/                     Visual direction and design assets
+docker-compose.yml               Local PostgreSQL service
 ```
 
 ## Local setup
@@ -67,7 +92,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Run the backend verification with PostgreSQL using the environment values from `.env`:
+Run backend verification with PostgreSQL using the environment values from `.env`:
 
 ```bash
 python manage.py check
@@ -122,7 +147,7 @@ npm run build:demo
 
 GitHub Pages must use **GitHub Actions** as its deployment source in the repository settings.
 
-## API surface
+## Current API surface
 
 ```text
 GET  /api/health/
@@ -136,6 +161,8 @@ POST /api/staff/logout/
 ```
 
 Clinic-scoped endpoints expect `X-Clinic-Token`. Staff-scoped endpoints expect `Authorization: Bearer <session-token>`.
+
+Patient APIs are not implemented yet.
 
 ## Production boundary
 
