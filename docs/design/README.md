@@ -2,6 +2,8 @@
 
 This visual direction extends the existing restrained evergreen interface into a clinic product identity. It is designed for one Doctor and one Assistant, with clear role boundaries and minimal training overhead.
 
+These files define visual direction only. They do not authorize new product fields, actions, permissions, states, algorithms, or workflow behavior. Product behavior must follow `docs/DEVELOPMENT_PLAN.md` and the current phase specification. For Phase 1 patient behavior, `docs/PHASE_1_PATIENT_RECORDS.md` is the source of truth.
+
 ## Brand concept
 
 The logo is an `H` made from three connected forms. It represents Health Hub while also expressing two separate staff workspaces joined by one shared clinic workflow.
