@@ -33,7 +33,7 @@ No branch, pull request, speculative feature, duplicate workflow, or unapproved 
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Foundation verification | In progress |
+| 0 | Foundation verification | Implemented; current Actions and public URL confirmation pending |
 | 1 | Patient specification and records | Not started |
 | 2 | Planned appointments and walk-ins | Not started |
 | 3 | Arrival and live waiting queue | Not started |
@@ -74,6 +74,21 @@ No branch, pull request, speculative feature, duplicate workflow, or unapproved 
 - GitHub Pages deployment succeeds and the public URL serves the frontend.
 - README setup and verification instructions match the repository.
 - Documentation contains no obsolete or unapproved workflow assumptions.
+
+### Implementation record
+
+Completed in the repository:
+
+- normal and demo frontend build commands;
+- browser-only demo adapter for the approved clinic and staff access flow;
+- dependency-free Node test for the browser demo authentication flow;
+- Django authentication and authorization tests;
+- PostgreSQL 17 CI service, migration validation, system checks, and backend tests;
+- GitHub Pages deployment workflow;
+- setup, production-boundary, design, and development-plan documentation;
+- removal of unapproved workflow assumptions from design documentation.
+
+The repository-level implementation is complete. The latest push-triggered Actions results and the live Pages response must still be confirmed from GitHub because they are external deployment outcomes rather than repository code.
 
 No patient workflow, tasks, notes, recovery flow, notifications, or timing estimate is added in this phase.
 
