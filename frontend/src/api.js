@@ -1,4 +1,7 @@
+import { demoApiRequest } from "./demoApi.js";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 export class ApiError extends Error {
   constructor(message, fields = null, status = 0) {
@@ -25,6 +28,14 @@ export async function apiRequest(
   path,
   { method = "GET", data, clinicToken, staffToken } = {},
 ) {
+  if (DEMO_MODE) {
+    try {
+      return await demoApiRequest(path, { method, data, clinicToken, staffToken });
+    } catch (error) {
+      throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0);
+    }
+  }
+
   const headers = { Accept: "application/json" };
   if (data !== undefined) headers["Content-Type"] = "application/json";
   if (clinicToken) headers["X-Clinic-Token"] = clinicToken;
