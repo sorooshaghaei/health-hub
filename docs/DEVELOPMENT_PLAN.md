@@ -7,13 +7,15 @@ Health Hub is developed directly on `main` in small, reviewable phases.
 For every phase:
 
 1. Review the phase scope and identify unresolved product decisions.
-2. Ask the product owner before choosing fields, screens, actions, states, permissions, libraries, or behavior that have not already been approved.
+2. Ask the product owner before choosing fields, screens, actions, states, permissions, libraries, algorithms, or behavior that have not already been approved.
 3. Implement only the approved scope.
 4. Validate the implementation and update the GitHub Pages demo when applicable.
 5. Stop and report what changed.
 6. Continue only after the product owner explicitly says **continue**.
 
 No branch, pull request, speculative feature, duplicate workflow, or unapproved external dependency should be introduced.
+
+For a new development session, start with [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md). Detailed approved Phase 1 behavior is recorded in [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
 
 ## Product baseline
 
@@ -34,7 +36,7 @@ No branch, pull request, speculative feature, duplicate workflow, or unapproved 
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 0 | Foundation verification | Implemented; current Actions and public URL confirmation pending |
-| 1 | Patient specification and records | Not started |
+| 1 | Patient specification and records | Specification approved; implementation not started |
 | 2 | Planned appointments and walk-ins | Not started |
 | 3 | Arrival and live waiting queue | Not started |
 | 4 | Doctor readiness and consultation flow | Not started |
@@ -90,37 +92,90 @@ Completed in the repository:
 
 The repository-level implementation is complete. The latest push-triggered Actions results and the live Pages response must still be confirmed from GitHub because they are external deployment outcomes rather than repository code.
 
-No patient workflow, tasks, notes, recovery flow, notifications, or timing estimate is added in this phase.
+No patient workflow, tasks, notes, recovery flow, notifications, or timing estimate was added in this phase.
 
 ## Phase 1 — Patient specification and records
 
-Before implementation, confirm:
+Status: **Product specification approved; implementation not started.**
 
-- required and optional patient fields;
-- exact gender options;
-- phone-number validation;
-- unknown date-of-birth behavior;
-- Assistant-only note editing and deletion;
-- search behavior;
-- duplicate detection;
-- editing permissions;
-- deletion or archival behavior;
-- what patient information the Doctor may open.
+The complete source of truth is [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
 
-After approval, implement the patient model, API, permissions, Assistant interface, tests, and equivalent demo behavior.
+### Approved patient model
+
+A **Patient** is the permanent reusable person profile. A **Visit** is one clinic attendance on a working day. A returning patient reuses the existing Patient profile and later receives another Visit; Health Hub must not create a new Patient record for every attendance.
+
+Approved fields:
+
+- full name — required;
+- gender — required, with values `Man` and `Woman`;
+- country calling code — required, with Iran `+98` selected by default for now;
+- phone number — required and validated using the selected country calling code;
+- date of birth — optional;
+- Patient note — optional, plain text, visible and editable by both Doctor and Assistant.
+
+No address, email, reminder, notification, or additional patient field is approved for Phase 1.
+
+### Approved permissions
+
+Both Doctor and Assistant may create, view, search, edit, and delete Patient profiles. Both roles may view and edit the Patient note. Doctor access is not limited to visit-only information.
+
+The Patient note is distinct from Phase 7 personal sticky notes. Phase 7 Doctor and Assistant personal notes remain creator-only and do not create reminders.
+
+### Approved search and duplicate behavior
+
+Patient search combines name, phone number, and date of birth.
+
+Use one simple non-blocking warning: **Possible duplicate patient**. It applies when:
+
+- normalized full name, phone number, and date of birth indicate the same patient;
+- or a similar name uses the same phone number.
+
+When date of birth is empty, normalized full name plus phone number is sufficient. The user may choose the existing profile or explicitly create a separate patient. The real stored patient name must never receive an automatic suffix or generated modification.
+
+When adding a patient to a working day in Phase 2, the interface must suggest matching existing profiles so the Assistant can select the recorded Patient and create a new Visit. Exact suggestion-row presentation remains a Phase 2 interface decision.
+
+### Approved editing and deletion behavior
+
+There is no patient archive state.
+
+- Patient profiles may be edited.
+- Deletion is blocked while future Visits exist.
+- Future Visits must be removed first.
+- Past Visits remain as historical records when the active Patient profile is deleted.
+- Historical Visits retain captured patient details for display.
+- A deleted Patient profile is no longer selectable and cannot receive new Visits.
+
+### Phase 1 implementation scope
+
+After the product owner says **continue**, implement only:
+
+- Patient model and migration;
+- approved field and phone validation;
+- country-code selector with Iran `+98` default;
+- create, view, edit, search, and delete APIs;
+- Doctor and Assistant permissions;
+- the single duplicate-warning behavior;
+- patient list, search, create, detail, edit, and deletion UI;
+- backend tests;
+- frontend and browser-demo tests;
+- equivalent GitHub Pages demo behavior;
+- resulting documentation updates.
+
+Do not implement Visits, appointments, working-day scheduling, queue states, consultation flow, checkout, shared tasks, personal notes, notifications, or estimates in Phase 1.
 
 ## Phase 2 — Planned appointments and walk-ins
 
 Before implementation, confirm:
 
 - appointment fields;
-- editing and cancellation rules;
+- editing and cancellation rules, including removal of future Visits required before Patient deletion;
 - past-appointment visibility;
 - repeated same-day visits;
 - walk-in data requirements;
-- whether a visit-reason field exists.
+- whether a visit-reason field exists;
+- exact identifying information shown in existing-patient suggestions.
 
-After approval, implement planned appointments, walk-ins, the daily planning interface, APIs, tests, and equivalent demo behavior.
+After approval, implement planned appointments, walk-ins, Patient-to-Visit reuse, the daily planning interface, APIs, tests, and equivalent demo behavior.
 
 Scheduled appointment time is informational and does not determine live waiting order.
 
@@ -212,7 +267,8 @@ Confirmed requirements:
 - each role can create private personal notes;
 - each note is visible only to its creator;
 - notes can be saved and deleted;
-- notes remain separate from tasks and patient records.
+- notes remain separate from tasks, Patient notes, and patient records;
+- notes are simple sticky-note-style text and do not create reminders.
 
 Before implementation, confirm titles, editing, autosave, deletion behavior, ordering, and workspace placement.
 
