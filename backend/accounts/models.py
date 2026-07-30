@@ -30,7 +30,7 @@ class Clinic(models.Model):
 
 
 class StaffUser(AbstractUser):
-    email = models.EmailField(unique=True)
+    email = models.EmailField("email address", unique=True)
 
     class Role(models.TextChoices):
         DOCTOR = "doctor", "Doctor"
