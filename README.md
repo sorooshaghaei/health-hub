@@ -12,7 +12,7 @@ The approved phased roadmap and the mandatory ask-before-implementation workflow
 
 ## Current phase
 
-**Phase 0 — Foundation verification**
+**Phase 0 — Foundation verification: repository implementation complete; current Actions and live Pages confirmation pending.**
 
 The current foundation implements the approved two-level access flow:
 
@@ -67,7 +67,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Run the backend tests with PostgreSQL using the environment values from `.env`:
+Run the backend verification with PostgreSQL using the environment values from `.env`:
 
 ```bash
 python manage.py check
@@ -96,25 +96,27 @@ npm run dev
 
 The Vite development server proxies `/api` to `http://127.0.0.1:8000`, so no additional CORS package is required.
 
-Verify both frontend build modes:
+Verify the browser adapter and both frontend build modes:
 
 ```bash
+npm test
 npm run build
 npm run build:demo
 ```
 
-`npm run build` creates the backend-connected application build. `npm run build:demo` creates the same frontend with the browser-only data adapter and the `/health-hub/` GitHub Pages base path.
+`npm test` validates the clinic and staff authentication flow used by the static demo. `npm run build` creates the backend-connected application build. `npm run build:demo` creates the same frontend with the browser-only data adapter and the `/health-hub/` GitHub Pages base path.
 
 ## Automated verification
 
 `.github/workflows/quality.yml` verifies:
 
+- the browser demo authentication flow;
 - the normal frontend build;
 - the GitHub Pages demo build;
 - Django system checks;
 - committed migration consistency;
 - migrations against PostgreSQL 17;
-- backend tests against PostgreSQL 17.
+- backend authentication and authorization tests against PostgreSQL 17.
 
 `.github/workflows/pages.yml` builds and publishes the browser demo from `main`.
 
