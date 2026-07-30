@@ -209,7 +209,7 @@ async function loginStaff(data, clinicToken) {
 }
 
 export async function demoApiRequest(path, { method = "GET", data = {}, clinicToken, staffToken } = {}) {
-  await new Promise((resolve) => window.setTimeout(resolve, 120));
+  await new Promise((resolve) => globalThis.setTimeout(resolve, 120));
 
   if (path === "/api/clinics/" && method === "POST") return createClinic(data);
   if (path === "/api/clinics/enter/" && method === "POST") return enterClinic(data);
