@@ -42,15 +42,17 @@ class VisitSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def to_internal_value(self, data):
+        if "visit_type" in data:
+            raise serializers.ValidationError(
+                {"visit_type": "Appointment payloads do not accept visit_type."}
+            )
+        return super().to_internal_value(data)
+
     def validate_reason(self, value):
         return value.strip()
 
     def validate(self, attrs):
-        if "visit_type" in self.initial_data:
-            raise serializers.ValidationError(
-                {"visit_type": "Appointment payloads do not accept visit_type."}
-            )
-
         instance = self.instance
         supplied_patient_id = "patient_id" in attrs
         supplied_new_patient = "new_patient" in attrs
