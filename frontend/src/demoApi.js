@@ -88,7 +88,7 @@ function publicClinic(clinic) {
   return { id: clinic.id, name: clinic.name, email: clinic.email, phone: clinic.phone };
 }
 
-function publicUser(user, clinic) {
+function publicUser(user, clinic, workspaceRole = user.role) {
   return {
     id: user.id,
     username: user.username,
@@ -97,6 +97,7 @@ function publicUser(user, clinic) {
     last_name: user.last_name,
     display_name: `${user.first_name} ${user.last_name}`.trim() || user.username,
     role: user.role,
+    workspace_role: workspaceRole,
     is_clinic_admin: user.role === "doctor",
     clinic: publicClinic(clinic),
   };
@@ -130,10 +131,20 @@ function resolveClinic(store, clinicToken) {
 }
 
 function resolveSession(store, staffToken) {
-  const userId = store.sessions[staffToken];
+  const storedSession = store.sessions[staffToken];
+  const userId = typeof storedSession === "string" ? storedSession : storedSession?.user_id;
   const user = store.staff.find((candidate) => candidate.id === userId);
   if (!user || !store.clinic) fail({ detail: "Staff session is invalid or expired." }, 401);
-  return user;
+  const workspaceRole = typeof storedSession === "string"
+    ? user.role
+    : storedSession.workspace_role || user.role;
+  return { user, workspace_role: workspaceRole };
+}
+
+function requireAssistantWorkspace(session) {
+  if (session.workspace_role !== "assistant") {
+    fail({ detail: "Open the Assistant workspace to manage Patients and appointments." }, 403);
+  }
 }
 
 function normalizePhone(countryCallingCode, phoneNumber) {
@@ -510,22 +521,33 @@ async function registerStaff(data, clinicToken) {
   };
   store.staff.push(user);
   const sessionToken = randomToken("demo-staff");
-  store.sessions[sessionToken] = user.id;
+  store.sessions[sessionToken] = { user_id: user.id, workspace_role: role };
   saveStore(store);
-  return { user: publicUser(user, clinic), session_token: sessionToken, expires_at: null };
+  return { user: publicUser(user, clinic, role), session_token: sessionToken, expires_at: null };
 }
 
 async function loginStaff(data, clinicToken) {
   const store = loadStore();
   const clinic = resolveClinic(store, clinicToken);
+  const workspaceRole = data.role;
   const username = clean(data.username).toLowerCase();
   const passwordHash = await hashSecret(data.password ?? "");
-  const user = store.staff.find((candidate) => candidate.role === data.role && candidate.username.toLowerCase() === username);
-  if (!user || user.password_hash !== passwordHash) fail({ non_field_errors: ["Username or password is incorrect."] });
+  const user = store.staff.find((candidate) => candidate.username.toLowerCase() === username);
+  const allowed = user && (
+    user.role === workspaceRole
+    || (user.role === "doctor" && workspaceRole === "assistant")
+  );
+  if (!allowed || user.password_hash !== passwordHash) {
+    fail({ non_field_errors: ["Username or password is incorrect."] });
+  }
   const sessionToken = randomToken("demo-staff");
-  store.sessions[sessionToken] = user.id;
+  store.sessions[sessionToken] = { user_id: user.id, workspace_role: workspaceRole };
   saveStore(store);
-  return { user: publicUser(user, clinic), session_token: sessionToken, expires_at: null };
+  return {
+    user: publicUser(user, clinic, workspaceRole),
+    session_token: sessionToken,
+    expires_at: null,
+  };
 }
 
 export async function demoApiRequest(path, { method = "GET", data = {}, clinicToken, staffToken } = {}) {
@@ -547,8 +569,14 @@ export async function demoApiRequest(path, { method = "GET", data = {}, clinicTo
 
   if (pathname === "/api/staff/me/" && method === "GET") {
     const store = loadStore();
-    const user = resolveSession(store, staffToken);
-    return { user: publicUser(user, store.clinic) };
+    const session = resolveSession(store, staffToken);
+    return {
+      user: publicUser(
+        session.user,
+        store.clinic,
+        session.workspace_role,
+      ),
+    };
   }
 
   if (pathname === "/api/staff/logout/" && method === "POST") {
@@ -559,19 +587,26 @@ export async function demoApiRequest(path, { method = "GET", data = {}, clinicTo
   }
 
   const store = loadStore();
-  resolveSession(store, staffToken);
+  const session = resolveSession(store, staffToken);
 
   if (pathname === "/api/patients/" && method === "GET") {
     return { patients: listPatients(store, url.searchParams.get("search")) };
   }
-  if (pathname === "/api/patients/" && method === "POST") return createPatient(store, data);
+  if (pathname === "/api/patients/" && method === "POST") {
+    requireAssistantWorkspace(session);
+    return createPatient(store, data);
+  }
 
   const patientMatch = pathname.match(/^\/api\/patients\/([0-9a-f-]+)\/$/i);
   if (patientMatch) {
     const patientId = patientMatch[1];
     if (method === "GET") return publicPatient(patientById(store, patientId));
-    if (method === "PATCH") return updatePatient(store, patientId, data);
+    if (method === "PATCH") {
+      requireAssistantWorkspace(session);
+      return updatePatient(store, patientId, data);
+    }
     if (method === "DELETE") {
+      requireAssistantWorkspace(session);
       const patient = patientById(store, patientId);
       const futureVisits = store.visits.filter((visit) => visit.patient_id === patient.id && isVisitFuture(visit));
       if (futureVisits.length) {
@@ -596,14 +631,21 @@ export async function demoApiRequest(path, { method = "GET", data = {}, clinicTo
       ),
     };
   }
-  if (pathname === "/api/visits/" && method === "POST") return createVisit(store, data);
+  if (pathname === "/api/visits/" && method === "POST") {
+    requireAssistantWorkspace(session);
+    return createVisit(store, data);
+  }
 
   const visitMatch = pathname.match(/^\/api\/visits\/([0-9a-f-]+)\/$/i);
   if (visitMatch) {
     const visitId = visitMatch[1];
     if (method === "GET") return publicVisit(store, visitById(store, visitId));
-    if (method === "PATCH") return updateVisit(store, visitId, data);
+    if (method === "PATCH") {
+      requireAssistantWorkspace(session);
+      return updateVisit(store, visitId, data);
+    }
     if (method === "DELETE") {
+      requireAssistantWorkspace(session);
       const visit = visitById(store, visitId);
       if (!isVisitFuture(visit)) {
         fail({ code: "visit_not_future", detail: "Only future visits can be removed." }, 400);

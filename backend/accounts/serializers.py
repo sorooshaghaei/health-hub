@@ -64,6 +64,7 @@ class StaffSerializer(serializers.ModelSerializer):
     clinic = ClinicSummarySerializer(read_only=True)
     is_clinic_admin = serializers.BooleanField(read_only=True)
     display_name = serializers.SerializerMethodField()
+    workspace_role = serializers.SerializerMethodField()
 
     class Meta:
         model = StaffUser
@@ -75,12 +76,20 @@ class StaffSerializer(serializers.ModelSerializer):
             "last_name",
             "display_name",
             "role",
+            "workspace_role",
             "is_clinic_admin",
             "clinic",
         ]
 
     def get_display_name(self, obj):
         return obj.get_full_name().strip() or obj.username
+
+    def get_workspace_role(self, obj):
+        explicit_role = self.context.get("workspace_role")
+        if explicit_role:
+            return explicit_role
+        request = self.context.get("request")
+        return getattr(getattr(request, "auth", None), "workspace_role", None) or obj.role
 
 
 class StaffRegistrationSerializer(serializers.Serializer):
@@ -139,16 +148,25 @@ class StaffLoginSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         clinic = self.context["clinic"]
+        workspace_role = attrs["role"]
         user = authenticate(
             request=self.context.get("request"),
             username=attrs["username"].strip(),
             password=attrs["password"],
         )
+        account_can_open_workspace = user is not None and (
+            user.role == workspace_role
+            or (
+                user.role == StaffUser.Role.DOCTOR
+                and workspace_role == StaffUser.Role.ASSISTANT
+            )
+        )
         if (
             user is None
             or user.clinic_id != clinic.id
-            or user.role != attrs["role"]
+            or not account_can_open_workspace
         ):
             raise serializers.ValidationError("Username or password is incorrect.")
         attrs["user"] = user
+        attrs["workspace_role"] = workspace_role
         return attrs

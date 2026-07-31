@@ -93,7 +93,7 @@ function ClinicForm({ mode, onSubmit, onBack }) {
   return (
     <AuthShell
       title={creating ? "Create the clinic." : "Enter the clinic."}
-      description={creating ? "The clinic password is shared first-level access. Each staff member will still have a separate individual account." : "First enter the clinic. Then choose Doctor or Assistant and use the individual staff account."}
+      description={creating ? "The clinic password is shared first-level access. Each staff member will still have a separate individual account." : "First enter the clinic. Then choose Doctor or Assistant and use an individual account."}
       onBack={onBack}
     >
       <form className="form" onSubmit={submit}>
@@ -121,7 +121,7 @@ function RoleSelection({ context, onSelect, onLeave }) {
         <span className="role-card__content">
           <span className="role-card__title-row"><strong>{title}</strong>{role === "doctor" && <small>Administrator</small>}</span>
           <span>{description}</span>
-          <em>{exists ? `Sign in as ${title}` : `Create ${title} account`}</em>
+          <em>{exists ? `Sign in to ${title} workspace` : `Create ${title} account`}</em>
         </span>
         <span aria-hidden="true">→</span>
       </button>
@@ -129,13 +129,13 @@ function RoleSelection({ context, onSelect, onLeave }) {
   };
 
   return (
-    <AuthShell title={`Welcome to ${context.clinic.name}.`} description="Choose the workspace you use. Doctor and Assistant accounts remain separate." onBack={onLeave}>
-      <div className="panel-heading"><p className="eyebrow">Clinic entered</p><h2>Who are you?</h2><p>{context.clinic.email}</p></div>
+    <AuthShell title={`Welcome to ${context.clinic.name}.`} description="Choose the workspace you need. The Doctor workspace stays focused and view-only for Patient and appointment administration." onBack={onLeave}>
+      <div className="panel-heading"><p className="eyebrow">Clinic entered</p><h2>Which workspace?</h2><p>{context.clinic.email}</p></div>
       <div className="choice-stack">
-        {roleCard("doctor", "Doctor", "Patient records and the Doctor workspace.")}
-        {roleCard("assistant", "Assistant", "Patient records and the Assistant workspace.")}
+        {roleCard("doctor", "Doctor", "View Patient records and appointment lists without administrative controls.")}
+        {roleCard("assistant", "Assistant", "Manage Patients, appointments, and walk-ins. Doctor administrator credentials are also accepted.")}
       </div>
-      <p className="security-note">The Doctor is always the clinic administrator.</p>
+      <p className="security-note">The Doctor is the clinic administrator but management tools remain inside the Assistant workspace.</p>
     </AuthShell>
   );
 }
@@ -163,10 +163,20 @@ function StaffForm({ role, exists, onSubmit, onBack }) {
     }
   }
 
+  const description = exists
+    ? role === "assistant"
+      ? "Use the Assistant credentials, or the Doctor administrator username and password, to open the Assistant workspace."
+      : "Use the individual Doctor username and password."
+    : `This account belongs only to the clinic's ${title}.`;
+
   return (
-    <AuthShell title={exists ? `${title} sign in.` : `Create the ${title} account.`} description={exists ? `Use the individual ${title} username and password.` : `This account belongs only to the clinic's ${title}.`} onBack={onBack}>
+    <AuthShell title={exists ? `${title} workspace sign in.` : `Create the ${title} account.`} description={description} onBack={onBack}>
       <form className="form" onSubmit={submit}>
-        <div className="panel-heading"><p className="eyebrow">{title}{role === "doctor" ? " · Administrator" : ""}</p><h2>{exists ? "Individual sign in" : "Individual profile"}</h2></div>
+        <div className="panel-heading">
+          <p className="eyebrow">{title}{role === "doctor" ? " · Administrator" : ""}</p>
+          <h2>{exists ? "Individual sign in" : "Individual profile"}</h2>
+          {exists && role === "assistant" && <p>Doctor credentials grant administrator access here without adding management controls to the Doctor workspace.</p>}
+        </div>
         <ErrorMessage error={error} />
         {!exists && <div className="field-row"><Field label="First name" name="first_name" value={form.first_name} onChange={update} autoComplete="given-name" required /><Field label="Last name" name="last_name" value={form.last_name} onChange={update} autoComplete="family-name" required /></div>}
         <Field label="Username" name="username" value={form.username} onChange={update} autoComplete="username" required />

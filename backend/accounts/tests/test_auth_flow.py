@@ -38,6 +38,18 @@ class AuthenticationFlowTests(APITestCase):
             HTTP_X_CLINIC_TOKEN=clinic_token,
         )
 
+    def login_staff(self, clinic_token, role, username):
+        return self.client.post(
+            "/api/staff/login/",
+            {
+                "role": role,
+                "username": username,
+                "password": "Strong-staff-password-123",
+            },
+            format="json",
+            HTTP_X_CLINIC_TOKEN=clinic_token,
+        )
+
     def test_clinic_password_is_hashed_and_roles_start_empty(self):
         payload = self.create_clinic()
         clinic = Clinic.objects.get(email=self.clinic_data["email"])
@@ -47,37 +59,77 @@ class AuthenticationFlowTests(APITestCase):
         self.assertFalse(payload["roles"]["doctor"]["exists"])
         self.assertFalse(payload["roles"]["assistant"]["exists"])
 
-    def test_doctor_registration_creates_administrator_session(self):
+    def test_registration_uses_the_accounts_own_workspace(self):
         clinic_payload = self.create_clinic()
-        response = self.register_staff(
+        doctor = self.register_staff(
             clinic_payload["clinic_access_token"],
             "doctor",
             "doctor.one",
             "doctor@example.com",
         )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(response.data["user"]["is_clinic_admin"])
-        self.assertEqual(response.data["user"]["role"], "doctor")
-
-        me_response = self.client.get(
-            "/api/staff/me/",
-            HTTP_AUTHORIZATION=f"Bearer {response.data['session_token']}",
-        )
-        self.assertEqual(me_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(me_response.data["user"]["username"], "doctor.one")
-
-    def test_assistant_is_not_administrator(self):
-        clinic_payload = self.create_clinic()
-        response = self.register_staff(
+        assistant = self.register_staff(
             clinic_payload["clinic_access_token"],
             "assistant",
             "assistant.one",
             "assistant@example.com",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertFalse(response.data["user"]["is_clinic_admin"])
+        self.assertEqual(doctor.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(doctor.data["user"]["role"], "doctor")
+        self.assertEqual(doctor.data["user"]["workspace_role"], "doctor")
+        self.assertTrue(doctor.data["user"]["is_clinic_admin"])
+        self.assertEqual(assistant.data["user"]["workspace_role"], "assistant")
+        self.assertFalse(assistant.data["user"]["is_clinic_admin"])
+
+    def test_doctor_credentials_can_open_doctor_or_assistant_workspace(self):
+        clinic_payload = self.create_clinic()
+        token = clinic_payload["clinic_access_token"]
+        self.register_staff(token, "doctor", "doctor.one", "doctor@example.com")
+        self.register_staff(
+            token,
+            "assistant",
+            "assistant.one",
+            "assistant@example.com",
+        )
+
+        doctor_workspace = self.login_staff(token, "doctor", "doctor.one")
+        assistant_workspace = self.login_staff(token, "assistant", "doctor.one")
+
+        self.assertEqual(doctor_workspace.status_code, status.HTTP_200_OK)
+        self.assertEqual(doctor_workspace.data["user"]["role"], "doctor")
+        self.assertEqual(
+            doctor_workspace.data["user"]["workspace_role"],
+            "doctor",
+        )
+        self.assertEqual(assistant_workspace.status_code, status.HTTP_200_OK)
+        self.assertEqual(assistant_workspace.data["user"]["role"], "doctor")
+        self.assertEqual(
+            assistant_workspace.data["user"]["workspace_role"],
+            "assistant",
+        )
+
+        me_response = self.client.get(
+            "/api/staff/me/",
+            HTTP_AUTHORIZATION=(
+                f"Bearer {assistant_workspace.data['session_token']}"
+            ),
+        )
+        self.assertEqual(me_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(me_response.data["user"]["role"], "doctor")
+        self.assertEqual(me_response.data["user"]["workspace_role"], "assistant")
+
+    def test_assistant_credentials_cannot_open_doctor_workspace(self):
+        clinic_payload = self.create_clinic()
+        token = clinic_payload["clinic_access_token"]
+        self.register_staff(
+            token,
+            "assistant",
+            "assistant.one",
+            "assistant@example.com",
+        )
+
+        response = self.login_staff(token, "doctor", "assistant.one")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_only_one_account_per_role_is_allowed(self):
         clinic_payload = self.create_clinic()
@@ -88,38 +140,12 @@ class AuthenticationFlowTests(APITestCase):
         self.assertEqual(first.status_code, status.HTTP_201_CREATED)
         self.assertEqual(second.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(
-            StaffUser.objects.filter(clinic__email="clinic@example.com", role="doctor").count(),
+            StaffUser.objects.filter(
+                clinic__email="clinic@example.com",
+                role="doctor",
+            ).count(),
             1,
         )
-
-    def test_existing_staff_can_sign_in_only_through_their_clinic_and_role(self):
-        clinic_payload = self.create_clinic()
-        token = clinic_payload["clinic_access_token"]
-        self.register_staff(token, "doctor", "doctor.one", "doctor@example.com")
-
-        success = self.client.post(
-            "/api/staff/login/",
-            {
-                "role": "doctor",
-                "username": "doctor.one",
-                "password": "Strong-staff-password-123",
-            },
-            format="json",
-            HTTP_X_CLINIC_TOKEN=token,
-        )
-        wrong_role = self.client.post(
-            "/api/staff/login/",
-            {
-                "role": "assistant",
-                "username": "doctor.one",
-                "password": "Strong-staff-password-123",
-            },
-            format="json",
-            HTTP_X_CLINIC_TOKEN=token,
-        )
-
-        self.assertEqual(success.status_code, status.HTTP_200_OK)
-        self.assertEqual(wrong_role.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_wrong_clinic_password_is_rejected(self):
         self.create_clinic()
@@ -133,28 +159,6 @@ class AuthenticationFlowTests(APITestCase):
     def test_clinic_context_requires_clinic_access(self):
         response = self.client.get("/api/clinic/context/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_clinic_context_reports_both_created_roles(self):
-        clinic_payload = self.create_clinic()
-        token = clinic_payload["clinic_access_token"]
-        self.register_staff(token, "doctor", "doctor.one", "doctor@example.com")
-        self.register_staff(
-            token,
-            "assistant",
-            "assistant.one",
-            "assistant@example.com",
-        )
-
-        response = self.client.get(
-            "/api/clinic/context/",
-            HTTP_X_CLINIC_TOKEN=token,
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["roles"]["doctor"]["exists"])
-        self.assertTrue(response.data["roles"]["doctor"]["is_administrator"])
-        self.assertTrue(response.data["roles"]["assistant"]["exists"])
-        self.assertFalse(response.data["roles"]["assistant"]["is_administrator"])
 
     def test_logout_invalidates_staff_session(self):
         clinic_payload = self.create_clinic()

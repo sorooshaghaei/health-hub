@@ -1,7 +1,7 @@
 import uuid
 
-from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -65,6 +65,10 @@ class StaffSession(models.Model):
         StaffUser,
         on_delete=models.CASCADE,
         related_name="staff_sessions",
+    )
+    workspace_role = models.CharField(
+        max_length=16,
+        choices=StaffUser.Role.choices,
     )
     token_hash = models.CharField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)

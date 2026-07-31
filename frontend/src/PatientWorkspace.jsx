@@ -9,7 +9,17 @@ import {
 } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
 
-function PatientList({ patients, search, onSearchChange, onSearch, onClear, onAdd, onOpen, loading }) {
+function PatientList({
+  patients,
+  search,
+  onSearchChange,
+  onSearch,
+  onClear,
+  onAdd,
+  onOpen,
+  loading,
+  canManage,
+}) {
   return (
     <>
       <div className="patient-toolbar">
@@ -24,7 +34,9 @@ function PatientList({ patients, search, onSearchChange, onSearch, onClear, onAd
           <button type="submit" className="secondary-button">Search</button>
           {search && <button type="button" className="text-button" onClick={onClear}>Clear</button>}
         </form>
-        <button className="primary-button primary-button--compact" type="button" onClick={onAdd}>+ Add patient</button>
+        {canManage && (
+          <button className="primary-button primary-button--compact" type="button" onClick={onAdd}>+ Add patient</button>
+        )}
       </div>
       {loading ? (
         <div className="patient-loading"><div className="loader" aria-label="Loading patients" /></div>
@@ -49,15 +61,21 @@ function PatientList({ patients, search, onSearchChange, onSearch, onClear, onAd
         <div className="empty-state">
           <div className="empty-state__dot" />
           <strong>{search ? "No matching patients" : "No patient profiles yet"}</strong>
-          <span>{search ? "Try a different name, phone number, or date of birth." : "Create the first reusable patient profile for this clinic."}</span>
-          {!search && <button className="secondary-button" type="button" onClick={onAdd}>Add first patient</button>}
+          <span>
+            {search
+              ? "Try a different name, phone number, or date of birth."
+              : canManage
+                ? "Create the first reusable Patient profile for this clinic."
+                : "No Patient profiles are available to view."}
+          </span>
+          {!search && canManage && <button className="secondary-button" type="button" onClick={onAdd}>Add first patient</button>}
         </div>
       )}
     </>
   );
 }
 
-function VisitHistoryRow({ visit, onEdit, onRemove }) {
+function VisitHistoryRow({ visit, canManage, onEdit, onRemove }) {
   return (
     <div className="history-row">
       <div>
@@ -68,10 +86,14 @@ function VisitHistoryRow({ visit, onEdit, onRemove }) {
         <strong>{visit.visit_type === "appointment" ? "Appointment" : "Walk-in"}</strong>
         <small>{visit.reason || "No reason recorded"}</small>
       </div>
-      <div className="history-row__actions">
-        <button className="secondary-button" type="button" onClick={() => onEdit(visit.id)}>Edit</button>
-        {visit.can_delete && <button className="danger-button" type="button" onClick={() => onRemove(visit)}>Remove</button>}
-      </div>
+      {canManage ? (
+        <div className="history-row__actions">
+          <button className="secondary-button" type="button" onClick={() => onEdit(visit.id)}>Edit</button>
+          {visit.can_delete && <button className="danger-button" type="button" onClick={() => onRemove(visit)}>Remove</button>}
+        </div>
+      ) : (
+        <span className="count-badge">View only</span>
+      )}
     </div>
   );
 }
@@ -86,16 +108,19 @@ function PatientDetail({
   onEditVisit,
   onRemoveVisit,
   deleting,
+  canManage,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <div className="patient-detail">
       <div className="patient-detail__topbar">
         <button className="back-button back-button--inline" type="button" onClick={onBack}>← Patients</button>
-        <div className="patient-detail__actions">
-          <button className="secondary-button" type="button" onClick={onEdit}>Edit profile</button>
-          <button className="danger-button" type="button" onClick={() => setConfirmDelete(true)}>Delete profile</button>
-        </div>
+        {canManage && (
+          <div className="patient-detail__actions">
+            <button className="secondary-button" type="button" onClick={onEdit}>Edit profile</button>
+            <button className="danger-button" type="button" onClick={() => setConfirmDelete(true)}>Delete profile</button>
+          </div>
+        )}
       </div>
       <div className="patient-profile-heading">
         <span className="patient-avatar patient-avatar--large">{patient.full_name.slice(0, 1).toUpperCase()}</span>
@@ -130,6 +155,7 @@ function PatientDetail({
           visits.map((visit) => (
             <VisitHistoryRow
               visit={visit}
+              canManage={canManage}
               key={visit.id}
               onEdit={onEditVisit}
               onRemove={onRemoveVisit}
@@ -140,7 +166,7 @@ function PatientDetail({
         )}
       </section>
 
-      {confirmDelete && (
+      {canManage && confirmDelete && (
         <div className="delete-confirmation" role="alertdialog" aria-modal="true" aria-label="Delete patient">
           <strong>Delete this active Patient profile?</strong>
           <p>Future Visits must be removed first. Past Visits remain as historical records after deletion.</p>
@@ -155,8 +181,10 @@ function PatientDetail({
 }
 
 export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }) {
-  const doctor = user.role === "doctor";
-  const [section, setSection] = useState(doctor ? "patients" : "schedule");
+  const doctorAccount = user.role === "doctor";
+  const doctorWorkspace = user.workspace_role === "doctor";
+  const canManage = user.workspace_role === "assistant";
+  const [section, setSection] = useState(doctorWorkspace ? "patients" : "schedule");
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
   const [patientView, setPatientView] = useState("list");
@@ -211,6 +239,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
   }
 
   async function savePatient(data) {
+    if (!canManage) return;
     const editing = patientView === "edit" && selectedPatient;
     const patient = await apiRequest(editing ? `/api/patients/${selectedPatient.id}/` : "/api/patients/", {
       method: editing ? "PATCH" : "POST",
@@ -223,7 +252,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
   }
 
   async function deletePatient() {
-    if (!selectedPatient) return;
+    if (!canManage || !selectedPatient) return;
     setDeleting(true);
     setError(null);
     try {
@@ -240,7 +269,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
   }
 
   async function removeVisit(visit) {
-    if (!globalThis.confirm("Remove this future Visit?")) return;
+    if (!canManage || !globalThis.confirm("Remove this future Visit?")) return;
     setError(null);
     try {
       await apiRequest(`/api/visits/${visit.id}/`, { method: "DELETE", staffToken });
@@ -251,6 +280,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
   }
 
   function editVisit(visitId) {
+    if (!canManage) return;
     setRequestedVisitId(visitId);
     setSection("schedule");
   }
@@ -272,18 +302,35 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
     <div className="workspace">
       <header className="workspace-header">
         <Brand compact />
-        <div className="workspace-header__clinic"><span>{user.clinic.name}</span><strong>{doctor ? "Doctor workspace" : "Assistant workspace"}</strong></div>
-        <div className="user-menu"><div><strong>{user.display_name}</strong><span>{doctor ? "Doctor · Administrator" : "Assistant"}</span></div><button type="button" onClick={onSignOut}>Sign out</button></div>
+        <div className="workspace-header__clinic">
+          <span>{user.clinic.name}</span>
+          <strong>{doctorWorkspace ? "Doctor workspace" : "Assistant workspace"}</strong>
+        </div>
+        <div className="user-menu">
+          <div>
+            <strong>{user.display_name}</strong>
+            <span>
+              {doctorAccount
+                ? canManage
+                  ? "Doctor · Administrator access"
+                  : "Doctor · Administrator"
+                : "Assistant"}
+            </span>
+          </div>
+          <button type="button" onClick={onSignOut}>Sign out</button>
+        </div>
       </header>
       <main className="workspace-main">
         <section className="workspace-title">
           <div>
-            <p className="eyebrow">{section === "schedule" ? "Daily planning" : "Patient records"}</p>
-            <h1>{doctor ? "Doctor workspace" : "Assistant workspace"}</h1>
+            <p className="eyebrow">{section === "schedule" ? "Appointments" : "Patient records"}</p>
+            <h1>{doctorWorkspace ? "Doctor workspace" : "Assistant workspace"}</h1>
             <p>
-              {doctor
-                ? "Patient records remain the primary Doctor view. Appointment administration is available when needed."
-                : "Manage the clinic schedule, walk-ins, and reusable Patient profiles from one workspace."}
+              {doctorWorkspace
+                ? "View Patient records and the appointment list without administrative controls."
+                : doctorAccount
+                  ? "Manage Patients and appointments through Administrator access to the Assistant workspace."
+                  : "Manage the clinic schedule, walk-ins, and reusable Patient profiles from one workspace."}
             </p>
           </div>
           <div className="status-pill"><span /> Clinic access active</div>
@@ -291,7 +338,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
 
         <nav className="workspace-tabs" aria-label="Workspace sections">
           <button className={section === "schedule" ? "workspace-tab workspace-tab--active" : "workspace-tab"} type="button" onClick={() => setSection("schedule")}>
-            {doctor ? "Appointments" : "Schedule"}
+            {doctorWorkspace ? "Appointment list" : "Schedule"}
           </button>
           <button className={section === "patients" ? "workspace-tab workspace-tab--active" : "workspace-tab"} type="button" onClick={() => setSection("patients")}>
             Patients
@@ -305,6 +352,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
             staffToken={staffToken}
             requestedVisitId={requestedVisitId}
             onRequestedVisitHandled={requestedHandled}
+            readOnly={!canManage}
             onVisitChanged={() => {
               if (selectedPatient) loadPatientVisits(selectedPatient.id);
             }}
@@ -329,10 +377,11 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
                     onAdd={() => { setSelectedPatient(null); setPatientView("create"); }}
                     onOpen={openPatient}
                     loading={loading}
+                    canManage={canManage}
                   />
                 )}
-                {patientView === "create" && <PatientProfileForm onSave={savePatient} onCancel={() => setPatientView("list")} onUseExisting={openPatient} />}
-                {patientView === "edit" && selectedPatient && <PatientProfileForm patient={selectedPatient} onSave={savePatient} onCancel={() => setPatientView("detail")} onUseExisting={openPatient} />}
+                {canManage && patientView === "create" && <PatientProfileForm onSave={savePatient} onCancel={() => setPatientView("list")} onUseExisting={openPatient} />}
+                {canManage && patientView === "edit" && selectedPatient && <PatientProfileForm patient={selectedPatient} onSave={savePatient} onCancel={() => setPatientView("detail")} onUseExisting={openPatient} />}
                 {patientView === "detail" && selectedPatient && (
                   <PatientDetail
                     patient={selectedPatient}
@@ -344,6 +393,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
                     onEditVisit={editVisit}
                     onRemoveVisit={removeVisit}
                     deleting={deleting}
+                    canManage={canManage}
                   />
                 )}
               </div>
@@ -352,15 +402,22 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
               <div className="card-heading"><div><p className="eyebrow">Access</p><h2>Role boundary</h2></div></div>
               <dl className="access-list">
                 <div><dt>Clinic</dt><dd>{user.clinic.name}</dd></div>
-                <div><dt>Role</dt><dd>{doctor ? "Doctor" : "Assistant"}</dd></div>
-                <div><dt>Patient access</dt><dd>Create, view, edit, delete</dd></div>
-                <div><dt>Visit access</dt><dd>Create, view, edit, remove future</dd></div>
+                <div><dt>Account</dt><dd>{doctorAccount ? "Doctor" : "Assistant"}</dd></div>
+                <div><dt>Workspace</dt><dd>{doctorWorkspace ? "Doctor" : "Assistant"}</dd></div>
+                <div><dt>Patient access</dt><dd>{canManage ? "Create, view, edit, delete" : "View only"}</dd></div>
+                <div><dt>Visit access</dt><dd>{canManage ? "Create, view, edit, remove future" : "View only"}</dd></div>
                 <div><dt>Administrator</dt><dd>{user.is_clinic_admin ? "Yes" : "No"}</dd></div>
               </dl>
             </article>
             <article className="workspace-card">
               <div className="card-heading"><div><p className="eyebrow">Account</p><h2>Individual access</h2></div></div>
-              <p className="card-copy">This workspace is protected by the individual staff account after clinic-level sign in.</p>
+              <p className="card-copy">
+                {doctorWorkspace
+                  ? "Administrative changes are deliberately kept out of the Doctor workspace."
+                  : doctorAccount
+                    ? "You entered the Assistant workspace with Doctor administrator credentials."
+                    : "This workspace is protected by the Assistant account."}
+              </p>
               <button className="secondary-button" type="button" onClick={onLeaveClinic}>Leave clinic completely</button>
             </article>
           </section>

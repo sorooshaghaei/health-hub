@@ -5,6 +5,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.permissions import require_assistant_workspace
+
 from .matching import patient_search_queryset, possible_duplicate_patients
 from .models import Patient
 from .serializers import PatientMatchSerializer, PatientSerializer
@@ -49,6 +51,7 @@ class PatientListCreateView(APIView):
         return Response({"patients": PatientSerializer(queryset, many=True).data})
 
     def post(self, request):
+        require_assistant_workspace(request)
         clinic = clinic_for_staff(request)
         serializer = PatientSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -77,6 +80,7 @@ class PatientDetailView(APIView):
         return Response(PatientSerializer(self.get_patient(request, patient_id)).data)
 
     def patch(self, request, patient_id):
+        require_assistant_workspace(request)
         patient = self.get_patient(request, patient_id)
         serializer = PatientSerializer(patient, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -100,6 +104,7 @@ class PatientDetailView(APIView):
         return Response(PatientSerializer(patient).data)
 
     def delete(self, request, patient_id):
+        require_assistant_workspace(request)
         patient = self.get_patient(request, patient_id)
         from visits.models import Visit
 

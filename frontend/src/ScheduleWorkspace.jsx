@@ -258,7 +258,7 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
   );
 }
 
-function VisitRow({ visit, onEdit, onRemove }) {
+function VisitRow({ visit, readOnly, onEdit, onRemove }) {
   return (
     <div className="visit-row">
       <div className={`visit-time visit-time--${visit.visit_type}`}>
@@ -270,10 +270,14 @@ function VisitRow({ visit, onEdit, onRemove }) {
         <small>Reason</small>
         <span>{visit.reason || "No reason recorded"}</span>
       </div>
-      <div className="visit-row__actions">
-        <button className="secondary-button" type="button" onClick={() => onEdit(visit)}>Edit</button>
-        {visit.can_delete && <button className="danger-button" type="button" onClick={() => onRemove(visit)}>Remove</button>}
-      </div>
+      {readOnly ? (
+        <span className="count-badge">View only</span>
+      ) : (
+        <div className="visit-row__actions">
+          <button className="secondary-button" type="button" onClick={() => onEdit(visit)}>Edit</button>
+          {visit.can_delete && <button className="danger-button" type="button" onClick={() => onRemove(visit)}>Remove</button>}
+        </div>
+      )}
     </div>
   );
 }
@@ -283,6 +287,7 @@ export default function ScheduleWorkspace({
   requestedVisitId,
   onRequestedVisitHandled,
   onVisitChanged,
+  readOnly = false,
 }) {
   const today = useMemo(() => localDateValue(), []);
   const [selectedDate, setSelectedDate] = useState(today);
@@ -310,7 +315,7 @@ export default function ScheduleWorkspace({
   }, [selectedDate, staffToken]);
 
   useEffect(() => {
-    if (!requestedVisitId) return;
+    if (!requestedVisitId || readOnly) return;
     let cancelled = false;
     apiRequest(`/api/visits/${requestedVisitId}/`, { staffToken })
       .then((visit) => {
@@ -324,7 +329,7 @@ export default function ScheduleWorkspace({
         if (!cancelled) setError(requestError instanceof ApiError ? requestError : new ApiError("Visit could not be opened."));
       });
     return () => { cancelled = true; };
-  }, [requestedVisitId, staffToken, onRequestedVisitHandled]);
+  }, [requestedVisitId, readOnly, staffToken, onRequestedVisitHandled]);
 
   async function saved(visit) {
     setSelectedDate(visit.date);
@@ -353,7 +358,7 @@ export default function ScheduleWorkspace({
     <section className="workspace-card phase2-card">
       <div className="card-heading">
         <div>
-          <p className="eyebrow">Daily planning</p>
+          <p className="eyebrow">{readOnly ? "Appointment overview" : "Daily planning"}</p>
           <h2>Appointments and walk-ins</h2>
         </div>
         <span className="count-badge">{visits.length}</span>
@@ -361,6 +366,11 @@ export default function ScheduleWorkspace({
 
       <div className="phase2-content">
         <ErrorMessage error={error} />
+        {readOnly && (
+          <p className="security-note">
+            The Doctor workspace shows the schedule without management controls. Open the Assistant workspace to make changes.
+          </p>
+        )}
 
         {mode === "list" && (
           <>
@@ -374,10 +384,12 @@ export default function ScheduleWorkspace({
                 />
                 {selectedDate !== today && <button className="text-button" type="button" onClick={() => setSelectedDate(today)}>Today</button>}
               </div>
-              <div className="schedule-actions">
-                <button className="secondary-button" type="button" onClick={() => setMode("walk_in")}>+ Add walk-in</button>
-                <button className="primary-button primary-button--compact" type="button" onClick={() => setMode("appointment")}>+ New appointment</button>
-              </div>
+              {!readOnly && (
+                <div className="schedule-actions">
+                  <button className="secondary-button" type="button" onClick={() => setMode("walk_in")}>+ Add walk-in</button>
+                  <button className="primary-button primary-button--compact" type="button" onClick={() => setMode("appointment")}>+ New appointment</button>
+                </div>
+              )}
             </div>
 
             {loading ? (
@@ -392,6 +404,7 @@ export default function ScheduleWorkspace({
                   {appointments.length ? appointments.map((visit) => (
                     <VisitRow
                       visit={visit}
+                      readOnly={readOnly}
                       key={visit.id}
                       onEdit={(item) => { setEditingVisit(item); setMode("edit"); }}
                       onRemove={removeVisit}
@@ -407,6 +420,7 @@ export default function ScheduleWorkspace({
                   {walkIns.length ? walkIns.map((visit) => (
                     <VisitRow
                       visit={visit}
+                      readOnly={readOnly}
                       key={visit.id}
                       onEdit={(item) => { setEditingVisit(item); setMode("edit"); }}
                       onRemove={removeVisit}
@@ -418,7 +432,7 @@ export default function ScheduleWorkspace({
           </>
         )}
 
-        {mode === "appointment" && (
+        {!readOnly && mode === "appointment" && (
           <VisitForm
             visitType="appointment"
             defaultDate={selectedDate}
@@ -427,7 +441,7 @@ export default function ScheduleWorkspace({
             onCancel={() => setMode("list")}
           />
         )}
-        {mode === "walk_in" && (
+        {!readOnly && mode === "walk_in" && (
           <VisitForm
             visitType="walk_in"
             defaultDate={today}
@@ -436,7 +450,7 @@ export default function ScheduleWorkspace({
             onCancel={() => setMode("list")}
           />
         )}
-        {mode === "edit" && editingVisit && (
+        {!readOnly && mode === "edit" && editingVisit && (
           <VisitForm
             visit={editingVisit}
             defaultDate={editingVisit.date}

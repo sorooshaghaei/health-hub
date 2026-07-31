@@ -20,36 +20,49 @@ The project is developed directly on `main`, one approved phase at a time. After
 
 ## Current phase
 
-**Phase 2 — Planned appointments and walk-ins: repository implementation complete.**
+**Phase 2 — Planned appointments and walk-ins: repository implementation complete, including the corrected workspace boundary.**
 
 Phase 3 has not been approved for implementation. Arrival, check-in, live waiting order, consultation flow, checkout, tasks, personal notes, notifications, and estimates remain outside the current implementation.
 
-## Implemented workflow
+## Access and workspace model
 
-### Access
+The clinic supports one Doctor account and one Assistant account. The Doctor is always the clinic administrator.
 
-1. Create or enter the clinic with the shared clinic credentials.
-2. Choose Doctor or Assistant.
-3. Create the role account if empty, or sign in.
-4. Open the dedicated role workspace.
+Account identity and active workspace are separate:
 
-The Doctor is always the clinic administrator. The clinic supports one Doctor and one Assistant.
+- Doctor credentials can open the Doctor workspace.
+- Assistant credentials can open the Assistant workspace.
+- Doctor administrator credentials can also open the Assistant workspace.
+- Assistant credentials cannot open the Doctor workspace.
 
-### Patient records
+The active workspace determines management permission:
 
-Both roles can:
+| Workspace | Patient records | Appointments and walk-ins |
+| --- | --- | --- |
+| Doctor | View and search | View lists and history |
+| Assistant | Create, view, search, edit, delete | Create, view, edit, remove future Visits |
 
-- create, view, search, edit, and soft-delete active Patient profiles;
-- use full name, `Man` / `Woman`, calling code, phone, optional date of birth, and optional Patient note;
-- search by name, phone, or date of birth;
-- use one **Possible duplicate patient** warning;
-- select an existing matching profile or explicitly create a separate Patient.
+This keeps administrative scheduling and Patient maintenance out of the Doctor page. Backend authorization enforces the same boundary; it is not only a hidden-button rule.
 
-Iran `+98` is the default calling code. Phone numbers are stored as normalized national and E.164 values.
+## Implemented Patient records
 
-### Appointments and walk-ins
+Patient profiles include:
 
-Both roles can:
+- required full name;
+- required gender: `Man` or `Woman`;
+- required calling code and national phone, with Iran `+98` default;
+- normalized E.164 phone storage;
+- optional date of birth;
+- optional shared Patient note;
+- combined name, phone, and date-of-birth search;
+- one **Possible duplicate patient** warning;
+- internal soft deletion without a visible archive state.
+
+The Doctor workspace can view Patient profiles and Visit history. Patient creation, editing, notes changes, and deletion occur only in the Assistant workspace.
+
+## Implemented appointments and walk-ins
+
+The Assistant workspace can:
 
 - create scheduled appointments with Patient, date, time, and optional reason;
 - add walk-ins with Patient and automatic current date;
@@ -59,14 +72,14 @@ Both roles can:
 - record multiple Visits for the same Patient on the same date;
 - view Visit history inside the Patient profile.
 
-Appointment management is assistant-first in the interface. The Assistant opens on Schedule. The Doctor opens on Patient records and has a secondary Appointments tab with the same permissions.
+The Doctor workspace can view appointment and walk-in lists and Patient Visit history without management controls.
 
 Scheduled appointment time is informational and does not determine future live waiting order.
 
 ## Repository structure
 
 ```text
-backend/accounts/                Clinic and staff authentication
+backend/accounts/                Clinic, staff, session, and workspace access
 backend/patients/                Patient records
 backend/visits/                  Appointments, walk-ins, and Visit history
 backend/health_hub/              Django project configuration
@@ -140,35 +153,11 @@ npm run build:demo
 
 The normal Vite development server proxies `/api` to Django. The demo build uses the same React interface with browser-only storage and the `/health-hub/` Pages base path.
 
-## API surface
-
-```text
-GET    /api/health/
-POST   /api/clinics/
-POST   /api/clinics/enter/
-GET    /api/clinic/context/
-POST   /api/staff/register/
-POST   /api/staff/login/
-GET    /api/staff/me/
-POST   /api/staff/logout/
-
-GET    /api/patients/?search=<name|phone|date>
-POST   /api/patients/
-GET    /api/patients/<patient-id>/
-PATCH  /api/patients/<patient-id>/
-DELETE /api/patients/<patient-id>/
-
-GET    /api/visits/?date=YYYY-MM-DD
-GET    /api/visits/?patient=<patient-id>
-POST   /api/visits/
-GET    /api/visits/<visit-id>/
-PATCH  /api/visits/<visit-id>/
-DELETE /api/visits/<visit-id>/
-```
+## API authorization
 
 Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, and Visit endpoints expect `Authorization: Bearer <session-token>`.
 
-Visit creation accepts either an active `patient_id` or a nested `new_patient`. Nested Patient and Visit creation is atomic.
+The staff session stores both the authenticated account and the active `workspace_role`. Doctor-workspace sessions may use read endpoints but receive HTTP `403` for Patient or Visit mutations. Assistant-workspace sessions may manage those resources, including when the authenticated account is the Doctor administrator.
 
 ## Removal and history rules
 
@@ -181,15 +170,7 @@ Visit creation accepts either an active `patient_id` or a nested `new_patient`. 
 
 ## Automated verification
 
-`.github/workflows/quality.yml` runs:
-
-- browser-adapter tests;
-- normal frontend build;
-- GitHub Pages demo build;
-- Django system checks;
-- committed migration verification;
-- PostgreSQL migrations;
-- backend tests against PostgreSQL 17.
+`.github/workflows/quality.yml` runs browser-adapter tests, frontend builds, Django checks, migration verification, PostgreSQL migrations, and backend tests.
 
 `.github/workflows/pages.yml` builds and deploys the browser demo from `main`.
 

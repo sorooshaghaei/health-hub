@@ -122,10 +122,13 @@ class StaffRegisterView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        raw_token, expires_at = issue_staff_session(user)
+        raw_token, expires_at = issue_staff_session(user, workspace_role=user.role)
         return Response(
             {
-                "user": StaffSerializer(user).data,
+                "user": StaffSerializer(
+                    user,
+                    context={"workspace_role": user.role},
+                ).data,
                 "session_token": raw_token,
                 "expires_at": expires_at,
             },
@@ -144,10 +147,17 @@ class StaffLoginView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        raw_token, expires_at = issue_staff_session(user)
+        workspace_role = serializer.validated_data["workspace_role"]
+        raw_token, expires_at = issue_staff_session(
+            user,
+            workspace_role=workspace_role,
+        )
         return Response(
             {
-                "user": StaffSerializer(user).data,
+                "user": StaffSerializer(
+                    user,
+                    context={"workspace_role": workspace_role},
+                ).data,
                 "session_token": raw_token,
                 "expires_at": expires_at,
             }
@@ -156,7 +166,14 @@ class StaffLoginView(APIView):
 
 class StaffMeView(APIView):
     def get(self, request):
-        return Response({"user": StaffSerializer(request.user).data})
+        return Response(
+            {
+                "user": StaffSerializer(
+                    request.user,
+                    context={"request": request},
+                ).data
+            }
+        )
 
 
 class StaffLogoutView(APIView):

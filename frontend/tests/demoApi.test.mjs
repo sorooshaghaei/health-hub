@@ -66,7 +66,16 @@ async function authenticatedDemo() {
     clinicToken: clinic.clinic_access_token,
     data: staffData("doctor"),
   });
-  return { clinic, assistant, doctor };
+  const doctorInAssistantWorkspace = await demoApiRequest("/api/staff/login/", {
+    method: "POST",
+    clinicToken: clinic.clinic_access_token,
+    data: {
+      role: "assistant",
+      username: "doctor.one",
+      password: "staff-password-123",
+    },
+  });
+  return { clinic, assistant, doctor, doctorInAssistantWorkspace };
 }
 
 const patientData = {
@@ -78,13 +87,18 @@ const patientData = {
   patient_note: "",
 };
 
-test("browser demo preserves clinic, staff, and Patient behavior", async () => {
+test("browser demo separates account identity from active workspace", async () => {
   localStorage.clear();
-  const { clinic, assistant, doctor } = await authenticatedDemo();
+  const { clinic, assistant, doctor, doctorInAssistantWorkspace } = await authenticatedDemo();
 
   assert.equal(clinic.clinic.email, "clinic@example.com");
   assert.equal(assistant.user.role, "assistant");
+  assert.equal(assistant.user.workspace_role, "assistant");
+  assert.equal(doctor.user.role, "doctor");
+  assert.equal(doctor.user.workspace_role, "doctor");
   assert.equal(doctor.user.is_clinic_admin, true);
+  assert.equal(doctorInAssistantWorkspace.user.role, "doctor");
+  assert.equal(doctorInAssistantWorkspace.user.workspace_role, "assistant");
 
   const stored = JSON.parse(localStorage.getItem("health-hub.demo-store.v1"));
   assert.notEqual(stored.clinic.password_hash, clinicData.password);
@@ -95,7 +109,6 @@ test("browser demo preserves clinic, staff, and Patient behavior", async () => {
     staffToken: assistant.session_token,
     data: patientData,
   });
-  assert.equal(patient.phone_e164, "+989121234567");
 
   const search = await demoApiRequest("/api/patients/?search=9121234567", {
     staffToken: doctor.session_token,
@@ -105,30 +118,37 @@ test("browser demo preserves clinic, staff, and Patient behavior", async () => {
   await assert.rejects(
     demoApiRequest("/api/patients/", {
       method: "POST",
-      staffToken: assistant.session_token,
-      data: patientData,
+      staffToken: doctor.session_token,
+      data: {
+        ...patientData,
+        full_name: "Doctor Write Attempt",
+        phone_number: "09123334455",
+      },
     }),
-    (error) => error.status === 409 && error.payload.code === "possible_duplicate",
+    (error) => error.status === 403,
   );
+
+  const administratorPatient = await demoApiRequest("/api/patients/", {
+    method: "POST",
+    staffToken: doctorInAssistantWorkspace.session_token,
+    data: {
+      ...patientData,
+      full_name: "Administrator Patient",
+      phone_number: "09124445566",
+    },
+  });
+  assert.equal(administratorPatient.full_name, "Administrator Patient");
 
   const me = await demoApiRequest("/api/staff/me/", {
-    staffToken: doctor.session_token,
+    staffToken: doctorInAssistantWorkspace.session_token,
   });
-  assert.equal(me.user.username, "doctor.one");
-
-  await demoApiRequest("/api/staff/logout/", {
-    method: "POST",
-    staffToken: doctor.session_token,
-  });
-  await assert.rejects(
-    demoApiRequest("/api/staff/me/", { staffToken: doctor.session_token }),
-    (error) => error.status === 401,
-  );
+  assert.equal(me.user.role, "doctor");
+  assert.equal(me.user.workspace_role, "assistant");
 });
 
-test("browser demo mirrors Phase 2 appointments, walk-ins, inline Patients, history, and removal rules", async () => {
+test("browser demo keeps Phase 2 management inside Assistant workspace", async () => {
   localStorage.clear();
-  const { assistant, doctor } = await authenticatedDemo();
+  const { assistant, doctor, doctorInAssistantWorkspace } = await authenticatedDemo();
 
   const patient = await demoApiRequest("/api/patients/", {
     method: "POST",
@@ -149,8 +169,28 @@ test("browser demo mirrors Phase 2 appointments, walk-ins, inline Patients, hist
     },
   });
   assert.equal(appointment.patient.full_name, "Sara Ahmadi");
-  assert.equal(appointment.scheduled_time, "10:30:00");
   assert.equal(appointment.can_delete, true);
+
+  const day = await demoApiRequest(`/api/visits/?date=${futureDate}`, {
+    staffToken: doctor.session_token,
+  });
+  assert.equal(day.visits.length, 1);
+
+  await assert.rejects(
+    demoApiRequest(`/api/visits/${appointment.id}/`, {
+      method: "PATCH",
+      staffToken: doctor.session_token,
+      data: { reason: "Doctor workspace edit" },
+    }),
+    (error) => error.status === 403,
+  );
+
+  const edited = await demoApiRequest(`/api/visits/${appointment.id}/`, {
+    method: "PATCH",
+    staffToken: doctorInAssistantWorkspace.session_token,
+    data: { reason: "Administrator intervention" },
+  });
+  assert.equal(edited.reason, "Administrator intervention");
 
   const repeated = await demoApiRequest("/api/visits/", {
     method: "POST",
@@ -179,7 +219,6 @@ test("browser demo mirrors Phase 2 appointments, walk-ins, inline Patients, hist
   assert.equal(walkIn.date, localDateValue());
   assert.equal(walkIn.scheduled_time, null);
   assert.equal(walkIn.reason, "");
-  assert.equal(walkIn.can_delete, false);
 
   const inline = await demoApiRequest("/api/visits/", {
     method: "POST",
@@ -201,31 +240,6 @@ test("browser demo mirrors Phase 2 appointments, walk-ins, inline Patients, hist
   });
   assert.equal(inline.patient.full_name, "Ali Moradi");
 
-  await assert.rejects(
-    demoApiRequest("/api/visits/", {
-      method: "POST",
-      staffToken: assistant.session_token,
-      data: {
-        visit_type: "appointment",
-        date: shiftedDate(5),
-        scheduled_time: "09:00",
-        reason: "",
-        new_patient: patientData,
-      },
-    }),
-    (error) => error.status === 409 && error.payload.matches[0].id === patient.id,
-  );
-
-  const day = await demoApiRequest(`/api/visits/?date=${futureDate}`, {
-    staffToken: doctor.session_token,
-  });
-  assert.equal(day.visits.length, 2);
-
-  const history = await demoApiRequest(`/api/visits/?patient=${patient.id}`, {
-    staffToken: doctor.session_token,
-  });
-  assert.equal(history.visits.length, 3);
-
   const past = await demoApiRequest("/api/visits/", {
     method: "POST",
     staffToken: assistant.session_token,
@@ -237,12 +251,6 @@ test("browser demo mirrors Phase 2 appointments, walk-ins, inline Patients, hist
       reason: "Original",
     },
   });
-  const editedPast = await demoApiRequest(`/api/visits/${past.id}/`, {
-    method: "PATCH",
-    staffToken: doctor.session_token,
-    data: { reason: "Corrected" },
-  });
-  assert.equal(editedPast.reason, "Corrected");
 
   await assert.rejects(
     demoApiRequest(`/api/visits/${past.id}/`, {

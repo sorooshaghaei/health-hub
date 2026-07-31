@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core import signing
 from django.utils import timezone
 
-from .models import Clinic, StaffSession
+from .models import Clinic, StaffSession, StaffUser
 
 CLINIC_TOKEN_SALT = "health-hub.clinic-access"
 
@@ -43,7 +43,15 @@ def resolve_clinic_access_token(raw_token):
         raise InvalidClinicAccess("Clinic access is invalid.")
 
 
-def issue_staff_session(user):
+def issue_staff_session(user, workspace_role=None):
+    workspace_role = workspace_role or user.role
+    allowed = workspace_role == user.role or (
+        user.role == StaffUser.Role.DOCTOR
+        and workspace_role == StaffUser.Role.ASSISTANT
+    )
+    if not allowed:
+        raise ValueError("This account cannot open the requested workspace.")
+
     raw_token = secrets.token_urlsafe(32)
     token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     expires_at = timezone.now() + timedelta(
@@ -51,6 +59,7 @@ def issue_staff_session(user):
     )
     StaffSession.objects.create(
         user=user,
+        workspace_role=workspace_role,
         token_hash=token_hash,
         expires_at=expires_at,
     )

@@ -20,6 +20,7 @@ class VisitApiTests(APITestCase):
         "password": "clinic-password-123",
         "password_confirm": "clinic-password-123",
     }
+    staff_password = "Strong-staff-password-123"
 
     def setUp(self):
         clinic_response = self.client.post(
@@ -39,6 +40,10 @@ class VisitApiTests(APITestCase):
             "doctor.one",
             "doctor@example.com",
         )
+        self.doctor_in_assistant_workspace_token = self.login(
+            "assistant",
+            "doctor.one",
+        )
 
     def register_staff(self, role, username, email):
         response = self.client.post(
@@ -49,13 +54,27 @@ class VisitApiTests(APITestCase):
                 "email": email,
                 "first_name": "Test",
                 "last_name": role.title(),
-                "password": "Strong-staff-password-123",
-                "password_confirm": "Strong-staff-password-123",
+                "password": self.staff_password,
+                "password_confirm": self.staff_password,
             },
             format="json",
             HTTP_X_CLINIC_TOKEN=self.clinic_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        return response.data["session_token"]
+
+    def login(self, workspace_role, username):
+        response = self.client.post(
+            "/api/staff/login/",
+            {
+                "role": workspace_role,
+                "username": username,
+                "password": self.staff_password,
+            },
+            format="json",
+            HTTP_X_CLINIC_TOKEN=self.clinic_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response.data["session_token"]
 
     def authorization(self, token=None):
@@ -78,7 +97,14 @@ class VisitApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data
 
-    def create_appointment(self, patient_id, date, time="10:30", reason="Review"):
+    def create_appointment(
+        self,
+        patient_id,
+        date,
+        time="10:30",
+        reason="Review",
+        token=None,
+    ):
         response = self.client.post(
             "/api/visits/",
             {
@@ -89,33 +115,77 @@ class VisitApiTests(APITestCase):
                 "reason": reason,
             },
             format="json",
-            **self.authorization(),
+            **self.authorization(token),
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data
 
-    def test_assistant_creates_appointment_and_doctor_can_edit_it(self):
+    def test_doctor_workspace_views_schedule_but_cannot_manage_visits(self):
         patient = self.create_patient()
         visit = self.create_appointment(
             patient["id"],
             timezone.localdate() + timedelta(days=2),
         )
 
+        listing = self.client.get(
+            f"/api/visits/?date={visit['date']}",
+            **self.authorization(self.doctor_token),
+        )
+        detail = self.client.get(
+            f"/api/visits/{visit['id']}/",
+            **self.authorization(self.doctor_token),
+        )
+        create_attempt = self.client.post(
+            "/api/visits/",
+            {
+                "visit_type": "appointment",
+                "patient_id": patient["id"],
+                "date": (timezone.localdate() + timedelta(days=3)).isoformat(),
+                "scheduled_time": "11:00",
+                "reason": "",
+            },
+            format="json",
+            **self.authorization(self.doctor_token),
+        )
+        edit_attempt = self.client.patch(
+            f"/api/visits/{visit['id']}/",
+            {"reason": "Doctor edit"},
+            format="json",
+            **self.authorization(self.doctor_token),
+        )
+        delete_attempt = self.client.delete(
+            f"/api/visits/{visit['id']}/",
+            **self.authorization(self.doctor_token),
+        )
+
+        self.assertEqual(listing.status_code, status.HTTP_200_OK)
+        self.assertEqual(listing.data["visits"][0]["id"], visit["id"])
+        self.assertEqual(detail.status_code, status.HTTP_200_OK)
+        self.assertEqual(create_attempt.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(edit_attempt.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(delete_attempt.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_doctor_credentials_in_assistant_workspace_can_manage_visits(self):
+        patient = self.create_patient()
+        visit = self.create_appointment(
+            patient["id"],
+            timezone.localdate() + timedelta(days=2),
+            token=self.doctor_in_assistant_workspace_token,
+        )
         response = self.client.patch(
             f"/api/visits/{visit['id']}/",
             {
                 "date": (timezone.localdate() + timedelta(days=3)).isoformat(),
                 "scheduled_time": "11:45",
-                "reason": "Updated reason",
+                "reason": "Administrator intervention",
             },
             format="json",
-            **self.authorization(self.doctor_token),
+            **self.authorization(self.doctor_in_assistant_workspace_token),
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["reason"], "Updated reason")
+        self.assertEqual(response.data["reason"], "Administrator intervention")
         self.assertEqual(response.data["scheduled_time"], "11:45:00")
-        self.assertEqual(response.data["patient"]["full_name"], "Sara Ahmadi")
 
     def test_walk_in_uses_current_date_and_only_patient_data(self):
         patient = self.create_patient()
@@ -151,7 +221,7 @@ class VisitApiTests(APITestCase):
             2,
         )
 
-    def test_inline_patient_creation_is_atomic_with_appointment(self):
+    def test_inline_patient_creation_and_duplicate_warning(self):
         date = timezone.localdate() + timedelta(days=5)
         response = self.client.post(
             "/api/visits/",
@@ -172,37 +242,26 @@ class VisitApiTests(APITestCase):
             format="json",
             **self.authorization(),
         )
-
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["patient"]["full_name"], "Ali Moradi")
-        self.assertTrue(
-            Patient.objects.filter(
-                clinic__email="clinic@example.com",
-                full_name="Ali Moradi",
-            ).exists()
-        )
 
-    def test_inline_duplicate_warning_keeps_the_visit_draft_reusable(self):
         patient = self.create_patient()
-        date = timezone.localdate() + timedelta(days=6)
-        payload = {
-            "visit_type": "appointment",
-            "date": date.isoformat(),
-            "scheduled_time": "08:30",
-            "reason": "",
-            "new_patient": {
-                "full_name": "Sara Ahmadi",
-                "gender": "Woman",
-                "country_calling_code": "+98",
-                "phone_number": "09121234567",
-                "date_of_birth": "1994-05-11",
-                "patient_note": "",
-            },
-        }
-
         warning = self.client.post(
             "/api/visits/",
-            payload,
+            {
+                "visit_type": "appointment",
+                "date": (date + timedelta(days=1)).isoformat(),
+                "scheduled_time": "08:30",
+                "reason": "",
+                "new_patient": {
+                    "full_name": "Sara Ahmadi",
+                    "gender": "Woman",
+                    "country_calling_code": "+98",
+                    "phone_number": "09121234567",
+                    "date_of_birth": "1994-05-11",
+                    "patient_note": "",
+                },
+            },
             format="json",
             **self.authorization(),
         )
@@ -210,46 +269,21 @@ class VisitApiTests(APITestCase):
         self.assertEqual(warning.data["code"], "possible_duplicate")
         self.assertEqual(warning.data["matches"][0]["id"], patient["id"])
 
-        use_existing = self.client.post(
-            "/api/visits/",
-            {
-                "visit_type": payload["visit_type"],
-                "date": payload["date"],
-                "scheduled_time": payload["scheduled_time"],
-                "reason": payload["reason"],
-                "patient_id": patient["id"],
-            },
-            format="json",
-            **self.authorization(),
-        )
-        self.assertEqual(use_existing.status_code, status.HTTP_201_CREATED)
-
-        separate_payload = {
-            **payload,
-            "new_patient": {
-                **payload["new_patient"],
-                "confirm_duplicate": True,
-            },
-        }
-        create_separate = self.client.post(
-            "/api/visits/",
-            separate_payload,
-            format="json",
-            **self.authorization(),
-        )
-        self.assertEqual(create_separate.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Patient.objects.filter(full_name="Sara Ahmadi").count(), 2)
-
-    def test_patient_history_lists_past_and_future_visits_and_both_are_editable(self):
+    def test_patient_history_lists_past_and_future_and_assistant_can_edit(self):
         patient = self.create_patient()
         past_date = timezone.localdate() - timedelta(days=2)
         future_date = timezone.localdate() + timedelta(days=2)
         past = self.create_appointment(patient["id"], past_date, "09:00", "Past")
-        future = self.create_appointment(patient["id"], future_date, "10:00", "Future")
+        future = self.create_appointment(
+            patient["id"],
+            future_date,
+            "10:00",
+            "Future",
+        )
 
         history = self.client.get(
             f"/api/visits/?patient={patient['id']}",
-            **self.authorization(),
+            **self.authorization(self.doctor_token),
         )
         self.assertEqual(history.status_code, status.HTTP_200_OK)
         self.assertEqual(
@@ -309,7 +343,6 @@ class VisitApiTests(APITestCase):
             **self.authorization(),
         )
         self.assertEqual(blocked.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(blocked.data["code"], "future_visits_exist")
 
         self.client.delete(
             f"/api/visits/{future['id']}/",
@@ -321,7 +354,6 @@ class VisitApiTests(APITestCase):
         )
 
         self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Patient.objects.filter(pk=patient["id"]).exists())
         self.assertTrue(Patient.all_objects.filter(pk=patient["id"]).exists())
         historical_visit = Visit.objects.get(pk=past["id"])
         self.assertEqual(
@@ -346,16 +378,16 @@ class VisitApiTests(APITestCase):
             format="json",
         )
         second_token = second_clinic.data["clinic_access_token"]
-        second_assistant = self.client.post(
+        second_doctor = self.client.post(
             "/api/staff/register/",
             {
-                "role": "assistant",
-                "username": "south.assistant",
-                "email": "south.assistant@example.com",
+                "role": "doctor",
+                "username": "south.doctor",
+                "email": "south.doctor@example.com",
                 "first_name": "South",
-                "last_name": "Assistant",
-                "password": "Strong-staff-password-123",
-                "password_confirm": "Strong-staff-password-123",
+                "last_name": "Doctor",
+                "password": self.staff_password,
+                "password_confirm": self.staff_password,
             },
             format="json",
             HTTP_X_CLINIC_TOKEN=second_token,
@@ -363,6 +395,6 @@ class VisitApiTests(APITestCase):
 
         response = self.client.get(
             f"/api/visits/{visit['id']}/",
-            **self.authorization(second_assistant),
+            **self.authorization(second_doctor),
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

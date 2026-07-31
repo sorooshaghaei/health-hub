@@ -8,128 +8,113 @@ This file is the handoff entry point for a new chat or development session.
 - Working branch: `main`
 - Work directly on `main`; do not create branches or pull requests unless the product owner explicitly changes this instruction.
 - Implement one approved phase at a time.
-- Before choosing an unapproved field, screen, action, state, permission, algorithm, library, or workflow behavior, ask the product owner.
-- After implementing a phase, validate it, report the exact changes, and stop.
+- Ask before choosing an unapproved field, state, screen, action, permission, algorithm, dependency, or workflow.
+- After implementing and validating a phase, update documentation, commit, report exact changes, and stop.
 - Continue only after the product owner explicitly says **continue**.
 
 ## Product baseline
 
-Health Hub is a deliberately simple clinic workflow application for one clinic with one Doctor and one Assistant.
+Health Hub is a deliberately simple clinic workflow application for one clinic with one Doctor account and one Assistant account. It uses React/Vite, Django REST Framework, and PostgreSQL. The public GitHub Pages build uses the same React frontend with a browser-only adapter and is not medical-data storage.
 
-- React and Vite frontend;
-- Django REST Framework backend;
-- PostgreSQL primary database;
-- English-first left-to-right interface;
-- Doctor as clinic administrator;
-- separate Doctor and Assistant accounts and workspaces.
+## Critical account and workspace rule
 
-The GitHub Pages build uses the real React frontend with a browser-only adapter. It is a demonstration environment and must not be treated as medical-data storage.
+The Doctor is the clinic administrator, but the Doctor page must remain focused on Doctor work.
 
-## Current implementation
+Account identity and active workspace are separate:
+
+- Doctor username/password can open the Doctor workspace.
+- Doctor username/password can also open the Assistant workspace for administrator intervention.
+- Assistant username/password can open the Assistant workspace.
+- Assistant credentials cannot open the Doctor workspace.
+
+The session stores `workspace_role`.
+
+### Doctor workspace
+
+- view and search Patient profiles;
+- view Patient details and Patient notes;
+- view Patient Visit history;
+- view appointment and walk-in lists;
+- no Patient creation, editing, note editing, or deletion;
+- no appointment/walk-in creation, editing, or removal.
+
+### Assistant workspace
+
+- create, view, search, edit, and delete Patients;
+- create appointments and walk-ins;
+- edit past and future Visits;
+- remove future Visits;
+- create a Patient and Visit together in one form.
+
+This boundary is enforced in backend mutation endpoints and mirrored by the frontend and browser adapter.
+
+## Implemented phases
 
 ### Phase 0 — Foundation
 
-Complete:
-
-- clinic creation and clinic-level sign-in;
-- Doctor and Assistant individual accounts;
-- Doctor administrator enforcement;
-- one account per role per clinic;
-- separate role workspaces;
-- PostgreSQL configuration and migrations;
-- authentication and authorization tests;
-- normal and demo frontend builds;
-- GitHub Actions quality and Pages workflows;
-- visual identity assets and tokens.
+Implemented clinic access, staff accounts, Doctor administrator status, one account per role, session authentication, PostgreSQL setup, frontend builds, tests, workflows, and design assets.
 
 ### Phase 1 — Patient records
 
-Complete:
+Implemented:
 
-- reusable clinic-scoped Patient profiles;
-- required full name and `Man` / `Woman` gender;
-- country calling code and normalized phone with Iran `+98` default;
-- optional date of birth and shared Patient note;
-- Doctor and Assistant create, view, search, edit, and soft-delete access;
-- combined name, phone, and date-of-birth search;
+- reusable clinic-scoped Patient model;
+- full name, `Man` / `Woman`, calling code, phone, optional date of birth, and optional Patient note;
+- Iran `+98` default and country-aware phone validation;
+- combined name/phone/date search;
 - one **Possible duplicate patient** warning;
-- patient list, form, detail, note, and deletion interface;
-- equivalent browser-demo behavior and tests.
+- internal soft deletion;
+- Doctor-workspace read access;
+- Assistant-workspace management access.
 
-### Phase 2 — Planned appointments and walk-ins
+See [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
 
-Complete:
+### Phase 2 — Appointments and walk-ins
 
-- separate clinic-scoped Visit model;
-- scheduled appointments with Patient, date, scheduled time, and optional reason;
-- walk-ins with Patient and automatic current date;
+Implemented:
+
+- scheduled appointments: Patient, date, scheduled time, optional reason;
+- walk-ins: Patient and automatic current date;
 - repeated same-day Visits;
-- past and future Visit editing;
-- permanent removal of future Visits only;
-- Patient Visit history inside the Patient profile;
-- existing-Patient suggestions showing full name, phone, date of birth, and gender;
-- atomic inline Patient and Visit creation;
-- Patient deletion blocked while future Visits exist;
-- historical Patient identity snapshots retained by past Visits;
-- Assistant-first Schedule section and Doctor-secondary Appointments tab;
-- equivalent browser-demo behavior and tests.
+- past and future Visit editing in Assistant workspace;
+- future Visit removal only;
+- Patient Visit history inside Patient profile;
+- inline Patient + Visit creation;
+- future-Visit deletion block for Patients;
+- historical Patient identity snapshots;
+- Doctor view-only appointment list;
+- Assistant schedule management;
+- Doctor administrator login to Assistant workspace.
 
-The complete Phase 2 contract is in [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md).
+Scheduled appointment time is informational and does not determine future live waiting order.
+
+See [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md).
 
 ## Current phase
 
-**Phase 2 — Planned appointments and walk-ins: repository implementation complete. Stop until the product owner explicitly says continue.**
+**Phase 2 repository implementation and workspace-boundary correction are complete. Stop until the product owner explicitly says continue.**
 
-Current external Actions and live Pages results may need separate confirmation because they are deployment outcomes rather than repository code.
-
-## Key Phase 2 contract
-
-A Patient is permanent and reusable. A Visit is one separate attendance.
-
-Appointment fields:
-
-- Patient;
-- date;
-- scheduled time;
-- optional reason.
-
-Walk-in fields:
-
-- Patient;
-- automatic current date.
-
-Both roles have full Visit permissions, but the UI remains assistant-first. The Assistant opens Schedule. The Doctor opens Patient records and can enter Appointments through a secondary tab.
-
-Past and future Visits may be edited. Only future Visits may be removed. There is no Cancelled state. Multiple same-day Visits are allowed.
-
-Inline Patient creation and Visit creation are atomic. Duplicate matching uses the existing Phase 1 warning and preserves the Visit draft.
+External GitHub Actions and live Pages outcomes may require separate confirmation because they are deployment results rather than repository content.
 
 ## Next action
 
 Do not begin Phase 3 automatically.
 
-When the product owner says **continue**, first resolve the Phase 3 decisions recorded in `docs/DEVELOPMENT_PLAN.md`:
+When the product owner says **continue**, first resolve the Phase 3 decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md):
 
 - exact queue-row information;
-- early and late arrival presentation;
+- early/late arrival presentation;
 - accidental check-in reversal;
 - equal check-in timestamps;
 - planned versus walk-in presentation;
 - temporary Patient unavailability;
-- Patient departure before consultation.
+- Patient departure before consultation;
+- exact Assistant and Doctor workspace responsibilities for arrival and queue actions.
 
-Already confirmed for Phase 3:
+Already confirmed:
 
 ```text
 PLANNED → ARRIVED
 ```
 
 Waiting order is based on actual check-in order, not scheduled appointment time.
-
-After each approved phase:
-
-1. run backend and frontend validation;
-2. update the browser demo;
-3. update documentation and phase status;
-4. commit directly on `main`;
-5. report exact changes and stop.

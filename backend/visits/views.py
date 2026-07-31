@@ -1,9 +1,10 @@
 from django.db import transaction
-from rest_framework import status, serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.permissions import require_assistant_workspace
 from patients.matching import possible_duplicate_patients
 from patients.models import Patient
 from patients.serializers import PatientSerializer
@@ -63,6 +64,7 @@ class VisitListCreateView(APIView):
         return Response({"visits": VisitSerializer(queryset, many=True).data})
 
     def post(self, request):
+        require_assistant_workspace(request)
         clinic = clinic_for_staff(request)
         visit_serializer = VisitSerializer(data=request.data)
         visit_serializer.is_valid(raise_exception=True)
@@ -105,6 +107,7 @@ class VisitDetailView(APIView):
         return Response(VisitSerializer(self.get_visit(request, visit_id)).data)
 
     def patch(self, request, visit_id):
+        require_assistant_workspace(request)
         visit = self.get_visit(request, visit_id)
         serializer = VisitSerializer(visit, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -133,6 +136,7 @@ class VisitDetailView(APIView):
         return Response(VisitSerializer(visit).data)
 
     def delete(self, request, visit_id):
+        require_assistant_workspace(request)
         visit = self.get_visit(request, visit_id)
         if not visit.can_delete:
             return Response(

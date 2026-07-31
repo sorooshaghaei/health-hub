@@ -1,198 +1,154 @@
 # Phase 2 — Planned appointments and walk-ins
 
-Status: **Repository implementation complete.**
+Status: **Repository implementation complete, with the corrected workspace permission boundary.**
 
-This document records the approved Phase 2 product behavior and the implementation contract. Phase 3 arrival and live-queue behavior is not part of this phase.
+This document records the approved Phase 2 behavior. Phase 3 arrival and live-queue behavior is not included.
 
 ## 1. Patient and Visit relationship
 
-A Patient is the permanent reusable person profile. A Visit is one separate clinic attendance.
-
-Every Visit belongs to exactly one Patient and one clinic. Returning patients reuse their existing Patient profile. Multiple Visits may belong to the same Patient, including multiple separate Visits on the same date.
+A Patient is the permanent reusable profile. A Visit is one separate clinic attendance. Every Visit belongs to one Patient and one clinic. Multiple Visits for the same Patient on the same date are allowed.
 
 ## 2. Visit types
 
 ### Scheduled appointment
 
-Approved fields:
+Required:
 
-- Patient — required;
-- date — required;
-- scheduled time — required;
-- visit reason — optional plain text.
+- Patient;
+- date;
+- scheduled time.
 
-The scheduled time is informational. It does not determine the live waiting order. Phase 3 waiting order is based on actual check-in order.
+Optional:
+
+- visit reason.
+
+Scheduled time is informational and will not determine live waiting order.
 
 ### Walk-in
 
-Approved fields:
+Required:
 
-- Patient — required;
-- date — assigned automatically as the clinic's current local date.
+- Patient.
 
-Walk-ins do not collect a scheduled time or visit reason in Phase 2.
+The date is assigned automatically as the clinic's current local date. Walk-ins have no scheduled time or reason in Phase 2.
 
-## 3. Permissions and workspace emphasis
+## 3. Workspace permissions
 
-Both Doctor and Assistant may:
+### Doctor workspace
 
-- view appointments and walk-ins;
+The Doctor can:
+
+- view appointment and walk-in lists by date;
+- view Visit details;
+- view Patient Visit history.
+
+The Doctor workspace cannot:
+
+- create appointments or walk-ins;
+- edit past or future Visits;
+- remove future Visits;
+- create or modify Patients.
+
+### Assistant workspace
+
+The Assistant workspace can:
+
 - create appointments and walk-ins;
 - edit past and future Visits;
 - remove future Visits;
-- create a new Patient while creating a Visit.
+- create a new Patient inside the Visit form;
+- manage Patient records.
 
-The Doctor remains the clinic administrator and retains the same API permissions. Appointment administration is operationally the Assistant's job, so the frontend is assistant-first:
+The Doctor administrator can select the Assistant workspace and sign in with the Doctor username and password. This grants the same management capabilities as an Assistant-workspace session without placing management controls on the Doctor page.
 
-- the Assistant opens on the Schedule section;
-- the Doctor opens on Patient records;
-- the Doctor can enter the same appointment tools through a secondary **Appointments** tab.
-
-No backend permission is removed from the Doctor.
+The backend session stores `workspace_role`, so the permission boundary is enforced at API level.
 
 ## 4. Existing-Patient suggestions
 
-The Visit form searches active Patient profiles while the user types.
-
-Each suggestion shows:
+Suggestions show:
 
 - full name;
 - phone;
 - date of birth;
 - gender.
 
-Selecting a result attaches the new Visit to that existing Patient.
+Selecting a suggestion attaches the Visit to the existing Patient.
 
 ## 5. Inline Patient creation
 
-The user may switch from Patient search to **Create new Patient** without leaving the Visit form.
+A new Patient and Visit may be created in one uninterrupted form and one database transaction. The appointment date, time, and optional reason remain attached while Patient information is entered.
 
-The scheduled date, time, and optional reason remain visible and attached to the draft. The backend creates the Patient and Visit in one database transaction. The user does not need to create the Patient, return to search, find the profile, and then create the Visit.
-
-The existing Phase 1 duplicate behavior remains active:
-
-- one **Possible duplicate patient** warning;
-- matching profiles are offered as the preferred choice;
-- selecting a match keeps the Visit draft and uses that Patient;
-- explicit separate-profile creation remains possible;
-- Patient names are never modified with generated suffixes.
+The Phase 1 duplicate warning remains active. The user may choose an existing match or explicitly create a separate Patient.
 
 ## 6. Editing and removal
 
-Past and future Visits are editable.
+The Assistant workspace may edit past and future Visits.
 
-Future Visits are removed permanently when cancelled. There is no Cancelled state in Phase 2.
+Only future Visits may be removed. Removal is permanent; there is no Cancelled state.
 
-Only future Visits can be removed:
-
-- a Visit on a later date is future;
-- an appointment later on the current date is future;
-- a past appointment cannot be removed;
-- a walk-in cannot be removed through the Phase 2 cancellation action.
-
-This preserves historical records.
+- Later-date Visits are future.
+- Appointments later on the current date are future.
+- Past appointments cannot be removed.
+- Walk-ins cannot be removed through this Phase 2 action.
 
 ## 7. Patient history and deletion
 
-Past and future Visits appear inside the active Patient profile.
+Past and future Visits appear inside the Patient profile for both workspaces.
 
-Patient deletion rules now operate against real Visit data:
+Patient deletion is an Assistant-workspace action and follows these rules:
 
-1. deletion is blocked while future Visits exist;
+1. future Visits block deletion;
 2. future Visits must be removed first;
-3. past Visits remain after the active Patient profile is deleted;
-4. Visit records store Patient identity snapshots for historical display;
-5. a deleted Patient is excluded from active Patient search and cannot receive another Visit.
+3. past Visits remain historical;
+4. Patient identity snapshots remain on historical Visits;
+5. deleted Patients disappear from active search and cannot receive new Visits.
 
-There is no user-visible Patient archive state.
+## 8. Authentication and API contract
 
-## 8. API contract
+The authenticated account and active workspace are separate session properties.
 
-Authenticated Doctor and Assistant sessions use:
+- Doctor account + Doctor workspace: read-only Patient and Visit access.
+- Assistant account + Assistant workspace: management access.
+- Doctor account + Assistant workspace: administrator management access.
+- Assistant account + Doctor workspace: rejected.
+
+Read endpoints are available in both workspaces:
 
 ```text
-GET    /api/visits/?date=YYYY-MM-DD
-GET    /api/visits/?patient=<patient-id>
+GET /api/patients/
+GET /api/patients/<patient-id>/
+GET /api/visits/?date=YYYY-MM-DD
+GET /api/visits/?patient=<patient-id>
+GET /api/visits/<visit-id>/
+```
+
+Mutation endpoints require an Assistant-workspace session:
+
+```text
+POST   /api/patients/
+PATCH  /api/patients/<patient-id>/
+DELETE /api/patients/<patient-id>/
 POST   /api/visits/
-GET    /api/visits/<visit-id>/
 PATCH  /api/visits/<visit-id>/
 DELETE /api/visits/<visit-id>/
 ```
 
-A Visit create or update accepts either:
-
-```json
-{
-  "patient_id": "<active-patient-id>"
-}
-```
-
-or:
-
-```json
-{
-  "new_patient": {
-    "full_name": "Example Patient",
-    "gender": "Woman",
-    "country_calling_code": "+98",
-    "phone_number": "09121234567",
-    "date_of_birth": null,
-    "patient_note": ""
-  }
-}
-```
-
-Scheduled appointment example:
-
-```json
-{
-  "visit_type": "appointment",
-  "patient_id": "<patient-id>",
-  "date": "2026-08-03",
-  "scheduled_time": "10:30",
-  "reason": "Optional reason"
-}
-```
-
-Walk-in example:
-
-```json
-{
-  "visit_type": "walk_in",
-  "patient_id": "<patient-id>"
-}
-```
-
-Inline Patient duplicate warnings use the same Phase 1 HTTP `409` payload and `confirm_duplicate` override.
-
-Deleting a Patient with future Visits returns HTTP `409` with code `future_visits_exist`.
-
-Deleting a non-future Visit returns HTTP `400` with code `visit_not_future`.
+Doctor-workspace mutations return HTTP `403`.
 
 ## 9. Implementation record
 
 Implemented:
 
-- `Visit` model, indexes, migration, Patient identity snapshots, and PostgreSQL-compatible relations;
+- Visit model, migration, indexes, and Patient identity snapshots;
 - appointment and walk-in validation;
-- clinic-scoped list, detail, create, edit, and future-removal APIs;
+- clinic-scoped read APIs for both workspaces;
+- Assistant-workspace mutation authorization;
+- Doctor administrator access to the Assistant workspace;
 - atomic inline Patient plus Visit creation;
-- duplicate reuse and explicit separate creation;
 - Patient deletion blocking against future Visits;
 - Patient profile Visit history;
-- Assistant-first and Doctor-secondary schedule navigation;
-- daily appointment and walk-in lists;
-- past and future Visit editing;
-- equivalent browser-only GitHub Pages behavior;
-- backend and demo-adapter tests.
+- view-only Doctor appointment list;
+- Assistant schedule-management UI;
+- equivalent browser-demo authorization and tests.
 
-Not implemented:
-
-- arrival or check-in;
-- waiting-order logic;
-- live queue;
-- `ARRIVED`, `WITH_DOCTOR`, `DOCTOR_FINISHED`, or `CHECKED_OUT` states;
-- early/late indicators;
-- consultation flow;
-- checkout;
-- notifications.
+Not implemented: arrival, check-in, live waiting order, consultation flow, checkout, notifications, or queue states.
