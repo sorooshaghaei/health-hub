@@ -1,8 +1,8 @@
 # Phase 1 — Patient records specification
 
-Status: **Product specification approved; implementation not started.**
+Status: **Implemented in the repository. External GitHub Actions and Pages deployment results must be checked separately.**
 
-This document is the source of truth for the first patient-record implementation. Do not add fields, permissions, matching behavior, reminders, archival behavior, or external libraries that are not recorded here without asking the product owner first.
+This document remains the source of truth for the first patient-record implementation. Do not add fields, permissions, matching behavior, reminders, archival behavior, or external libraries that are not recorded here without asking the product owner first.
 
 ## 1. Patient and visit separation
 
@@ -13,121 +13,81 @@ Health Hub separates the permanent person record from each clinic attendance:
 
 A returning patient must reuse the existing Patient profile and receive a new Visit. The application must not create a new Patient record for every attendance.
 
-This structure is intended to preserve visit history and later support information such as return count, visit dates, appointment versus walk-in history, and operational timing. Visit creation and daily scheduling belong to Phase 2; Phase 1 establishes the reusable patient record needed by that workflow.
+Visit creation and daily scheduling belong to Phase 2. Phase 1 implements only the reusable patient record needed by that workflow.
 
 ## 2. Approved patient fields
 
-| Field | Required | Approved behavior |
+| Field | Required | Implemented behavior |
 | --- | --- | --- |
-| Full name | Yes | Store the real patient name without generated suffixes or modifications. |
+| Full name | Yes | Stores the real patient name without generated suffixes or modifications. |
 | Gender | Yes | Allowed values: `Man`, `Woman`. |
-| Country calling code | Yes | Selected separately from the national phone number. Iran `+98` is the default for now. |
-| Phone number | Yes | Validate using the selected country calling code and store a normalized international value. |
+| Country calling code | Yes | Selected separately from the national phone number; Iran `+98` is the default. |
+| Phone number | Yes | Validated using the selected calling code and stored as a normalized national number plus E.164 value. |
 | Date of birth | No | May be empty when unknown. |
-| Patient note | No | Plain shared text attached to the patient profile. |
+| Patient note | No | Shared plain text attached to the patient profile. |
 
-No address, email, or additional patient fields are approved for Phase 1.
+No address, email, or additional patient field is part of Phase 1.
 
-Browser-based location detection is not part of Phase 1. It may later suggest a default country code only after separate approval. The current default remains Iran `+98`.
+The implementation uses no external phone-number dependency. It applies exact national-length rules for the approved `+98` default and several stable common calling codes, with E.164 length validation for other valid calling codes.
 
 ## 3. Patient note
 
-The field is named **Patient note**, not Assistant note.
+The field is named **Patient note**, not Assistant note. It is visible and editable by both Doctor and Assistant, optional, plain text, attached to a specific patient, and is not a reminder, notification, or scheduled item.
 
-It is:
-
-- visible to both Doctor and Assistant;
-- editable by both Doctor and Assistant;
-- optional;
-- plain text;
-- attached to a specific patient;
-- not a reminder;
-- not a notification;
-- not scheduled;
-- separate from personal sticky notes.
-
-Phase 7 personal notes are different: Doctor personal notes are visible only to the Doctor, and Assistant personal notes are visible only to the Assistant. Those personal notes behave conceptually like simple sticky notes and do not create reminders.
+Phase 7 personal notes remain separate creator-only sticky notes.
 
 ## 4. Permissions
 
-Both Doctor and Assistant may:
+Both Doctor and Assistant can:
 
-- view the patient profile;
-- search for patients;
+- view and search patient profiles;
 - create a patient;
 - edit all approved patient fields;
 - edit the Patient note;
-- request patient deletion, subject to the deletion rules below.
+- delete a patient subject to deletion rules.
 
-Doctor access to patient profiles is not restricted to visit-only information.
+All patient queries and mutations are restricted to the authenticated staff member's clinic.
 
 ## 5. Search and reuse
 
-Patient search combines:
+Patient search combines full or partial normalized name, phone digits, and date of birth. Search accepts ISO date input and `DD/MM/YYYY` in the backend.
 
-- full or partial name;
-- phone number;
-- date of birth.
-
-When the Assistant later adds a patient to a working day, the entry flow must suggest matching existing Patient profiles while the Assistant types. Selecting an existing result creates a new Visit for that Patient rather than duplicating the Patient profile.
-
-The suggestion must show enough identifying context to distinguish people with the same or similar names. The real stored name must remain unchanged. Internal IDs and contextual details such as date of birth or phone information should distinguish records in the interface.
-
-The exact visual contents of the working-day suggestion row are part of Phase 2 and must be confirmed before that interface is implemented.
+When Phase 2 adds a patient to a working day, matching existing profiles must be suggested so a new Visit is attached to the existing Patient instead of creating a duplicate Patient.
 
 ## 6. Duplicate warning
 
-Use one simple warning message: **Possible duplicate patient**.
+The implementation uses one warning message: **Possible duplicate patient**.
 
-The same generic warning is used when either condition is detected:
+It is returned when the same normalized identity is detected or when a similar name uses the same normalized phone number. When date of birth is empty, normalized name plus phone is sufficient.
 
-- normalized full name, phone number, and date of birth indicate the same patient;
-- a similar name uses the same phone number.
+The warning does not permanently block creation. The interface offers matching existing profiles first and allows an explicit **Create separate patient** action. The stored name is never modified with generated suffixes.
 
-When date of birth is empty, normalized full name plus phone number is sufficient to produce the warning.
-
-The warning:
-
-- does not block creation;
-- must offer the existing matching profile as the preferred choice;
-- may still allow an explicit decision to create a separate patient;
-- must not create multiple technical warning categories in the interface.
-
-Do not append numbers, codes, or generated text to the patient’s stored name. Distinguish same-name patients through contextual display and the internal unique identifier.
-
-The exact internal normalization and similar-name matching implementation may be selected during implementation, but it must preserve this single-warning product behavior and must not introduce an external dependency without approval.
+The internal implementation uses Unicode normalization, token comparison, and a standard-library similarity ratio. No external matching dependency was added.
 
 ## 7. Editing and deletion
 
-Patient profiles may be edited. There is no archive state.
+Patient profiles can be edited. There is no user-visible archive state.
 
-Deletion rules:
+Deletion removes the active reusable profile through an internal deletion timestamp. Deleted profiles disappear from patient APIs, search, and selection, and cannot receive new records through Phase 1 APIs.
 
-1. A patient cannot be deleted while one or more future Visits exist.
-2. Future Visits must be removed first.
-3. Past Visits are never removed merely because the active Patient profile is deleted.
-4. After deletion, historical Visits retain the patient details captured for historical display.
-5. The deleted Patient profile is no longer active or selectable, and no new Visit can be created for it.
+Phase 1 does not create a Visit model, so future Visits cannot yet exist. The soft-deletion design preserves the required historical-link boundary for Phase 2. When Visits are introduced, the deletion endpoint must be extended to block deletion while future Visits exist and to preserve historical Visit snapshots.
 
-This means patient deletion removes the active reusable profile but preserves previous clinic history. The future Visit removal behavior itself belongs to Phase 2 and must be confirmed as part of appointment/visit cancellation rules.
+## 8. Implemented Phase 1 scope
 
-## 8. Phase 1 implementation scope
+Implemented directly on `main`:
 
-After the product owner says **continue**, implement only:
+- dedicated Patient model, migration, active manager, and clinic indexes;
+- approved field, gender, date, country-code, national-phone, and E.164 validation;
+- patient list, combined search, create, detail, edit, and delete APIs;
+- Doctor and Assistant clinic-scoped permissions;
+- single non-blocking duplicate-warning contract with explicit override;
+- patient list, search, create, detail, edit, note, duplicate, and deletion interface;
+- equivalent browser-only GitHub Pages demo behavior;
+- backend patient API tests and expanded demo-adapter tests;
+- documentation and continuation-context updates.
 
-- Patient database model and migration;
-- approved field validation;
-- international country-code and phone input with Iran `+98` as the default;
-- patient create, view, edit, search, and delete APIs;
-- Doctor and Assistant permissions described above;
-- one non-blocking duplicate warning behavior;
-- patient list, search, create, detail, edit, and deletion interface;
-- backend tests;
-- frontend/demo adapter tests and equivalent GitHub Pages demo behavior;
-- documentation updates resulting from the implementation.
-
-Do not implement appointments, working-day Visits, live queue states, consultation flow, checkout, shared tasks, personal notes, notifications, or estimates in Phase 1.
+Not implemented: Visits, appointments, working-day scheduling, queue states, consultation flow, checkout, shared tasks, personal notes, notifications, or estimates.
 
 ## 9. Continuation protocol
 
-Before making an unrecorded product or technical choice, ask the product owner. Implement directly on `main`, validate the phase, report the exact changes, and stop until the product owner says **continue**.
+After Phase 1 validation, stop. Phase 2 must not begin until the product owner explicitly says **continue** and its unresolved appointment, Visit, cancellation, walk-in, and suggestion-row decisions are approved.

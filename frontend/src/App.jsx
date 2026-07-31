@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
+import PatientWorkspace from "./PatientWorkspace.jsx";
+import { Brand, ErrorMessage, Field } from "./ui.jsx";
 
 const CLINIC_TOKEN_KEY = "health-hub.clinic-token";
 const STAFF_TOKEN_KEY = "health-hub.staff-token";
@@ -21,32 +23,6 @@ const EMPTY_STAFF = {
   password: "",
   password_confirm: "",
 };
-
-function Brand({ compact = false }) {
-  return (
-    <div className={`brand ${compact ? "brand--compact" : ""}`}>
-      <div className="brand__mark" aria-hidden="true">H</div>
-      <div>
-        <strong>Health Hub</strong>
-        {!compact && <span>Simple clinic workflow</span>}
-      </div>
-    </div>
-  );
-}
-
-function ErrorMessage({ error }) {
-  if (!error) return null;
-  return <div className="alert alert--error" role="alert">{error.message}</div>;
-}
-
-function Field({ label, ...props }) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input {...props} />
-    </label>
-  );
-}
 
 function AuthShell({ title, description, children, onBack }) {
   return (
@@ -78,7 +54,7 @@ function Landing({ onCreate, onEnter }) {
       <div className="choice-stack">
         <button className="choice-card" type="button" onClick={onCreate}>
           <span className="choice-card__icon">+</span>
-          <span><strong>Create clinic</strong><small>Set up the clinic's shared first-level access.</small></span>
+          <span><strong>Create clinic</strong><small>Set up the clinic&apos;s shared first-level access.</small></span>
           <span aria-hidden="true">→</span>
         </button>
         <button className="choice-card" type="button" onClick={onEnter}>
@@ -156,8 +132,8 @@ function RoleSelection({ context, onSelect, onLeave }) {
     <AuthShell title={`Welcome to ${context.clinic.name}.`} description="Choose the workspace you use. Doctor and Assistant accounts remain separate." onBack={onLeave}>
       <div className="panel-heading"><p className="eyebrow">Clinic entered</p><h2>Who are you?</h2><p>{context.clinic.email}</p></div>
       <div className="choice-stack">
-        {roleCard("doctor", "Doctor", "Consultation workflow, shared tasks, and private Doctor notes.")}
-        {roleCard("assistant", "Assistant", "Patient administration, live queue, checkout, and shared tasks.")}
+        {roleCard("doctor", "Doctor", "Patient records and the Doctor workspace.")}
+        {roleCard("assistant", "Assistant", "Patient records and the Assistant workspace.")}
       </div>
       <p className="security-note">The Doctor is always the clinic administrator.</p>
     </AuthShell>
@@ -200,44 +176,6 @@ function StaffForm({ role, exists, onSubmit, onBack }) {
         <button className="primary-button" disabled={submitting}>{submitting ? "Please wait…" : exists ? `Open ${title} workspace` : `Create ${title} account`}</button>
       </form>
     </AuthShell>
-  );
-}
-
-function EmptyState({ title, description }) {
-  return <div className="empty-state"><div className="empty-state__dot" /><strong>{title}</strong><span>{description}</span></div>;
-}
-
-function Workspace({ user, onSignOut, onLeaveClinic }) {
-  const doctor = user.role === "doctor";
-  return (
-    <div className="workspace">
-      <header className="workspace-header">
-        <Brand compact />
-        <div className="workspace-header__clinic"><span>{user.clinic.name}</span><strong>{doctor ? "Doctor workspace" : "Assistant workspace"}</strong></div>
-        <div className="user-menu"><div><strong>{user.display_name}</strong><span>{doctor ? "Doctor · Administrator" : "Assistant"}</span></div><button type="button" onClick={onSignOut}>Sign out</button></div>
-      </header>
-      <main className="workspace-main">
-        <section className="workspace-title">
-          <div><p className="eyebrow">Foundation ready</p><h1>{doctor ? "Doctor workspace" : "Assistant workspace"}</h1><p>The account and role boundary are active. Patient workflow will be added as the next isolated product task.</p></div>
-          <div className="status-pill"><span /> Clinic access active</div>
-        </section>
-        <section className="workspace-grid">
-          <article className="workspace-card workspace-card--wide">
-            <div className="card-heading"><div><p className="eyebrow">Today</p><h2>{doctor ? "Patient flow" : "Clinic queue"}</h2></div><span className="count-badge">0</span></div>
-            <EmptyState title="No patient workflow data yet" description="Patient records, appointments, check-in, With doctor, Doctor finished, and Checkout are intentionally reserved for the next implementation task." />
-          </article>
-          <article className="workspace-card">
-            <div className="card-heading"><div><p className="eyebrow">Access</p><h2>Role boundary</h2></div></div>
-            <dl className="access-list"><div><dt>Clinic</dt><dd>{user.clinic.name}</dd></div><div><dt>Role</dt><dd>{doctor ? "Doctor" : "Assistant"}</dd></div><div><dt>Administrator</dt><dd>{user.is_clinic_admin ? "Yes" : "No"}</dd></div></dl>
-          </article>
-          <article className="workspace-card">
-            <div className="card-heading"><div><p className="eyebrow">Account</p><h2>Individual access</h2></div></div>
-            <p className="card-copy">This workspace is protected by the individual staff account after the clinic-level sign in.</p>
-            <button className="secondary-button" type="button" onClick={onLeaveClinic}>Leave clinic completely</button>
-          </article>
-        </section>
-      </main>
-    </div>
   );
 }
 
@@ -365,6 +303,6 @@ export default function App() {
   if (screen === "enter-clinic") return <ClinicForm mode="enter" onSubmit={enterClinic} onBack={() => setScreen("landing")} />;
   if (screen === "roles" && clinicContext) return <RoleSelection context={clinicContext} onSelect={selectRole} onLeave={leaveClinic} />;
   if (screen === "staff" && clinicContext && selectedRole) return <StaffForm role={selectedRole} exists={clinicContext.roles[selectedRole].exists} onSubmit={submitStaff} onBack={() => setScreen("roles")} />;
-  if (screen === "workspace" && staffUser) return <Workspace user={staffUser} onSignOut={signOut} onLeaveClinic={leaveClinicCompletely} />;
+  if (screen === "workspace" && staffUser && staffToken) return <PatientWorkspace user={staffUser} staffToken={staffToken} onSignOut={signOut} onLeaveClinic={leaveClinicCompletely} />;
   return <LoadingScreen />;
 }

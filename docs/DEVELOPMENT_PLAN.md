@@ -7,7 +7,7 @@ Health Hub is developed directly on `main` in small, reviewable phases.
 For every phase:
 
 1. Review the phase scope and identify unresolved product decisions.
-2. Ask the product owner before choosing fields, screens, actions, states, permissions, libraries, algorithms, or behavior that have not already been approved.
+2. Ask the product owner before choosing unapproved fields, screens, actions, states, permissions, libraries, algorithms, or behavior.
 3. Implement only the approved scope.
 4. Validate the implementation and update the GitHub Pages demo when applicable.
 5. Stop and report what changed.
@@ -15,7 +15,7 @@ For every phase:
 
 No branch, pull request, speculative feature, duplicate workflow, or unapproved external dependency should be introduced.
 
-For a new development session, start with [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md). Detailed approved Phase 1 behavior is recorded in [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
+For a new session, start with [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md). Phase 1 behavior and its implementation record are in [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
 
 ## Product baseline
 
@@ -28,16 +28,16 @@ For a new development session, start with [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT
 - Initial direction: left-to-right
 - Initial calendar: Gregorian
 - Doctor: clinic administrator and Doctor workflow role
-- Assistant: Assistant workflow role; administrator permission remains separate from workflow behavior
-- Public demo: the actual React frontend using a browser-only data adapter when backend services are unavailable
+- Assistant: distinct Assistant workflow role
+- Public demo: the actual React frontend using a browser-only data adapter
 
 ## Phase status
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Foundation verification | Implemented; current Actions and public URL confirmation pending |
-| 1 | Patient specification and records | Specification approved; implementation not started |
-| 2 | Planned appointments and walk-ins | Not started |
+| 0 | Foundation verification | Implemented; external Actions/Pages confirmation may be checked separately |
+| 1 | Patient specification and records | Implemented; external Actions/Pages confirmation may be checked separately |
+| 2 | Planned appointments and walk-ins | Product decisions not yet approved |
 | 3 | Arrival and live waiting queue | Not started |
 | 4 | Doctor readiness and consultation flow | Not started |
 | 5 | Doctor-finished indication and checkout | Not started |
@@ -51,126 +51,69 @@ For a new development session, start with [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT
 
 ## Phase 0 — Foundation verification
 
-### Approved scope
+Implemented:
 
-- React and Vite frontend
-- Django REST Framework backend
-- PostgreSQL configuration
-- Clinic creation and clinic-level sign-in
-- Doctor and Assistant individual account creation and sign-in
-- Doctor as clinic administrator
-- Separate Doctor and Assistant workspaces
-- GitHub Pages deployment of the actual frontend
-- Browser-only demo adapter for static hosting
-- Backend authentication tests
-- Local setup documentation
+- React/Vite frontend and Django REST Framework backend;
+- PostgreSQL configuration;
+- clinic creation and clinic-level sign-in;
+- Doctor and Assistant individual accounts and sessions;
+- Doctor administrator enforcement and one account per role per clinic;
+- separate role workspaces;
+- browser-only demo adapter;
+- backend authentication tests;
+- normal/demo builds, quality workflow, and Pages deployment workflow;
+- setup, production-boundary, design, and continuation documentation.
 
-### Completion criteria
-
-- Frontend application build succeeds.
-- GitHub Pages demo build succeeds.
-- Django system checks succeed.
-- No missing Django migrations are detected.
-- Django tests succeed against PostgreSQL.
-- Initial migrations apply successfully to PostgreSQL.
-- GitHub Pages deployment succeeds and the public URL serves the frontend.
-- README setup and verification instructions match the repository.
-- Documentation contains no obsolete or unapproved workflow assumptions.
-
-### Implementation record
-
-Completed in the repository:
-
-- normal and demo frontend build commands;
-- browser-only demo adapter for the approved clinic and staff access flow;
-- dependency-free Node test for the browser demo authentication flow;
-- Django authentication and authorization tests;
-- PostgreSQL 17 CI service, migration validation, system checks, and backend tests;
-- GitHub Pages deployment workflow;
-- setup, production-boundary, design, and development-plan documentation;
-- removal of unapproved workflow assumptions from design documentation.
-
-The repository-level implementation is complete. The latest push-triggered Actions results and the live Pages response must still be confirmed from GitHub because they are external deployment outcomes rather than repository code.
-
-No patient workflow, tasks, notes, recovery flow, notifications, or timing estimate was added in this phase.
+No patient workflow, tasks, notes, recovery flow, notifications, or timing estimate was added in Phase 0.
 
 ## Phase 1 — Patient specification and records
 
-Status: **Product specification approved; implementation not started.**
+Status: **Implemented.**
 
-The complete source of truth is [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
+Source of truth: [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
 
-### Approved patient model
+Implemented patient model:
 
-A **Patient** is the permanent reusable person profile. A **Visit** is one clinic attendance on a working day. A returning patient reuses the existing Patient profile and later receives another Visit; Health Hub must not create a new Patient record for every attendance.
+- reusable clinic-scoped Patient profile, separate from future Visits;
+- required full name;
+- required gender: `Man` or `Woman`;
+- required calling code and national phone, Iran `+98` default;
+- normalized E.164 phone value;
+- optional date of birth;
+- optional shared Patient note;
+- internal deletion timestamp without a user-visible archive state.
 
-Approved fields:
+Implemented permissions and behavior:
 
-- full name — required;
-- gender — required, with values `Man` and `Woman`;
-- country calling code — required, with Iran `+98` selected by default for now;
-- phone number — required and validated using the selected country calling code;
-- date of birth — optional;
-- Patient note — optional, plain text, visible and editable by both Doctor and Assistant.
+- both Doctor and Assistant can create, view, search, edit, and delete active Patients;
+- all access is restricted to the authenticated staff member's clinic;
+- combined name, phone, and date-of-birth search;
+- one **Possible duplicate patient** warning for normalized identity or similar name with the same phone;
+- matching existing profiles are preferred;
+- explicit separate-profile creation is allowed;
+- patient names are never modified with generated suffixes;
+- deleted profiles disappear from active APIs and cannot be selected;
+- browser-demo behavior mirrors the backend contract.
 
-No address, email, reminder, notification, or additional patient field is approved for Phase 1.
+Implemented validation and verification:
 
-### Approved permissions
+- model migration and clinic indexes;
+- country-code-aware phone validation without an external dependency;
+- backend API tests for both roles, search, duplicate confirmation, phone validation, clinic isolation, editing, and deletion;
+- browser-adapter tests for authentication and patient CRUD/duplicate behavior;
+- patient list, search, create, detail, edit, note, duplicate, and deletion UI.
 
-Both Doctor and Assistant may create, view, search, edit, and delete Patient profiles. Both roles may view and edit the Patient note. Doctor access is not limited to visit-only information.
-
-The Patient note is distinct from Phase 7 personal sticky notes. Phase 7 Doctor and Assistant personal notes remain creator-only and do not create reminders.
-
-### Approved search and duplicate behavior
-
-Patient search combines name, phone number, and date of birth.
-
-Use one simple non-blocking warning: **Possible duplicate patient**. It applies when:
-
-- normalized full name, phone number, and date of birth indicate the same patient;
-- or a similar name uses the same phone number.
-
-When date of birth is empty, normalized full name plus phone number is sufficient. The user may choose the existing profile or explicitly create a separate patient. The real stored patient name must never receive an automatic suffix or generated modification.
-
-When adding a patient to a working day in Phase 2, the interface must suggest matching existing profiles so the Assistant can select the recorded Patient and create a new Visit. Exact suggestion-row presentation remains a Phase 2 interface decision.
-
-### Approved editing and deletion behavior
-
-There is no patient archive state.
-
-- Patient profiles may be edited.
-- Deletion is blocked while future Visits exist.
-- Future Visits must be removed first.
-- Past Visits remain as historical records when the active Patient profile is deleted.
-- Historical Visits retain captured patient details for display.
-- A deleted Patient profile is no longer selectable and cannot receive new Visits.
-
-### Phase 1 implementation scope
-
-After the product owner says **continue**, implement only:
-
-- Patient model and migration;
-- approved field and phone validation;
-- country-code selector with Iran `+98` default;
-- create, view, edit, search, and delete APIs;
-- Doctor and Assistant permissions;
-- the single duplicate-warning behavior;
-- patient list, search, create, detail, edit, and deletion UI;
-- backend tests;
-- frontend and browser-demo tests;
-- equivalent GitHub Pages demo behavior;
-- resulting documentation updates.
-
-Do not implement Visits, appointments, working-day scheduling, queue states, consultation flow, checkout, shared tasks, personal notes, notifications, or estimates in Phase 1.
+Phase 1 does not implement Visits, appointments, working-day scheduling, queues, consultation flow, checkout, tasks, personal notes, notifications, or estimates.
 
 ## Phase 2 — Planned appointments and walk-ins
 
-Before implementation, confirm:
+Do not implement until the product owner explicitly approves:
 
 - appointment fields;
-- editing and cancellation rules, including removal of future Visits required before Patient deletion;
+- editing and cancellation rules;
+- removal of future Visits required before Patient deletion;
 - past-appointment visibility;
-- repeated same-day visits;
+- repeated same-day Visits;
 - walk-in data requirements;
 - whether a visit-reason field exists;
 - exact identifying information shown in existing-patient suggestions.
@@ -189,17 +132,7 @@ PLANNED → ARRIVED
 
 Waiting order is based on actual check-in order.
 
-Before implementation, confirm:
-
-- queue-row information;
-- early and late arrival presentation;
-- accidental check-in reversal;
-- equal check-in timestamp handling;
-- planned versus walk-in presentation;
-- temporary unavailability behavior;
-- patient departure before consultation.
-
-After approval, implement check-in, actual arrival timestamps, one live queue, permissions, tests, and equivalent demo behavior.
+Before implementation, confirm queue-row information, early/late arrival presentation, accidental check-in reversal, equal timestamps, planned versus walk-in presentation, temporary unavailability, and patient departure before consultation.
 
 ## Phase 4 — Doctor readiness and consultation flow
 
@@ -212,15 +145,13 @@ ARRIVED → WITH_DOCTOR → DOCTOR_FINISHED
 Confirmed behavior:
 
 - Doctor taps **Ready for first patient**.
-- When ready and no patient is currently with the Doctor, the first eligible checked-in patient automatically becomes **With doctor**.
+- When ready and free, the first eligible checked-in patient automatically becomes **With doctor**.
 - There is no separate Prepare patient, Send in, Call next patient, or Start consultation action.
 - **With doctor** means consultation has started.
 - Doctor taps **Finished** when consultation ends.
 - If another patient is waiting and the Doctor remains ready, the next eligible patient automatically becomes **With doctor**.
 
-Before implementation, confirm readiness changes, empty-queue behavior, return-to-queue behavior, reversal rules, visible patient information, timestamp presentation, and whether finishing needs confirmation.
-
-After approval, implement readiness, automatic transitions, concurrency protection, Doctor workspace behavior, tests, and equivalent demo behavior.
+Before implementation, confirm readiness changes, empty-queue behavior, return-to-queue behavior, reversal rules, visible patient information, timestamp presentation, and finish confirmation.
 
 ## Phase 5 — Doctor-finished indication and checkout
 
@@ -230,18 +161,7 @@ Confirmed transition:
 DOCTOR_FINISHED → CHECKED_OUT
 ```
 
-Before implementation, confirm:
-
-- the Assistant indication design;
-- persistence of that indication;
-- handling multiple patients awaiting checkout;
-- checkout-list information;
-- whether checkout requires data or only an action;
-- reversal behavior;
-- completed-patient visibility;
-- whether the Doctor sees checkout completion.
-
-After approval, implement the Assistant indication, checkout workflow, timestamps, completed section, tests, and equivalent demo behavior.
+Before implementation, confirm Assistant indication design and persistence, handling multiple patients awaiting checkout, checkout-list information, required checkout data, reversal, completed-patient visibility, and Doctor visibility of completion.
 
 No email, SMS, browser-push, or external notification is added without approval.
 
@@ -258,8 +178,6 @@ Confirmed requirements:
 
 Before implementation, confirm self-assignment, due dates, editing, completion authority, reversal, deletion, comment editing, patient association, and whether attachments remain postponed.
 
-After approval, implement task models, permissions, lists, conversation, completion behavior, tests, and equivalent demo behavior.
-
 ## Phase 7 — Private notes
 
 Confirmed requirements:
@@ -272,42 +190,27 @@ Confirmed requirements:
 
 Before implementation, confirm titles, editing, autosave, deletion behavior, ordering, and workspace placement.
 
-After approval, implement private-note storage, authorization, interface, privacy tests, and equivalent demo behavior.
-
 ## Phase 8 — Daily operational estimate
 
 Begin only after consultation timing data exists.
 
-Before implementation, approve the formula, minimum data requirement, historical window, outlier handling, placement, wording, and role visibility.
-
-After approval, implement duration calculations, recent averages, remaining-day estimate, uncertainty wording, tests, and equivalent demo behavior.
-
-No machine-learning model is assumed.
+Before implementation, approve the formula, minimum data requirement, historical window, outlier handling, placement, wording, and role visibility. No machine-learning model is assumed.
 
 ## Phase 9 — Password recovery and clinic administration
 
-Before implementation, confirm clinic recovery channels, staff recovery, Doctor controls over the Assistant account, password changes, account editing, disabling, inaccessible-Doctor recovery, and any approved email or SMS infrastructure.
+Before implementation, confirm clinic recovery channels, staff recovery, Doctor controls over the Assistant account, password changes, account editing, disabling, inaccessible-Doctor recovery, and approved email/SMS infrastructure.
 
-After approval, implement only the confirmed recovery and administration flows with security tests. No fake email or SMS behavior is permitted.
+No fake email or SMS behavior is permitted.
 
 ## Phase 10 — Sensitive attachment architecture
 
 Before implementation, approve storage, access controls, encryption, limits, file types, scanning, retention, deletion, backups, audit logging, patient-information rules, and applicable operational/legal requirements.
 
-Only after architecture approval may private upload/download behavior and security tests be implemented. The interface must not claim attachments are secure before the architecture supports that claim.
+The interface must not claim attachments are secure before the architecture supports that claim.
 
 ## Phase 11 — Production hardening
 
-Review and complete:
-
-- backend and frontend validation coverage;
-- authorization boundaries;
-- database constraints and race conditions;
-- error states and responsive layout;
-- accessibility and input validation;
-- security headers and secret management;
-- PostgreSQL backup and restoration documentation;
-- production deployment, logging, privacy, and retention decisions.
+Review and complete validation coverage, authorization boundaries, database constraints and race conditions, error states, responsive layout, accessibility, security headers, secret management, backups/restoration, production deployment, logging, privacy, and retention decisions.
 
 External monitoring, analytics, hosting, storage, or email services require approval.
 
