@@ -1,3 +1,5 @@
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -99,8 +101,29 @@ class PatientDetailView(APIView):
 
     def delete(self, request, patient_id):
         patient = self.get_patient(request, patient_id)
-        # Phase 1 does not create Visits, so no future Visit can currently exist.
-        # Patient deletion is still soft to preserve the historical-link contract
-        # that Phase 2 will use when Visit records are introduced.
+        from visits.models import Visit
+
+        now = timezone.localtime()
+        future_visits = Visit.objects.filter(
+            clinic=patient.clinic,
+            patient=patient,
+        ).filter(
+            Q(date__gt=now.date())
+            | Q(
+                date=now.date(),
+                visit_type=Visit.Type.APPOINTMENT,
+                scheduled_time__gt=now.time().replace(tzinfo=None),
+            )
+        )
+        if future_visits.exists():
+            return Response(
+                {
+                    "code": "future_visits_exist",
+                    "detail": "Remove future visits before deleting this patient.",
+                    "future_visit_count": future_visits.count(),
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
         patient.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

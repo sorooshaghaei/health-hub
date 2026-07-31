@@ -11,7 +11,13 @@ const NATIONAL_LENGTHS = {
 };
 
 function emptyStore() {
-  return { clinic: null, staff: [], sessions: {}, patients: [] };
+  return {
+    clinic: null,
+    staff: [],
+    sessions: {},
+    patients: [],
+    visits: [],
+  };
 }
 
 function loadStore() {
@@ -24,6 +30,7 @@ function loadStore() {
       staff: Array.isArray(parsed.staff) ? parsed.staff : [],
       sessions: parsed.sessions && typeof parsed.sessions === "object" ? parsed.sessions : {},
       patients: Array.isArray(parsed.patients) ? parsed.patients : [],
+      visits: Array.isArray(parsed.visits) ? parsed.visits : [],
     };
   } catch {
     return emptyStore();
@@ -66,6 +73,15 @@ async function hashSecret(value) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function localDateValue(date = new Date()) {
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
+}
+
+function localTimeValue(date = new Date()) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
 }
 
 function publicClinic(clinic) {
@@ -213,6 +229,232 @@ function possibleDuplicate(matches) {
   }, 409);
 }
 
+function patientById(store, patientId) {
+  const patient = store.patients.find((candidate) => candidate.id === patientId && !candidate.deleted_at);
+  if (!patient) fail({ detail: "Patient not found." }, 404);
+  return patient;
+}
+
+function visitById(store, visitId) {
+  const visit = store.visits.find((candidate) => candidate.id === visitId);
+  if (!visit) fail({ detail: "Visit not found." }, 404);
+  return visit;
+}
+
+function createPatientCandidate(store, data) {
+  const candidate = validatePatient(data);
+  const matches = duplicateMatches(store, candidate);
+  if (matches.length && !data.confirm_duplicate) possibleDuplicate(matches);
+  return {
+    id: crypto.randomUUID(),
+    clinic_id: store.clinic.id,
+    ...candidate,
+    deleted_at: null,
+  };
+}
+
+function createPatient(store, data) {
+  const patient = createPatientCandidate(store, data);
+  store.patients.push(patient);
+  saveStore(store);
+  return publicPatient(patient);
+}
+
+function updatePatient(store, patientId, data) {
+  const patient = patientById(store, patientId);
+  const candidate = validatePatient(data, patient);
+  const identityChanged = candidate.full_name !== patient.full_name
+    || candidate.phone_e164 !== patient.phone_e164
+    || candidate.date_of_birth !== patient.date_of_birth;
+  const matches = identityChanged ? duplicateMatches(store, candidate, patient.id) : [];
+  if (matches.length && !data.confirm_duplicate) possibleDuplicate(matches);
+  Object.assign(patient, candidate);
+  saveStore(store);
+  return publicPatient(patient);
+}
+
+function isVisitFuture(visit) {
+  const today = localDateValue();
+  if (visit.date > today) return true;
+  if (visit.date < today) return false;
+  if (visit.visit_type !== "appointment" || !visit.scheduled_time) return false;
+  return visit.scheduled_time > localTimeValue();
+}
+
+function publicVisit(store, visit) {
+  const activePatient = store.patients.find((candidate) => candidate.id === visit.patient_id && !candidate.deleted_at);
+  const patient = activePatient
+    ? {
+        id: activePatient.id,
+        full_name: activePatient.full_name,
+        gender: activePatient.gender,
+        phone_e164: activePatient.phone_e164,
+        date_of_birth: activePatient.date_of_birth || null,
+        active: true,
+      }
+    : {
+        id: visit.patient_id,
+        full_name: visit.patient_full_name_snapshot,
+        gender: visit.patient_gender_snapshot,
+        phone_e164: visit.patient_phone_snapshot,
+        date_of_birth: visit.patient_date_of_birth_snapshot || null,
+        active: false,
+      };
+  return {
+    id: visit.id,
+    visit_type: visit.visit_type,
+    date: visit.date,
+    scheduled_time: visit.scheduled_time,
+    reason: visit.reason,
+    patient,
+    can_delete: isVisitFuture(visit),
+    is_future: isVisitFuture(visit),
+    created_at: visit.created_at,
+    updated_at: visit.updated_at,
+  };
+}
+
+function normalizeScheduledTime(value) {
+  const time = clean(value);
+  if (!/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+    fail({ scheduled_time: ["Scheduled time is required."] });
+  }
+  const [hour, minute, second = "00"] = time.split(":");
+  if (Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) {
+    fail({ scheduled_time: ["Enter a valid scheduled time."] });
+  }
+  return `${hour}:${minute}:${second}`;
+}
+
+function validateVisit(data, current = null) {
+  const visitType = data.visit_type ?? current?.visit_type;
+  if (!["appointment", "walk_in"].includes(visitType)) {
+    fail({ visit_type: ["Choose Appointment or Walk-in."] });
+  }
+  if (current && data.visit_type && data.visit_type !== current.visit_type) {
+    fail({ visit_type: ["Visit type cannot be changed after creation."] });
+  }
+
+  if (visitType === "walk_in") {
+    return {
+      visit_type: visitType,
+      date: current?.date ?? localDateValue(),
+      scheduled_time: null,
+      reason: "",
+    };
+  }
+
+  const date = data.date ?? current?.date;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    fail({ date: ["Appointment date is required."] });
+  }
+  return {
+    visit_type: visitType,
+    date,
+    scheduled_time: normalizeScheduledTime(data.scheduled_time ?? current?.scheduled_time),
+    reason: clean(data.reason === undefined ? current?.reason : data.reason),
+  };
+}
+
+function resolveVisitPatient(store, data, currentVisit = null) {
+  const hasExisting = Boolean(data.patient_id);
+  const hasNew = data.new_patient && typeof data.new_patient === "object";
+  if (!currentVisit && hasExisting === hasNew) {
+    fail({ non_field_errors: ["Choose one existing patient or create one new patient."] });
+  }
+  if (currentVisit && hasExisting && hasNew) {
+    fail({ non_field_errors: ["Choose one existing patient or create one new patient."] });
+  }
+
+  if (hasNew) {
+    const patient = createPatientCandidate(store, data.new_patient);
+    return { patient, isNew: true, changed: true };
+  }
+  if (hasExisting) {
+    const patient = patientById(store, data.patient_id);
+    return {
+      patient,
+      isNew: false,
+      changed: !currentVisit || patient.id !== currentVisit.patient_id,
+    };
+  }
+  const patient = store.patients.find((candidate) => candidate.id === currentVisit.patient_id);
+  if (!patient) fail({ detail: "Patient not found." }, 404);
+  return { patient, isNew: false, changed: false };
+}
+
+function capturePatient(visit, patient) {
+  visit.patient_id = patient.id;
+  visit.patient_full_name_snapshot = patient.full_name;
+  visit.patient_gender_snapshot = patient.gender;
+  visit.patient_phone_snapshot = patient.phone_e164;
+  visit.patient_date_of_birth_snapshot = patient.date_of_birth || null;
+}
+
+function createVisit(store, data) {
+  const validated = validateVisit(data);
+  const patientResolution = resolveVisitPatient(store, data);
+  const now = new Date().toISOString();
+  const visit = {
+    id: crypto.randomUUID(),
+    clinic_id: store.clinic.id,
+    ...validated,
+    created_at: now,
+    updated_at: now,
+  };
+  capturePatient(visit, patientResolution.patient);
+  if (patientResolution.isNew) store.patients.push(patientResolution.patient);
+  store.visits.push(visit);
+  saveStore(store);
+  return publicVisit(store, visit);
+}
+
+function updateVisit(store, visitId, data) {
+  const visit = visitById(store, visitId);
+  const validated = validateVisit(data, visit);
+  const patientResolution = resolveVisitPatient(store, data, visit);
+  Object.assign(visit, validated, { updated_at: new Date().toISOString() });
+  if (patientResolution.changed) capturePatient(visit, patientResolution.patient);
+  if (patientResolution.isNew) store.patients.push(patientResolution.patient);
+  saveStore(store);
+  return publicVisit(store, visit);
+}
+
+function listPatients(store, search) {
+  const query = clean(search);
+  const normalized = normalizeName(query);
+  const digits = query.replace(/\D/g, "");
+  return store.patients
+    .filter((patient) => !patient.deleted_at)
+    .filter((patient) => !query
+      || patient.normalized_name.includes(normalized)
+      || (digits && (patient.phone_number.includes(digits) || patient.phone_e164.replace(/\D/g, "").includes(digits)))
+      || patient.date_of_birth === query)
+    .sort((first, second) => first.normalized_name.localeCompare(second.normalized_name))
+    .map(publicPatient);
+}
+
+function listVisits(store, date, patientId) {
+  let visits = [...store.visits];
+  if (date) visits = visits.filter((visit) => visit.date === date);
+  if (patientId) {
+    patientById(store, patientId);
+    visits = visits.filter((visit) => visit.patient_id === patientId);
+    visits.sort((first, second) => (
+      second.date.localeCompare(first.date)
+      || String(second.scheduled_time ?? "").localeCompare(String(first.scheduled_time ?? ""))
+      || second.created_at.localeCompare(first.created_at)
+    ));
+  } else {
+    visits.sort((first, second) => (
+      first.date.localeCompare(second.date)
+      || String(first.scheduled_time ?? "99:99:99").localeCompare(String(second.scheduled_time ?? "99:99:99"))
+      || first.created_at.localeCompare(second.created_at)
+    ));
+  }
+  return visits.map((visit) => publicVisit(store, visit));
+}
+
 async function createClinic(data) {
   const name = clean(data.name);
   const email = normalizeEmail(data.email);
@@ -258,8 +500,13 @@ async function registerStaff(data, clinicToken) {
   if (password.length < 8) fail({ password: ["Use at least 8 characters for the staff password."] });
 
   const user = {
-    id: crypto.randomUUID(), username, email, first_name: firstName, last_name: lastName,
-    role, password_hash: await hashSecret(password),
+    id: crypto.randomUUID(),
+    username,
+    email,
+    first_name: firstName,
+    last_name: lastName,
+    role,
+    password_hash: await hashSecret(password),
   };
   store.staff.push(user);
   const sessionToken = randomToken("demo-staff");
@@ -281,71 +528,30 @@ async function loginStaff(data, clinicToken) {
   return { user: publicUser(user, clinic), session_token: sessionToken, expires_at: null };
 }
 
-function listPatients(store, search) {
-  const query = clean(search);
-  const normalized = normalizeName(query);
-  const digits = query.replace(/\D/g, "");
-  return store.patients
-    .filter((patient) => !patient.deleted_at)
-    .filter((patient) => !query
-      || patient.normalized_name.includes(normalized)
-      || (digits && (patient.phone_number.includes(digits) || patient.phone_e164.replace(/\D/g, "").includes(digits)))
-      || patient.date_of_birth === query)
-    .sort((first, second) => first.normalized_name.localeCompare(second.normalized_name))
-    .map(publicPatient);
-}
-
-function patientById(store, patientId) {
-  const patient = store.patients.find((candidate) => candidate.id === patientId && !candidate.deleted_at);
-  if (!patient) fail({ detail: "Patient not found." }, 404);
-  return patient;
-}
-
-function createPatient(store, data) {
-  const candidate = validatePatient(data);
-  const matches = duplicateMatches(store, candidate);
-  if (matches.length && !data.confirm_duplicate) possibleDuplicate(matches);
-  const patient = { id: crypto.randomUUID(), clinic_id: store.clinic.id, ...candidate, deleted_at: null };
-  store.patients.push(patient);
-  saveStore(store);
-  return publicPatient(patient);
-}
-
-function updatePatient(store, patientId, data) {
-  const patient = patientById(store, patientId);
-  const candidate = validatePatient(data, patient);
-  const identityChanged = candidate.full_name !== patient.full_name
-    || candidate.phone_e164 !== patient.phone_e164
-    || candidate.date_of_birth !== patient.date_of_birth;
-  const matches = identityChanged ? duplicateMatches(store, candidate, patient.id) : [];
-  if (matches.length && !data.confirm_duplicate) possibleDuplicate(matches);
-  Object.assign(patient, candidate);
-  saveStore(store);
-  return publicPatient(patient);
-}
-
 export async function demoApiRequest(path, { method = "GET", data = {}, clinicToken, staffToken } = {}) {
   await new Promise((resolve) => globalThis.setTimeout(resolve, 20));
+  const url = new URL(path, "https://health-hub.demo");
+  const pathname = url.pathname;
 
-  if (path === "/api/clinics/" && method === "POST") return createClinic(data);
-  if (path === "/api/clinics/enter/" && method === "POST") return enterClinic(data);
+  if (pathname === "/api/clinics/" && method === "POST") return createClinic(data);
+  if (pathname === "/api/clinics/enter/" && method === "POST") return enterClinic(data);
 
-  if (path === "/api/clinic/context/" && method === "GET") {
+  if (pathname === "/api/clinic/context/" && method === "GET") {
     const store = loadStore();
     const clinic = resolveClinic(store, clinicToken);
     return { clinic: publicClinic(clinic), roles: rolePayload(store) };
   }
 
-  if (path === "/api/staff/register/" && method === "POST") return registerStaff(data, clinicToken);
-  if (path === "/api/staff/login/" && method === "POST") return loginStaff(data, clinicToken);
+  if (pathname === "/api/staff/register/" && method === "POST") return registerStaff(data, clinicToken);
+  if (pathname === "/api/staff/login/" && method === "POST") return loginStaff(data, clinicToken);
 
-  if (path === "/api/staff/me/" && method === "GET") {
+  if (pathname === "/api/staff/me/" && method === "GET") {
     const store = loadStore();
     const user = resolveSession(store, staffToken);
     return { user: publicUser(user, store.clinic) };
   }
 
-  if (path === "/api/staff/logout/" && method === "POST") {
+  if (pathname === "/api/staff/logout/" && method === "POST") {
     const store = loadStore();
     if (staffToken) delete store.sessions[staffToken];
     saveStore(store);
@@ -354,21 +560,55 @@ export async function demoApiRequest(path, { method = "GET", data = {}, clinicTo
 
   const store = loadStore();
   resolveSession(store, staffToken);
-  if (path.startsWith("/api/patients/") && method === "GET" && path.includes("?")) {
-    const search = new URL(path, "https://demo.local").searchParams.get("search") ?? "";
-    return { patients: listPatients(store, search) };
-  }
-  if (path === "/api/patients/" && method === "GET") return { patients: listPatients(store, "") };
-  if (path === "/api/patients/" && method === "POST") return createPatient(store, data);
 
-  const match = path.match(/^\/api\/patients\/([^/]+)\/$/);
-  if (match) {
-    const patientId = match[1];
+  if (pathname === "/api/patients/" && method === "GET") {
+    return { patients: listPatients(store, url.searchParams.get("search")) };
+  }
+  if (pathname === "/api/patients/" && method === "POST") return createPatient(store, data);
+
+  const patientMatch = pathname.match(/^\/api\/patients\/([0-9a-f-]+)\/$/i);
+  if (patientMatch) {
+    const patientId = patientMatch[1];
     if (method === "GET") return publicPatient(patientById(store, patientId));
     if (method === "PATCH") return updatePatient(store, patientId, data);
     if (method === "DELETE") {
       const patient = patientById(store, patientId);
+      const futureVisits = store.visits.filter((visit) => visit.patient_id === patient.id && isVisitFuture(visit));
+      if (futureVisits.length) {
+        fail({
+          code: "future_visits_exist",
+          detail: "Remove future visits before deleting this patient.",
+          future_visit_count: futureVisits.length,
+        }, 409);
+      }
       patient.deleted_at = new Date().toISOString();
+      saveStore(store);
+      return null;
+    }
+  }
+
+  if (pathname === "/api/visits/" && method === "GET") {
+    return {
+      visits: listVisits(
+        store,
+        url.searchParams.get("date"),
+        url.searchParams.get("patient"),
+      ),
+    };
+  }
+  if (pathname === "/api/visits/" && method === "POST") return createVisit(store, data);
+
+  const visitMatch = pathname.match(/^\/api\/visits\/([0-9a-f-]+)\/$/i);
+  if (visitMatch) {
+    const visitId = visitMatch[1];
+    if (method === "GET") return publicVisit(store, visitById(store, visitId));
+    if (method === "PATCH") return updateVisit(store, visitId, data);
+    if (method === "DELETE") {
+      const visit = visitById(store, visitId);
+      if (!isVisitFuture(visit)) {
+        fail({ code: "visit_not_future", detail: "Only future visits can be removed." }, 400);
+      }
+      store.visits = store.visits.filter((candidate) => candidate.id !== visit.id);
       saveStore(store);
       return null;
     }
