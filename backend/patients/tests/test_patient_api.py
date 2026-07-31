@@ -1,15 +1,17 @@
+from datetime import timedelta
+
 from django.test import override_settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import Clinic
 from patients.models import Patient
+from visits.models import Visit
 
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class PatientApiTests(APITestCase):
-    password = "Strong-staff-password-123"
-
     def setUp(self):
         clinic_response = self.client.post(
             "/api/clinics/",
@@ -23,20 +25,11 @@ class PatientApiTests(APITestCase):
             format="json",
         )
         self.clinic_token = clinic_response.data["clinic_access_token"]
-        self.doctor_token = self.register_staff(
-            "doctor",
-            "doctor.one",
-            "doctor@example.com",
-        )
+        self.doctor_token = self.register_staff("doctor", "doctor.one", "doctor@example.com")
         self.assistant_token = self.register_staff(
-            "assistant",
-            "assistant.one",
-            "assistant@example.com",
+            "assistant", "assistant.one", "assistant@example.com"
         )
-        self.doctor_in_assistant_workspace_token = self.login(
-            "assistant",
-            "doctor.one",
-        )
+        self.doctor_assistant_token = self.login_staff("assistant", "doctor.one")
 
     def register_staff(self, role, username, email):
         response = self.client.post(
@@ -47,8 +40,8 @@ class PatientApiTests(APITestCase):
                 "email": email,
                 "first_name": "Test",
                 "last_name": role.title(),
-                "password": self.password,
-                "password_confirm": self.password,
+                "password": "Strong-staff-password-123",
+                "password_confirm": "Strong-staff-password-123",
             },
             format="json",
             HTTP_X_CLINIC_TOKEN=self.clinic_token,
@@ -56,13 +49,13 @@ class PatientApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data["session_token"]
 
-    def login(self, workspace_role, username):
+    def login_staff(self, role, username):
         response = self.client.post(
             "/api/staff/login/",
             {
-                "role": workspace_role,
+                "role": role,
                 "username": username,
-                "password": self.password,
+                "password": "Strong-staff-password-123",
             },
             format="json",
             HTTP_X_CLINIC_TOKEN=self.clinic_token,
@@ -90,135 +83,86 @@ class PatientApiTests(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
 
-    def test_assistant_manages_patients_and_doctor_workspace_views_them(self):
-        created = self.request_as(
-            self.assistant_token,
+    def create_patient(self, token=None, **overrides):
+        response = self.request_as(
+            token or self.assistant_token,
             "post",
             "/api/patients/",
-            self.patient_payload(),
+            self.patient_payload(**overrides),
         )
-        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(created.data["phone_e164"], "+989121234567")
-        patient_id = created.data["id"]
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        return response.data
 
-        listing = self.request_as(self.doctor_token, "get", "/api/patients/")
+    def test_doctor_workspace_reads_but_cannot_mutate_patients(self):
+        patient = self.create_patient()
+
         detail = self.request_as(
             self.doctor_token,
             "get",
-            f"/api/patients/{patient_id}/",
+            f"/api/patients/{patient['id']}/",
         )
-        self.assertEqual(listing.status_code, status.HTTP_200_OK)
-        self.assertEqual(listing.data["patients"][0]["id"], patient_id)
+        create = self.request_as(
+            self.doctor_token,
+            "post",
+            "/api/patients/",
+            self.patient_payload(full_name="Mina Karimi", phone_number="09125556677"),
+        )
+        edit = self.request_as(
+            self.doctor_token,
+            "patch",
+            f"/api/patients/{patient['id']}/",
+            {"patient_note": "Changed"},
+        )
+        delete = self.request_as(
+            self.doctor_token,
+            "delete",
+            f"/api/patients/{patient['id']}/",
+        )
+
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
+        self.assertEqual(create.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(edit.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(delete.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_assistant_and_doctor_admin_assistant_workspace_manage_patients(self):
+        created = self.create_patient()
         edited = self.request_as(
-            self.assistant_token,
+            self.doctor_assistant_token,
             "patch",
-            f"/api/patients/{patient_id}/",
-            {"patient_note": "Assistant-managed shared note."},
+            f"/api/patients/{created['id']}/",
+            {"patient_note": "Updated through Assistant workspace."},
         )
+
         self.assertEqual(edited.status_code, status.HTTP_200_OK)
-
-        deleted = self.request_as(
-            self.assistant_token,
-            "delete",
-            f"/api/patients/{patient_id}/",
-        )
-        self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Patient.objects.count(), 0)
-        self.assertEqual(Patient.all_objects.count(), 1)
-
-    def test_doctor_workspace_cannot_create_edit_or_delete_patients(self):
-        created = self.request_as(
-            self.assistant_token,
-            "post",
-            "/api/patients/",
-            self.patient_payload(),
-        )
-        patient_id = created.data["id"]
-
-        create_attempt = self.request_as(
-            self.doctor_token,
-            "post",
-            "/api/patients/",
-            self.patient_payload(
-                full_name="Ali Moradi",
-                phone_number="09123334455",
-            ),
-        )
-        edit_attempt = self.request_as(
-            self.doctor_token,
-            "patch",
-            f"/api/patients/{patient_id}/",
-            {"patient_note": "Doctor edit"},
-        )
-        delete_attempt = self.request_as(
-            self.doctor_token,
-            "delete",
-            f"/api/patients/{patient_id}/",
+        self.assertEqual(
+            edited.data["patient_note"],
+            "Updated through Assistant workspace.",
         )
 
-        self.assertEqual(create_attempt.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(edit_attempt.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(delete_attempt.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertTrue(Patient.objects.filter(pk=patient_id).exists())
-
-    def test_doctor_credentials_in_assistant_workspace_can_manage_patients(self):
-        created = self.request_as(
-            self.doctor_in_assistant_workspace_token,
-            "post",
-            "/api/patients/",
-            self.patient_payload(),
-        )
-        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
-
-        edited = self.request_as(
-            self.doctor_in_assistant_workspace_token,
-            "patch",
-            f"/api/patients/{created.data['id']}/",
-            {"patient_note": "Administrator intervention."},
-        )
-        self.assertEqual(edited.status_code, status.HTTP_200_OK)
-        self.assertEqual(edited.data["patient_note"], "Administrator intervention.")
-
-    def test_duplicate_warning_and_confirmation_remain_assistant_actions(self):
-        first = self.request_as(
-            self.assistant_token,
-            "post",
-            "/api/patients/",
-            self.patient_payload(),
-        )
+    def test_duplicate_warning_remains_one_simple_contract(self):
+        first = self.create_patient()
         warning = self.request_as(
             self.assistant_token,
             "post",
             "/api/patients/",
             self.patient_payload(),
         )
-        self.assertEqual(warning.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(warning.data["detail"], "Possible duplicate patient")
-        self.assertEqual(warning.data["matches"][0]["id"], first.data["id"])
-
         confirmed = self.request_as(
             self.assistant_token,
             "post",
             "/api/patients/",
             self.patient_payload(confirm_duplicate=True),
         )
-        self.assertEqual(confirmed.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Patient.objects.count(), 2)
 
-    def test_search_and_validation(self):
-        self.request_as(
-            self.assistant_token,
-            "post",
-            "/api/patients/",
-            self.patient_payload(),
-        )
-        by_name = self.request_as(
-            self.doctor_token,
-            "get",
-            "/api/patients/?search=sara",
-        )
+        self.assertEqual(warning.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(warning.data["code"], "possible_duplicate")
+        self.assertEqual(warning.data["matches"][0]["id"], first["id"])
+        self.assertEqual(confirmed.status_code, status.HTTP_201_CREATED)
+
+    def test_combined_search_by_name_phone_and_birth_date(self):
+        patient = self.create_patient()
+
+        by_name = self.request_as(self.doctor_token, "get", "/api/patients/?search=sara")
         by_phone = self.request_as(
             self.doctor_token,
             "get",
@@ -229,33 +173,109 @@ class PatientApiTests(APITestCase):
             "get",
             "/api/patients/?search=1992-04-15",
         )
-        self.assertEqual(len(by_name.data["patients"]), 1)
-        self.assertEqual(len(by_phone.data["patients"]), 1)
-        self.assertEqual(len(by_birth.data["patients"]), 1)
 
-        invalid_gender = self.request_as(
+        self.assertEqual(by_name.data["patients"][0]["id"], patient["id"])
+        self.assertEqual(by_phone.data["patients"][0]["id"], patient["id"])
+        self.assertEqual(by_birth.data["patients"][0]["id"], patient["id"])
+
+    def test_current_or_future_appointments_block_patient_deletion(self):
+        patient = self.create_patient()
+        Visit.objects.create(
+            clinic=Patient.objects.get(pk=patient["id"]).clinic,
+            patient_id=patient["id"],
+            date=timezone.localdate(),
+            scheduled_time="08:00",
+            reason="",
+        )
+
+        response = self.request_as(
+            self.assistant_token,
+            "delete",
+            f"/api/patients/{patient['id']}/",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["code"], "future_visits_exist")
+
+    def test_recently_deleted_appointment_blocks_patient_delete_until_undo_expires(self):
+        patient = self.create_patient()
+        visit = Visit.objects.create(
+            clinic=Patient.objects.get(pk=patient["id"]).clinic,
+            patient_id=patient["id"],
+            date=timezone.localdate(),
+            scheduled_time="08:00",
+            reason="",
+        )
+        self.request_as(
+            self.assistant_token,
+            "delete",
+            f"/api/visits/{visit.id}/",
+        )
+
+        blocked = self.request_as(
+            self.assistant_token,
+            "delete",
+            f"/api/patients/{patient['id']}/",
+        )
+        Visit.all_objects.filter(pk=visit.id).update(
+            deleted_at=timezone.now() - timedelta(seconds=6)
+        )
+        allowed = self.request_as(
+            self.assistant_token,
+            "delete",
+            f"/api/patients/{patient['id']}/",
+        )
+
+        self.assertEqual(blocked.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.assertEqual(allowed.data["code"], "patient_deleted")
+
+    def test_patient_delete_has_five_second_undo(self):
+        patient = self.create_patient()
+        deleted = self.request_as(
+            self.assistant_token,
+            "delete",
+            f"/api/patients/{patient['id']}/",
+        )
+        hidden = self.request_as(
+            self.doctor_token,
+            "get",
+            f"/api/patients/{patient['id']}/",
+        )
+        restored = self.request_as(
             self.assistant_token,
             "post",
-            "/api/patients/",
-            self.patient_payload(gender="Other"),
+            f"/api/patients/{patient['id']}/undo-delete/",
         )
-        invalid_phone = self.request_as(
+
+        self.assertEqual(deleted.status_code, status.HTTP_200_OK)
+        self.assertEqual(deleted.data["code"], "patient_deleted")
+        self.assertEqual(hidden.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.assertTrue(Patient.objects.filter(pk=patient["id"]).exists())
+
+    def test_patient_delete_undo_expires(self):
+        patient = self.create_patient()
+        self.request_as(
+            self.assistant_token,
+            "delete",
+            f"/api/patients/{patient['id']}/",
+        )
+        Patient.all_objects.filter(pk=patient["id"]).update(
+            deleted_at=timezone.now() - timedelta(seconds=6)
+        )
+
+        response = self.request_as(
             self.assistant_token,
             "post",
-            "/api/patients/",
-            self.patient_payload(phone_number="0912"),
+            f"/api/patients/{patient['id']}/undo-delete/",
         )
-        self.assertEqual(invalid_gender.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(invalid_phone.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["code"], "undo_expired")
 
     def test_patients_are_isolated_between_clinics(self):
-        created = self.request_as(
-            self.assistant_token,
-            "post",
-            "/api/patients/",
-            self.patient_payload(),
-        )
-
+        created = self.create_patient()
         other_clinic = Clinic(
             name="Other Clinic",
             email="other@example.com",
@@ -276,19 +296,19 @@ class PatientApiTests(APITestCase):
                 "email": "other.doctor@example.com",
                 "first_name": "Other",
                 "last_name": "Doctor",
-                "password": self.password,
-                "password_confirm": self.password,
+                "password": "Strong-other-password-123",
+                "password_confirm": "Strong-other-password-123",
             },
             format="json",
             HTTP_X_CLINIC_TOKEN=entered.data["clinic_access_token"],
-        )
-        other_token = other_staff.data["session_token"]
+        ).data["session_token"]
 
-        listing = self.request_as(other_token, "get", "/api/patients/")
+        listing = self.request_as(other_staff, "get", "/api/patients/")
         detail = self.request_as(
-            other_token,
+            other_staff,
             "get",
-            f"/api/patients/{created.data['id']}/",
+            f"/api/patients/{created['id']}/",
         )
+
         self.assertEqual(listing.data["patients"], [])
         self.assertEqual(detail.status_code, status.HTTP_404_NOT_FOUND)

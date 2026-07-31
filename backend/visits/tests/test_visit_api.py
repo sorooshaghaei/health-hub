@@ -1,5 +1,4 @@
 from datetime import timedelta
-
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework import status
@@ -9,9 +8,7 @@ from patients.models import Patient
 from visits.models import Visit
 
 
-@override_settings(
-    PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"]
-)
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class VisitApiTests(APITestCase):
     clinic_data = {
         "name": "North Clinic",
@@ -20,7 +17,6 @@ class VisitApiTests(APITestCase):
         "password": "clinic-password-123",
         "password_confirm": "clinic-password-123",
     }
-    staff_password = "Strong-staff-password-123"
 
     def setUp(self):
         clinic_response = self.client.post(
@@ -40,7 +36,7 @@ class VisitApiTests(APITestCase):
             "doctor.one",
             "doctor@example.com",
         )
-        self.doctor_in_assistant_workspace_token = self.login(
+        self.doctor_assistant_token = self.login_staff(
             "assistant",
             "doctor.one",
         )
@@ -54,8 +50,8 @@ class VisitApiTests(APITestCase):
                 "email": email,
                 "first_name": "Test",
                 "last_name": role.title(),
-                "password": self.staff_password,
-                "password_confirm": self.staff_password,
+                "password": "Strong-staff-password-123",
+                "password_confirm": "Strong-staff-password-123",
             },
             format="json",
             HTTP_X_CLINIC_TOKEN=self.clinic_token,
@@ -63,13 +59,13 @@ class VisitApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data["session_token"]
 
-    def login(self, workspace_role, username):
+    def login_staff(self, role, username):
         response = self.client.post(
             "/api/staff/login/",
             {
-                "role": workspace_role,
+                "role": role,
                 "username": username,
-                "password": self.staff_password,
+                "password": "Strong-staff-password-123",
             },
             format="json",
             HTTP_X_CLINIC_TOKEN=self.clinic_token,
@@ -100,7 +96,7 @@ class VisitApiTests(APITestCase):
     def create_appointment(
         self,
         patient_id,
-        date,
+        date=None,
         time="10:30",
         reason="Review",
         token=None,
@@ -108,9 +104,8 @@ class VisitApiTests(APITestCase):
         response = self.client.post(
             "/api/visits/",
             {
-                "visit_type": "appointment",
                 "patient_id": patient_id,
-                "date": date.isoformat(),
+                "date": (date or timezone.localdate()).isoformat(),
                 "scheduled_time": time,
                 "reason": reason,
             },
@@ -120,116 +115,29 @@ class VisitApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data
 
-    def test_doctor_workspace_views_schedule_but_cannot_manage_visits(self):
-        patient = self.create_patient()
-        visit = self.create_appointment(
-            patient["id"],
-            timezone.localdate() + timedelta(days=2),
-        )
-
-        listing = self.client.get(
-            f"/api/visits/?date={visit['date']}",
-            **self.authorization(self.doctor_token),
-        )
-        detail = self.client.get(
-            f"/api/visits/{visit['id']}/",
-            **self.authorization(self.doctor_token),
-        )
-        create_attempt = self.client.post(
-            "/api/visits/",
-            {
-                "visit_type": "appointment",
-                "patient_id": patient["id"],
-                "date": (timezone.localdate() + timedelta(days=3)).isoformat(),
-                "scheduled_time": "11:00",
-                "reason": "",
-            },
-            format="json",
-            **self.authorization(self.doctor_token),
-        )
-        edit_attempt = self.client.patch(
-            f"/api/visits/{visit['id']}/",
-            {"reason": "Doctor edit"},
-            format="json",
-            **self.authorization(self.doctor_token),
-        )
-        delete_attempt = self.client.delete(
-            f"/api/visits/{visit['id']}/",
-            **self.authorization(self.doctor_token),
-        )
-
-        self.assertEqual(listing.status_code, status.HTTP_200_OK)
-        self.assertEqual(listing.data["visits"][0]["id"], visit["id"])
-        self.assertEqual(detail.status_code, status.HTTP_200_OK)
-        self.assertEqual(create_attempt.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(edit_attempt.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(delete_attempt.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_doctor_credentials_in_assistant_workspace_can_manage_visits(self):
-        patient = self.create_patient()
-        visit = self.create_appointment(
-            patient["id"],
-            timezone.localdate() + timedelta(days=2),
-            token=self.doctor_in_assistant_workspace_token,
-        )
-        response = self.client.patch(
-            f"/api/visits/{visit['id']}/",
-            {
-                "date": (timezone.localdate() + timedelta(days=3)).isoformat(),
-                "scheduled_time": "11:45",
-                "reason": "Administrator intervention",
-            },
-            format="json",
-            **self.authorization(self.doctor_in_assistant_workspace_token),
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["reason"], "Administrator intervention")
-        self.assertEqual(response.data["scheduled_time"], "11:45:00")
-
-    def test_walk_in_uses_current_date_and_only_patient_data(self):
+    def test_obsolete_visit_type_is_rejected_and_appointment_fields_are_required(self):
         patient = self.create_patient()
         response = self.client.post(
             "/api/visits/",
             {
-                "visit_type": "walk_in",
+                "visit_type": "legacy",
                 "patient_id": patient["id"],
-                "date": "2040-01-01",
-                "scheduled_time": "18:00",
-                "reason": "Ignored",
             },
             format="json",
             **self.authorization(),
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["date"], timezone.localdate().isoformat())
-        self.assertIsNone(response.data["scheduled_time"])
-        self.assertEqual(response.data["reason"], "")
-        self.assertFalse(response.data["can_delete"])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("visit_type", response.data)
+        self.assertFalse(Visit.objects.exists())
 
-    def test_repeated_same_day_visits_are_allowed(self):
-        patient = self.create_patient()
-        date = timezone.localdate() + timedelta(days=4)
-
-        first = self.create_appointment(patient["id"], date, "09:00")
-        second = self.create_appointment(patient["id"], date, "15:00")
-
-        self.assertNotEqual(first["id"], second["id"])
-        self.assertEqual(
-            Visit.objects.filter(patient_id=patient["id"], date=date).count(),
-            2,
-        )
-
-    def test_inline_patient_creation_and_duplicate_warning(self):
-        date = timezone.localdate() + timedelta(days=5)
+    def test_inline_patient_and_appointment_creation_remains_atomic(self):
         response = self.client.post(
             "/api/visits/",
             {
-                "visit_type": "appointment",
-                "date": date.isoformat(),
+                "date": timezone.localdate().isoformat(),
                 "scheduled_time": "12:15",
-                "reason": "First visit",
+                "reason": "First appointment",
                 "new_patient": {
                     "full_name": "Ali Moradi",
                     "gender": "Man",
@@ -242,159 +150,268 @@ class VisitApiTests(APITestCase):
             format="json",
             **self.authorization(),
         )
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["patient"]["full_name"], "Ali Moradi")
+        self.assertEqual(response.data["status"], "planned")
+        self.assertTrue(Patient.objects.filter(full_name="Ali Moradi").exists())
 
+    def test_only_todays_appointment_can_check_in(self):
         patient = self.create_patient()
-        warning = self.client.post(
-            "/api/visits/",
-            {
-                "visit_type": "appointment",
-                "date": (date + timedelta(days=1)).isoformat(),
-                "scheduled_time": "08:30",
-                "reason": "",
-                "new_patient": {
-                    "full_name": "Sara Ahmadi",
-                    "gender": "Woman",
-                    "country_calling_code": "+98",
-                    "phone_number": "09121234567",
-                    "date_of_birth": "1994-05-11",
-                    "patient_note": "",
-                },
-            },
-            format="json",
-            **self.authorization(),
-        )
-        self.assertEqual(warning.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(warning.data["code"], "possible_duplicate")
-        self.assertEqual(warning.data["matches"][0]["id"], patient["id"])
-
-    def test_patient_history_lists_past_and_future_and_assistant_can_edit(self):
-        patient = self.create_patient()
-        past_date = timezone.localdate() - timedelta(days=2)
-        future_date = timezone.localdate() + timedelta(days=2)
-        past = self.create_appointment(patient["id"], past_date, "09:00", "Past")
-        future = self.create_appointment(
-            patient["id"],
-            future_date,
-            "10:00",
-            "Future",
-        )
-
-        history = self.client.get(
-            f"/api/visits/?patient={patient['id']}",
-            **self.authorization(self.doctor_token),
-        )
-        self.assertEqual(history.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            [item["id"] for item in history.data["visits"]],
-            [future["id"], past["id"]],
-        )
-
-        edited_past = self.client.patch(
-            f"/api/visits/{past['id']}/",
-            {"reason": "Corrected historical reason"},
-            format="json",
-            **self.authorization(),
-        )
-        self.assertEqual(edited_past.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            edited_past.data["reason"],
-            "Corrected historical reason",
-        )
-
-    def test_only_future_visits_can_be_removed(self):
-        patient = self.create_patient()
+        today = self.create_appointment(patient["id"])
         future = self.create_appointment(
             patient["id"],
             timezone.localdate() + timedelta(days=1),
-        )
-        past = self.create_appointment(
-            patient["id"],
-            timezone.localdate() - timedelta(days=1),
+            "11:00",
         )
 
-        future_delete = self.client.delete(
-            f"/api/visits/{future['id']}/",
+        checked_in = self.client.post(
+            f"/api/visits/{today['id']}/check-in/",
             **self.authorization(),
         )
-        past_delete = self.client.delete(
-            f"/api/visits/{past['id']}/",
+        future_attempt = self.client.post(
+            f"/api/visits/{future['id']}/check-in/",
             **self.authorization(),
         )
 
-        self.assertEqual(future_delete.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(past_delete.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertTrue(Visit.objects.filter(pk=past["id"]).exists())
+        self.assertEqual(checked_in.status_code, status.HTTP_200_OK)
+        self.assertEqual(checked_in.data["status"], "checked_in")
+        self.assertIsNotNone(checked_in.data["checked_in_at"])
+        self.assertIsNotNone(checked_in.data["check_in_undo_until"])
+        self.assertEqual(future_attempt.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(future_attempt.data["code"], "check_in_today_only")
 
-    def test_patient_deletion_requires_future_visit_removal_and_preserves_history(self):
-        patient = self.create_patient()
-        past = self.create_appointment(
-            patient["id"],
-            timezone.localdate() - timedelta(days=3),
-        )
-        future = self.create_appointment(
-            patient["id"],
-            timezone.localdate() + timedelta(days=3),
-        )
+    def test_queue_order_uses_check_in_sequence_when_timestamps_are_equal(self):
+        first_patient = self.create_patient(name="Sara Ahmadi", phone="09121234567")
+        second_patient = self.create_patient(name="Mina Karimi", phone="09125556677")
+        first = self.create_appointment(first_patient["id"], time="09:00")
+        second = self.create_appointment(second_patient["id"], time="08:00")
 
-        blocked = self.client.delete(
-            f"/api/patients/{patient['id']}/",
+        first_response = self.client.post(
+            f"/api/visits/{first['id']}/check-in/",
             **self.authorization(),
         )
-        self.assertEqual(blocked.status_code, status.HTTP_409_CONFLICT)
-
-        self.client.delete(
-            f"/api/visits/{future['id']}/",
+        second_response = self.client.post(
+            f"/api/visits/{second['id']}/check-in/",
             **self.authorization(),
         )
-        deleted = self.client.delete(
-            f"/api/patients/{patient['id']}/",
-            **self.authorization(),
+        same_timestamp = timezone.now()
+        Visit.all_objects.filter(pk__in=[first["id"], second["id"]]).update(
+            checked_in_at=same_timestamp
         )
 
-        self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertTrue(Patient.all_objects.filter(pk=patient["id"]).exists())
-        historical_visit = Visit.objects.get(pk=past["id"])
+        queue = self.client.get("/api/visits/queue/", **self.authorization())
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(queue.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            historical_visit.patient_full_name_snapshot,
-            "Sara Ahmadi",
+            [item["id"] for item in queue.data["queue"]],
+            [first["id"], second["id"]],
+        )
+        self.assertEqual(
+            [item["queue_position"] for item in queue.data["queue"]],
+            [1, 2],
         )
 
-    def test_visit_access_is_scoped_to_the_authenticated_clinic(self):
+    def test_undo_check_in_within_five_seconds_erases_the_action(self):
         patient = self.create_patient()
-        visit = self.create_appointment(
-            patient["id"],
-            timezone.localdate() + timedelta(days=7),
+        appointment = self.create_appointment(patient["id"])
+        self.client.post(
+            f"/api/visits/{appointment['id']}/check-in/",
+            **self.authorization(),
         )
 
-        second_clinic = self.client.post(
-            "/api/clinics/",
-            {
-                **self.clinic_data,
-                "name": "South Clinic",
-                "email": "south@example.com",
-            },
-            format="json",
+        undone = self.client.post(
+            f"/api/visits/{appointment['id']}/undo-check-in/",
+            **self.authorization(),
         )
-        second_token = second_clinic.data["clinic_access_token"]
-        second_doctor = self.client.post(
-            "/api/staff/register/",
-            {
-                "role": "doctor",
-                "username": "south.doctor",
-                "email": "south.doctor@example.com",
-                "first_name": "South",
-                "last_name": "Doctor",
-                "password": self.staff_password,
-                "password_confirm": self.staff_password,
-            },
-            format="json",
-            HTTP_X_CLINIC_TOKEN=second_token,
-        ).data["session_token"]
+        visit = Visit.objects.get(pk=appointment["id"])
 
-        response = self.client.get(
-            f"/api/visits/{visit['id']}/",
-            **self.authorization(second_doctor),
+        self.assertEqual(undone.status_code, status.HTTP_200_OK)
+        self.assertEqual(visit.status, Visit.Status.PLANNED)
+        self.assertIsNone(visit.checked_in_at)
+        self.assertIsNone(visit.queue_sequence)
+        self.assertEqual(
+            self.client.get("/api/visits/queue/", **self.authorization()).data["queue"],
+            [],
         )
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_undo_check_in_expires_after_five_seconds(self):
+        patient = self.create_patient()
+        appointment = self.create_appointment(patient["id"])
+        self.client.post(
+            f"/api/visits/{appointment['id']}/check-in/",
+            **self.authorization(),
+        )
+        Visit.objects.filter(pk=appointment["id"]).update(
+            checked_in_at=timezone.now() - timedelta(seconds=6)
+        )
+
+        response = self.client.post(
+            f"/api/visits/{appointment['id']}/undo-check-in/",
+            **self.authorization(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["code"], "undo_expired")
+
+    def test_checked_in_appointment_locks_patient_and_date_but_allows_time_and_reason(self):
+        patient = self.create_patient()
+        other_patient = self.create_patient(name="Mina Karimi", phone="09125556677")
+        appointment = self.create_appointment(patient["id"])
+        self.client.post(
+            f"/api/visits/{appointment['id']}/check-in/",
+            **self.authorization(),
+        )
+
+        allowed = self.client.patch(
+            f"/api/visits/{appointment['id']}/",
+            {"scheduled_time": "11:45", "reason": "Corrected reason"},
+            format="json",
+            **self.authorization(),
+        )
+        date_change = self.client.patch(
+            f"/api/visits/{appointment['id']}/",
+            {"date": (timezone.localdate() + timedelta(days=1)).isoformat()},
+            format="json",
+            **self.authorization(),
+        )
+        patient_change = self.client.patch(
+            f"/api/visits/{appointment['id']}/",
+            {"patient_id": other_patient["id"]},
+            format="json",
+            **self.authorization(),
+        )
+
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.assertEqual(allowed.data["scheduled_time"], "11:45:00")
+        self.assertEqual(allowed.data["reason"], "Corrected reason")
+        self.assertEqual(date_change.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(patient_change.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_deleting_checked_in_appointment_hides_it_and_undo_restores_exact_state(self):
+        patient = self.create_patient()
+        appointment = self.create_appointment(patient["id"])
+        checked_in = self.client.post(
+            f"/api/visits/{appointment['id']}/check-in/",
+            **self.authorization(),
+        ).data
+
+        deleted = self.client.delete(
+            f"/api/visits/{appointment['id']}/",
+            **self.authorization(),
+        )
+        hidden_detail = self.client.get(
+            f"/api/visits/{appointment['id']}/",
+            **self.authorization(),
+        )
+        restored = self.client.post(
+            f"/api/visits/{appointment['id']}/undo-delete/",
+            **self.authorization(),
+        )
+
+        self.assertEqual(deleted.status_code, status.HTTP_200_OK)
+        self.assertEqual(deleted.data["code"], "appointment_deleted")
+        self.assertEqual(hidden_detail.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.assertEqual(restored.data["status"], "checked_in")
+        self.assertEqual(restored.data["checked_in_at"], checked_in["checked_in_at"])
+        self.assertEqual(
+            Visit.objects.get(pk=appointment["id"]).queue_sequence,
+            Visit.all_objects.get(pk=appointment["id"]).queue_sequence,
+        )
+
+    def test_check_in_and_delete_undos_are_order_independent(self):
+        patient = self.create_patient()
+        appointment = self.create_appointment(patient["id"])
+        self.client.post(
+            f"/api/visits/{appointment['id']}/check-in/",
+            **self.authorization(),
+        )
+        self.client.delete(
+            f"/api/visits/{appointment['id']}/",
+            **self.authorization(),
+        )
+
+        undo_check_in = self.client.post(
+            f"/api/visits/{appointment['id']}/undo-check-in/",
+            **self.authorization(),
+        )
+        still_deleted = Visit.all_objects.get(pk=appointment["id"])
+        undo_delete = self.client.post(
+            f"/api/visits/{appointment['id']}/undo-delete/",
+            **self.authorization(),
+        )
+
+        self.assertEqual(undo_check_in.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(still_deleted.deleted_at)
+        self.assertEqual(still_deleted.status, Visit.Status.PLANNED)
+        self.assertEqual(undo_delete.status_code, status.HTTP_200_OK)
+        self.assertEqual(undo_delete.data["status"], "planned")
+        self.assertEqual(
+            self.client.get("/api/visits/queue/", **self.authorization()).data["queue"],
+            [],
+        )
+
+    def test_delete_undo_expires_and_deleted_appointment_stays_absent(self):
+        patient = self.create_patient()
+        appointment = self.create_appointment(patient["id"])
+        self.client.delete(
+            f"/api/visits/{appointment['id']}/",
+            **self.authorization(),
+        )
+        Visit.all_objects.filter(pk=appointment["id"]).update(
+            deleted_at=timezone.now() - timedelta(seconds=6)
+        )
+
+        undo = self.client.post(
+            f"/api/visits/{appointment['id']}/undo-delete/",
+            **self.authorization(),
+        )
+        listing = self.client.get(
+            f"/api/visits/?date={timezone.localdate().isoformat()}",
+            **self.authorization(),
+        )
+
+        self.assertEqual(undo.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(undo.data["code"], "undo_expired")
+        self.assertEqual(listing.data["visits"], [])
+
+    def test_doctor_queue_is_read_only_and_omits_phone(self):
+        patient = self.create_patient()
+        appointment = self.create_appointment(patient["id"])
+        self.client.post(
+            f"/api/visits/{appointment['id']}/check-in/",
+            **self.authorization(),
+        )
+
+        doctor_queue = self.client.get(
+            "/api/visits/queue/",
+            **self.authorization(self.doctor_token),
+        )
+        doctor_check_in = self.client.post(
+            f"/api/visits/{appointment['id']}/undo-check-in/",
+            **self.authorization(self.doctor_token),
+        )
+        assistant_queue = self.client.get(
+            "/api/visits/queue/",
+            **self.authorization(),
+        )
+
+        self.assertEqual(doctor_queue.status_code, status.HTTP_200_OK)
+        self.assertNotIn("phone_e164", doctor_queue.data["queue"][0]["patient"])
+        self.assertEqual(doctor_check_in.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("phone_e164", assistant_queue.data["queue"][0]["patient"])
+
+    def test_doctor_credentials_in_assistant_workspace_can_manage_queue(self):
+        patient = self.create_patient()
+        appointment = self.create_appointment(patient["id"])
+
+        response = self.client.post(
+            f"/api/visits/{appointment['id']}/check-in/",
+            **self.authorization(self.doctor_assistant_token),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "checked_in")

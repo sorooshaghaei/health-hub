@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 
 from django.db import models
 from django.utils import timezone
@@ -6,6 +7,8 @@ from django.utils import timezone
 from accounts.models import Clinic
 from .normalization import normalize_name
 from .phone import normalize_phone
+
+PATIENT_DELETE_UNDO_SECONDS = 5
 
 
 class ActivePatientManager(models.Manager):
@@ -53,7 +56,18 @@ class Patient(models.Model):
         ) = normalize_phone(self.country_calling_code, self.phone_number)
         super().save(*args, **kwargs)
 
+    @property
+    def delete_undo_until(self):
+        if self.deleted_at is None:
+            return None
+        return self.deleted_at + timedelta(seconds=PATIENT_DELETE_UNDO_SECONDS)
+
     def soft_delete(self):
         if self.deleted_at is None:
             self.deleted_at = timezone.now()
+            self.save(update_fields=["deleted_at"])
+
+    def restore(self):
+        if self.deleted_at is not None:
+            self.deleted_at = None
             self.save(update_fields=["deleted_at"])

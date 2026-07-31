@@ -8,13 +8,18 @@ class VisitAdmin(admin.ModelAdmin):
     list_display = (
         "date",
         "scheduled_time",
-        "visit_type",
+        "status",
+        "checked_in_at",
         "patient_full_name_snapshot",
         "clinic",
+        "deleted_at",
     )
-    list_filter = ("visit_type", "date")
+    list_filter = ("status", "date", "deleted_at")
     search_fields = (
         "patient_full_name_snapshot",
         "patient_phone_snapshot",
         "reason",
     )
+
+    def get_queryset(self, request):
+        return Visit.all_objects.select_related("clinic", "patient")

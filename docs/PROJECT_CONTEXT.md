@@ -6,115 +6,93 @@ This file is the handoff entry point for a new chat or development session.
 
 - Repository: `sorooshaghaei/health-hub`
 - Working branch: `main`
-- Work directly on `main`; do not create branches or pull requests unless the product owner explicitly changes this instruction.
+- Work directly on `main`; do not create branches or pull requests unless explicitly instructed.
 - Implement one approved phase at a time.
 - Ask before choosing an unapproved field, state, screen, action, permission, algorithm, dependency, or workflow.
-- After implementing and validating a phase, update documentation, commit, report exact changes, and stop.
+- Update documentation, validate, commit, report, and stop after each phase.
 - Continue only after the product owner explicitly says **continue**.
 
 ## Product baseline
 
-Health Hub is a deliberately simple clinic workflow application for one clinic with one Doctor account and one Assistant account. It uses React/Vite, Django REST Framework, and PostgreSQL. The public GitHub Pages build uses the same React frontend with a browser-only adapter and is not medical-data storage.
+Health Hub is a deliberately simple clinic workflow application for one clinic with one Doctor account and one Assistant account. It uses React/Vite, Django REST Framework, and PostgreSQL. The public Pages build uses the same React frontend with a browser-only adapter and is not medical-data storage.
 
-## Critical account and workspace rule
-
-The Doctor is the clinic administrator, but the Doctor page must remain focused on Doctor work.
+## Account and workspace rule
 
 Account identity and active workspace are separate:
 
-- Doctor username/password can open the Doctor workspace.
-- Doctor username/password can also open the Assistant workspace for administrator intervention.
-- Assistant username/password can open the Assistant workspace.
-- Assistant credentials cannot open the Doctor workspace.
+- Doctor credentials can open Doctor workspace;
+- Doctor credentials can open Assistant workspace for administrator intervention;
+- Assistant credentials can open Assistant workspace;
+- Assistant credentials cannot open Doctor workspace.
 
-The session stores `workspace_role`.
+Doctor workspace is read-only for Patient and Appointment administration. Assistant workspace owns Patient, Appointment, check-in, and queue actions.
 
-### Doctor workspace
+## Implemented workflow
 
-- view and search Patient profiles;
-- view Patient details and Patient notes;
-- view Patient Visit history;
-- view appointment and walk-in lists;
-- no Patient creation, editing, note editing, or deletion;
-- no appointment/walk-in creation, editing, or removal.
+### Patients
 
-### Assistant workspace
-
-- create, view, search, edit, and delete Patients;
-- create appointments and walk-ins;
-- edit past and future Visits;
-- remove future Visits;
-- create a Patient and Visit together in one form.
-
-This boundary is enforced in backend mutation endpoints and mirrored by the frontend and browser adapter.
-
-## Implemented phases
-
-### Phase 0 — Foundation
-
-Implemented clinic access, staff accounts, Doctor administrator status, one account per role, session authentication, PostgreSQL setup, frontend builds, tests, workflows, and design assets.
-
-### Phase 1 — Patient records
-
-Implemented:
-
-- reusable clinic-scoped Patient model;
-- full name, `Man` / `Woman`, calling code, phone, optional date of birth, and optional Patient note;
-- Iran `+98` default and country-aware phone validation;
-- combined name/phone/date search;
-- one **Possible duplicate patient** warning;
+- reusable Patient profile;
+- full name, `Man`/`Woman`, calling code, phone, optional date of birth, optional Patient note;
+- Iran `+98` default;
+- search by name, phone, or date of birth;
+- one Possible duplicate patient warning;
 - internal soft deletion;
-- Doctor-workspace read access;
-- Assistant-workspace management access.
+- current/future Appointments block deletion;
+- five-second Patient deletion Undo.
 
-See [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
+### Appointments
 
-### Phase 2 — Appointments and walk-ins
+- Patient, date, scheduled time, optional reason;
+- one Appointment type for every clinic attendance;
+- a Patient arriving without an Appointment receives a normal same-day Appointment, whose frontend time defaults to current time, then check-in;
+- inline Patient plus Appointment creation;
+- multiple same-day Appointments allowed;
+- past and future history inside Patient profile;
+- current/future Appointment deletion with five-second Undo;
+- legacy Visit records migrate to the Appointment-only model.
 
-Implemented:
+### Check-in and queue
 
-- scheduled appointments: Patient, date, scheduled time, optional reason;
-- walk-ins: Patient and automatic current date;
-- repeated same-day Visits;
-- past and future Visit editing in Assistant workspace;
-- future Visit removal only;
-- Patient Visit history inside Patient profile;
-- inline Patient + Visit creation;
-- future-Visit deletion block for Patients;
-- historical Patient identity snapshots;
-- Doctor view-only appointment list;
-- Assistant schedule management;
-- Doctor administrator login to Assistant workspace.
+```text
+PLANNED → CHECKED_IN
+```
 
-Scheduled appointment time is informational and does not determine future live waiting order.
+- only today's Appointments can check in;
+- check-in timestamp is arrival time;
+- live queue contains today's checked-in Appointments only;
+- queue order uses persisted check-in sequence, not scheduled time;
+- equal timestamps retain first-saved order;
+- queue row: position, Patient name, gender, scheduled time, check-in time, optional reason;
+- Assistant Appointment list and queue show phone;
+- Doctor queue omits phone;
+- no early/late, unavailable, Left, Cancelled, or no-show state;
+- checked-in Patient and date cannot change;
+- scheduled time, reason, and Patient profile details remain correctable;
+- Check in, Appointment deletion, and Patient deletion use server-enforced five-second Undo;
+- live queue refreshes every three seconds.
 
-See [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md).
+See:
+
+- [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md)
+- [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md)
+- [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md)
 
 ## Current phase
 
-**Phase 2 repository implementation and workspace-boundary correction are complete. Stop until the product owner explicitly says continue.**
+**Phase 3 repository implementation is complete. Stop until the product owner explicitly says continue.**
 
-External GitHub Actions and live Pages outcomes may require separate confirmation because they are deployment results rather than repository content.
+External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Do not begin Phase 3 automatically.
+Do not begin Phase 4 automatically.
 
-When the product owner says **continue**, first resolve the Phase 3 decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md):
-
-- exact queue-row information;
-- early/late arrival presentation;
-- accidental check-in reversal;
-- equal check-in timestamps;
-- planned versus walk-in presentation;
-- temporary Patient unavailability;
-- Patient departure before consultation;
-- exact Assistant and Doctor workspace responsibilities for arrival and queue actions.
+When the product owner says **continue**, first resolve the Phase 4 decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
 
 Already confirmed:
 
 ```text
-PLANNED → ARRIVED
+CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
-Waiting order is based on actual check-in order, not scheduled appointment time.
+Doctor taps Ready, the first eligible checked-in Patient automatically enters consultation, Doctor taps Finished, and the next Patient advances automatically while Doctor remains ready.

@@ -1,14 +1,17 @@
+from datetime import timedelta
+
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import require_assistant_workspace
 
 from .matching import patient_search_queryset, possible_duplicate_patients
-from .models import Patient
+from .models import PATIENT_DELETE_UNDO_SECONDS, Patient
 from .serializers import PatientMatchSerializer, PatientSerializer
 
 
@@ -67,13 +70,14 @@ class PatientListCreateView(APIView):
 
 
 class PatientDetailView(APIView):
-    def get_patient(self, request, patient_id):
+    def get_patient(self, request, patient_id, *, lock=False):
         clinic = clinic_for_staff(request)
+        queryset = Patient.objects.filter(clinic=clinic)
+        if lock:
+            queryset = queryset.select_for_update()
         try:
-            return Patient.objects.get(pk=patient_id, clinic=clinic)
+            return queryset.get(pk=patient_id)
         except Patient.DoesNotExist:
-            from rest_framework.exceptions import NotFound
-
             raise NotFound("Patient not found.")
 
     def get(self, request, patient_id):
@@ -105,30 +109,63 @@ class PatientDetailView(APIView):
 
     def delete(self, request, patient_id):
         require_assistant_workspace(request)
-        patient = self.get_patient(request, patient_id)
-        from visits.models import Visit
+        from visits.models import UNDO_WINDOW_SECONDS, Visit
 
-        now = timezone.localtime()
-        future_visits = Visit.objects.filter(
-            clinic=patient.clinic,
-            patient=patient,
-        ).filter(
-            Q(date__gt=now.date())
-            | Q(
-                date=now.date(),
-                visit_type=Visit.Type.APPOINTMENT,
-                scheduled_time__gt=now.time().replace(tzinfo=None),
+        with transaction.atomic():
+            patient = self.get_patient(request, patient_id, lock=True)
+            now = timezone.now()
+            undo_cutoff = now - timedelta(seconds=UNDO_WINDOW_SECONDS)
+            current_or_future_visits = Visit.all_objects.filter(
+                clinic=patient.clinic,
+                patient=patient,
+                date__gte=timezone.localdate(),
+            ).filter(
+                Q(deleted_at__isnull=True) | Q(deleted_at__gte=undo_cutoff)
             )
+            if current_or_future_visits.exists():
+                return Response(
+                    {
+                        "code": "future_visits_exist",
+                        "detail": "Delete current and future appointments before deleting this Patient.",
+                        "future_visit_count": current_or_future_visits.count(),
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            patient.soft_delete()
+
+        return Response(
+            {
+                "code": "patient_deleted",
+                "detail": "Patient deleted.",
+                "patient_id": str(patient.id),
+                "undo_until": patient.delete_undo_until,
+            }
         )
-        if future_visits.exists():
-            return Response(
-                {
-                    "code": "future_visits_exist",
-                    "detail": "Remove future visits before deleting this patient.",
-                    "future_visit_count": future_visits.count(),
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
 
-        patient.soft_delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class PatientUndoDeleteView(APIView):
+    def post(self, request, patient_id):
+        require_assistant_workspace(request)
+        clinic = clinic_for_staff(request)
+        with transaction.atomic():
+            try:
+                patient = Patient.all_objects.select_for_update().get(
+                    pk=patient_id,
+                    clinic=clinic,
+                    deleted_at__isnull=False,
+                )
+            except Patient.DoesNotExist:
+                raise NotFound("Deleted Patient not found.")
+
+            if timezone.now() > patient.delete_undo_until:
+                return Response(
+                    {
+                        "code": "undo_expired",
+                        "detail": f"The {PATIENT_DELETE_UNDO_SECONDS}-second Undo period has expired.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            patient.restore()
+
+        return Response(PatientSerializer(patient).data)

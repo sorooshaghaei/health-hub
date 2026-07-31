@@ -132,8 +132,8 @@ function RoleSelection({ context, onSelect, onLeave }) {
     <AuthShell title={`Welcome to ${context.clinic.name}.`} description="Choose the workspace you need. The Doctor workspace stays focused and view-only for Patient and appointment administration." onBack={onLeave}>
       <div className="panel-heading"><p className="eyebrow">Clinic entered</p><h2>Which workspace?</h2><p>{context.clinic.email}</p></div>
       <div className="choice-stack">
-        {roleCard("doctor", "Doctor", "View Patient records and appointment lists without administrative controls.")}
-        {roleCard("assistant", "Assistant", "Manage Patients, appointments, and walk-ins. Doctor administrator credentials are also accepted.")}
+        {roleCard("doctor", "Doctor", "View Patient records, appointment lists, and the live queue without administrative controls.")}
+        {roleCard("assistant", "Assistant", "Manage Patients, appointments, check-in, and the live queue. Doctor administrator credentials are also accepted.")}
       </div>
       <p className="security-note">The Doctor is the clinic administrator but management tools remain inside the Assistant workspace.</p>
     </AuthShell>

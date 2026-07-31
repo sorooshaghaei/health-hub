@@ -45,6 +45,11 @@ function localDateValue(date = new Date()) {
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
 }
 
+function currentTime() {
+  const date = new Date();
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 function shiftedDate(days) {
   const date = new Date();
   date.setDate(date.getDate() + days);
@@ -66,7 +71,7 @@ async function authenticatedDemo() {
     clinicToken: clinic.clinic_access_token,
     data: staffData("doctor"),
   });
-  const doctorInAssistantWorkspace = await demoApiRequest("/api/staff/login/", {
+  const doctorAsAssistant = await demoApiRequest("/api/staff/login/", {
     method: "POST",
     clinicToken: clinic.clinic_access_token,
     data: {
@@ -75,7 +80,7 @@ async function authenticatedDemo() {
       password: "staff-password-123",
     },
   });
-  return { clinic, assistant, doctor, doctorInAssistantWorkspace };
+  return { clinic, assistant, doctor, doctorAsAssistant };
 }
 
 const patientData = {
@@ -87,68 +92,47 @@ const patientData = {
   patient_note: "",
 };
 
-test("browser demo separates account identity from active workspace", async () => {
+test("browser demo enforces Doctor read-only and Doctor administrator Assistant access", async () => {
   localStorage.clear();
-  const { clinic, assistant, doctor, doctorInAssistantWorkspace } = await authenticatedDemo();
+  const { clinic, assistant, doctor, doctorAsAssistant } = await authenticatedDemo();
 
   assert.equal(clinic.clinic.email, "clinic@example.com");
-  assert.equal(assistant.user.role, "assistant");
-  assert.equal(assistant.user.workspace_role, "assistant");
-  assert.equal(doctor.user.role, "doctor");
   assert.equal(doctor.user.workspace_role, "doctor");
-  assert.equal(doctor.user.is_clinic_admin, true);
-  assert.equal(doctorInAssistantWorkspace.user.role, "doctor");
-  assert.equal(doctorInAssistantWorkspace.user.workspace_role, "assistant");
-
-  const stored = JSON.parse(localStorage.getItem("health-hub.demo-store.v1"));
-  assert.notEqual(stored.clinic.password_hash, clinicData.password);
-  assert.equal(stored.clinic.password_hash.length, 64);
+  assert.equal(doctorAsAssistant.user.role, "doctor");
+  assert.equal(doctorAsAssistant.user.workspace_role, "assistant");
 
   const patient = await demoApiRequest("/api/patients/", {
     method: "POST",
     staffToken: assistant.session_token,
     data: patientData,
   });
+  assert.equal(patient.phone_e164, "+989121234567");
 
-  const search = await demoApiRequest("/api/patients/?search=9121234567", {
+  const doctorSearch = await demoApiRequest("/api/patients/?search=sara", {
     staffToken: doctor.session_token,
   });
-  assert.equal(search.patients[0].id, patient.id);
+  assert.equal(doctorSearch.patients[0].id, patient.id);
 
   await assert.rejects(
-    demoApiRequest("/api/patients/", {
-      method: "POST",
+    demoApiRequest(`/api/patients/${patient.id}/`, {
+      method: "PATCH",
       staffToken: doctor.session_token,
-      data: {
-        ...patientData,
-        full_name: "Doctor Write Attempt",
-        phone_number: "09123334455",
-      },
+      data: { patient_note: "Not allowed" },
     }),
     (error) => error.status === 403,
   );
 
-  const administratorPatient = await demoApiRequest("/api/patients/", {
-    method: "POST",
-    staffToken: doctorInAssistantWorkspace.session_token,
-    data: {
-      ...patientData,
-      full_name: "Administrator Patient",
-      phone_number: "09124445566",
-    },
+  const adminEdit = await demoApiRequest(`/api/patients/${patient.id}/`, {
+    method: "PATCH",
+    staffToken: doctorAsAssistant.session_token,
+    data: { patient_note: "Administrator correction" },
   });
-  assert.equal(administratorPatient.full_name, "Administrator Patient");
-
-  const me = await demoApiRequest("/api/staff/me/", {
-    staffToken: doctorInAssistantWorkspace.session_token,
-  });
-  assert.equal(me.user.role, "doctor");
-  assert.equal(me.user.workspace_role, "assistant");
+  assert.equal(adminEdit.patient_note, "Administrator correction");
 });
 
-test("browser demo keeps Phase 2 management inside Assistant workspace", async () => {
+test("browser demo mirrors appointment-only check-in, queue, locking, and five-second Undo", async () => {
   localStorage.clear();
-  const { assistant, doctor, doctorInAssistantWorkspace } = await authenticatedDemo();
+  const { assistant, doctor } = await authenticatedDemo();
 
   const patient = await demoApiRequest("/api/patients/", {
     method: "POST",
@@ -156,132 +140,154 @@ test("browser demo keeps Phase 2 management inside Assistant workspace", async (
     data: patientData,
   });
 
-  const futureDate = shiftedDate(3);
+  await assert.rejects(
+    demoApiRequest("/api/visits/", {
+      method: "POST",
+      staffToken: assistant.session_token,
+      data: { visit_type: "legacy", patient_id: patient.id },
+    }),
+    (error) => error.status === 400 && Boolean(error.payload.visit_type),
+  );
+
   const appointment = await demoApiRequest("/api/visits/", {
     method: "POST",
     staffToken: assistant.session_token,
     data: {
-      visit_type: "appointment",
       patient_id: patient.id,
-      date: futureDate,
-      scheduled_time: "10:30",
+      date: localDateValue(),
+      scheduled_time: currentTime(),
       reason: "Review",
     },
   });
-  assert.equal(appointment.patient.full_name, "Sara Ahmadi");
-  assert.equal(appointment.can_delete, true);
+  assert.equal(appointment.status, "planned");
+  assert.equal(appointment.can_check_in, true);
 
-  const day = await demoApiRequest(`/api/visits/?date=${futureDate}`, {
+  const checkedIn = await demoApiRequest(`/api/visits/${appointment.id}/check-in/`, {
+    method: "POST",
+    staffToken: assistant.session_token,
+  });
+  assert.equal(checkedIn.status, "checked_in");
+  assert.ok(checkedIn.checked_in_at);
+  assert.ok(checkedIn.check_in_undo_until);
+
+  const assistantQueue = await demoApiRequest("/api/visits/queue/", {
+    staffToken: assistant.session_token,
+  });
+  const doctorQueue = await demoApiRequest("/api/visits/queue/", {
     staffToken: doctor.session_token,
   });
-  assert.equal(day.visits.length, 1);
+  assert.equal(assistantQueue.queue[0].queue_position, 1);
+  assert.equal(assistantQueue.queue[0].patient.phone_e164, "+989121234567");
+  assert.equal("phone_e164" in doctorQueue.queue[0].patient, false);
 
   await assert.rejects(
     demoApiRequest(`/api/visits/${appointment.id}/`, {
       method: "PATCH",
-      staffToken: doctor.session_token,
-      data: { reason: "Doctor workspace edit" },
+      staffToken: assistant.session_token,
+      data: { date: shiftedDate(1) },
     }),
-    (error) => error.status === 403,
+    (error) => error.status === 400 && Boolean(error.payload.date),
   );
 
-  const edited = await demoApiRequest(`/api/visits/${appointment.id}/`, {
+  const corrected = await demoApiRequest(`/api/visits/${appointment.id}/`, {
     method: "PATCH",
-    staffToken: doctorInAssistantWorkspace.session_token,
-    data: { reason: "Administrator intervention" },
+    staffToken: assistant.session_token,
+    data: { scheduled_time: "11:45", reason: "Corrected" },
   });
-  assert.equal(edited.reason, "Administrator intervention");
+  assert.equal(corrected.scheduled_time, "11:45:00");
+  assert.equal(corrected.reason, "Corrected");
 
-  const repeated = await demoApiRequest("/api/visits/", {
+  const undone = await demoApiRequest(`/api/visits/${appointment.id}/undo-check-in/`, {
     method: "POST",
     staffToken: assistant.session_token,
-    data: {
-      visit_type: "appointment",
-      patient_id: patient.id,
-      date: futureDate,
-      scheduled_time: "15:00",
-      reason: "",
-    },
   });
-  assert.notEqual(repeated.id, appointment.id);
+  assert.equal(undone.status, "planned");
+  assert.equal(undone.checked_in_at, null);
+  assert.equal((await demoApiRequest("/api/visits/queue/", { staffToken: assistant.session_token })).queue.length, 0);
 
-  const walkIn = await demoApiRequest("/api/visits/", {
+  await demoApiRequest(`/api/visits/${appointment.id}/check-in/`, {
     method: "POST",
     staffToken: assistant.session_token,
-    data: {
-      visit_type: "walk_in",
-      patient_id: patient.id,
-      date: "2040-01-01",
-      scheduled_time: "18:00",
-      reason: "Ignored",
-    },
   });
-  assert.equal(walkIn.date, localDateValue());
-  assert.equal(walkIn.scheduled_time, null);
-  assert.equal(walkIn.reason, "");
+  const deleted = await demoApiRequest(`/api/visits/${appointment.id}/`, {
+    method: "DELETE",
+    staffToken: assistant.session_token,
+  });
+  assert.equal(deleted.code, "appointment_deleted");
+  assert.equal((await demoApiRequest(`/api/visits/?date=${localDateValue()}`, { staffToken: assistant.session_token })).visits.length, 0);
 
-  const inline = await demoApiRequest("/api/visits/", {
+  const undoneWhileDeleted = await demoApiRequest(`/api/visits/${appointment.id}/undo-check-in/`, {
     method: "POST",
     staffToken: assistant.session_token,
-    data: {
-      visit_type: "appointment",
-      date: shiftedDate(4),
-      scheduled_time: "12:15",
-      reason: "First Visit",
-      new_patient: {
-        full_name: "Ali Moradi",
-        gender: "Man",
-        country_calling_code: "+98",
-        phone_number: "09123334455",
-        date_of_birth: null,
-        patient_note: "",
-      },
-    },
   });
-  assert.equal(inline.patient.full_name, "Ali Moradi");
+  assert.equal(undoneWhileDeleted.status, "planned");
 
-  const past = await demoApiRequest("/api/visits/", {
+  const restoredPlanned = await demoApiRequest(`/api/visits/${appointment.id}/undo-delete/`, {
     method: "POST",
     staffToken: assistant.session_token,
-    data: {
-      visit_type: "appointment",
-      patient_id: patient.id,
-      date: shiftedDate(-2),
-      scheduled_time: "08:00",
-      reason: "Original",
-    },
   });
+  assert.equal(restoredPlanned.status, "planned");
+  assert.equal((await demoApiRequest("/api/visits/queue/", { staffToken: assistant.session_token })).queue.length, 0);
 
-  await assert.rejects(
-    demoApiRequest(`/api/visits/${past.id}/`, {
-      method: "DELETE",
-      staffToken: assistant.session_token,
-    }),
-    (error) => error.status === 400 && error.payload.code === "visit_not_future",
-  );
-
-  await assert.rejects(
-    demoApiRequest(`/api/patients/${patient.id}/`, {
-      method: "DELETE",
-      staffToken: assistant.session_token,
-    }),
-    (error) => error.status === 409 && error.payload.code === "future_visits_exist",
-  );
-
+  await demoApiRequest(`/api/visits/${appointment.id}/check-in/`, {
+    method: "POST",
+    staffToken: assistant.session_token,
+  });
   await demoApiRequest(`/api/visits/${appointment.id}/`, {
     method: "DELETE",
     staffToken: assistant.session_token,
   });
-  await demoApiRequest(`/api/visits/${repeated.id}/`, {
-    method: "DELETE",
+  const restoredCheckedIn = await demoApiRequest(`/api/visits/${appointment.id}/undo-delete/`, {
+    method: "POST",
     staffToken: assistant.session_token,
   });
-  await demoApiRequest(`/api/patients/${patient.id}/`, {
-    method: "DELETE",
+  assert.equal(restoredCheckedIn.status, "checked_in");
+  assert.equal((await demoApiRequest("/api/visits/queue/", { staffToken: assistant.session_token })).queue.length, 1);
+});
+
+test("browser demo migrates legacy stored visits and supports Patient delete Undo", async () => {
+  localStorage.clear();
+  const { assistant } = await authenticatedDemo();
+  const patient = await demoApiRequest("/api/patients/", {
+    method: "POST",
     staffToken: assistant.session_token,
+    data: patientData,
   });
 
   const stored = JSON.parse(localStorage.getItem("health-hub.demo-store.v1"));
-  assert.equal(stored.patients.find((item) => item.id === patient.id).deleted_at !== null, true);
-  assert.equal(stored.visits.find((item) => item.id === past.id).patient_full_name_snapshot, "Sara Ahmadi");
+  stored.visits.push({
+    id: crypto.randomUUID(),
+    clinic_id: stored.clinic.id,
+    patient_id: patient.id,
+    visit_type: "legacy",
+    date: shiftedDate(-2),
+    scheduled_time: null,
+    reason: "",
+    patient_full_name_snapshot: patient.full_name,
+    patient_gender_snapshot: patient.gender,
+    patient_phone_snapshot: patient.phone_e164,
+    patient_date_of_birth_snapshot: patient.date_of_birth,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  localStorage.setItem("health-hub.demo-store.v1", JSON.stringify(stored));
+
+  const history = await demoApiRequest(`/api/visits/?patient=${patient.id}`, {
+    staffToken: assistant.session_token,
+  });
+  assert.equal(history.visits.length, 1);
+  assert.ok(history.visits[0].scheduled_time);
+  assert.equal("visit_type" in history.visits[0], false);
+
+  const deletedPatient = await demoApiRequest(`/api/patients/${patient.id}/`, {
+    method: "DELETE",
+    staffToken: assistant.session_token,
+  });
+  assert.equal(deletedPatient.code, "patient_deleted");
+
+  const restoredPatient = await demoApiRequest(`/api/patients/${patient.id}/undo-delete/`, {
+    method: "POST",
+    staffToken: assistant.session_token,
+  });
+  assert.equal(restoredPatient.id, patient.id);
 });

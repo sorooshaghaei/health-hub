@@ -1,5 +1,7 @@
-from django.utils import timezone
 from rest_framework import serializers
+
+from accounts.models import StaffUser
+from accounts.permissions import active_workspace_role
 
 from .models import Visit
 
@@ -9,30 +11,46 @@ class VisitSerializer(serializers.ModelSerializer):
     new_patient = serializers.DictField(write_only=True, required=False)
     patient = serializers.SerializerMethodField()
     can_delete = serializers.BooleanField(read_only=True)
+    can_check_in = serializers.BooleanField(read_only=True)
     is_future = serializers.BooleanField(read_only=True)
+    check_in_undo_until = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Visit
         fields = [
             "id",
-            "visit_type",
             "date",
             "scheduled_time",
             "reason",
             "patient_id",
             "new_patient",
             "patient",
+            "status",
+            "checked_in_at",
+            "check_in_undo_until",
+            "can_check_in",
             "can_delete",
             "is_future",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "status",
+            "checked_in_at",
+            "created_at",
+            "updated_at",
+        ]
 
     def validate_reason(self, value):
         return value.strip()
 
     def validate(self, attrs):
+        if "visit_type" in self.initial_data:
+            raise serializers.ValidationError(
+                {"visit_type": "Appointment payloads do not accept visit_type."}
+            )
+
         instance = self.instance
         supplied_patient_id = "patient_id" in attrs
         supplied_new_patient = "new_patient" in attrs
@@ -46,35 +64,31 @@ class VisitSerializer(serializers.ModelSerializer):
                 "Choose one existing patient or create one new patient."
             )
 
-        visit_type = attrs.get(
-            "visit_type",
-            instance.visit_type if instance else None,
+        date = attrs.get("date", instance.date if instance else None)
+        scheduled_time = attrs.get(
+            "scheduled_time",
+            instance.scheduled_time if instance else None,
         )
-        if instance is not None and "visit_type" in attrs and visit_type != instance.visit_type:
+        if date is None:
+            raise serializers.ValidationError({"date": "Appointment date is required."})
+        if scheduled_time is None:
             raise serializers.ValidationError(
-                {"visit_type": "Visit type cannot be changed after creation."}
+                {"scheduled_time": "Scheduled time is required."}
             )
 
-        if visit_type == Visit.Type.APPOINTMENT:
-            date = attrs.get("date", instance.date if instance else None)
-            scheduled_time = attrs.get(
-                "scheduled_time",
-                instance.scheduled_time if instance else None,
-            )
-            if date is None:
-                raise serializers.ValidationError({"date": "Appointment date is required."})
-            if scheduled_time is None:
+        if instance is not None and instance.status == Visit.Status.CHECKED_IN:
+            if "date" in attrs and attrs["date"] != instance.date:
                 raise serializers.ValidationError(
-                    {"scheduled_time": "Scheduled time is required."}
+                    {"date": "The appointment date cannot change after check-in."}
                 )
-        elif visit_type == Visit.Type.WALK_IN:
-            attrs["date"] = instance.date if instance else timezone.localdate()
-            attrs["scheduled_time"] = None
-            attrs["reason"] = ""
-        else:
-            raise serializers.ValidationError(
-                {"visit_type": "Choose Appointment or Walk-in."}
-            )
+            if supplied_new_patient:
+                raise serializers.ValidationError(
+                    {"new_patient": "The Patient cannot change after check-in."}
+                )
+            if supplied_patient_id and attrs["patient_id"] != instance.patient_id:
+                raise serializers.ValidationError(
+                    {"patient_id": "The Patient cannot change after check-in."}
+                )
 
         return attrs
 
@@ -115,3 +129,25 @@ class VisitSerializer(serializers.ModelSerializer):
             "date_of_birth": obj.patient_date_of_birth_snapshot,
             "active": False,
         }
+
+
+class QueueVisitSerializer(VisitSerializer):
+    queue_position = serializers.IntegerField(read_only=True)
+
+    class Meta(VisitSerializer.Meta):
+        fields = [
+            "id",
+            "queue_position",
+            "scheduled_time",
+            "reason",
+            "patient",
+            "status",
+            "checked_in_at",
+        ]
+
+    def get_patient(self, obj):
+        patient = super().get_patient(obj)
+        request = self.context.get("request")
+        if request is not None and active_workspace_role(request) == StaffUser.Role.DOCTOR:
+            patient.pop("phone_e164", None)
+        return patient

@@ -2,12 +2,21 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
 import ScheduleWorkspace from "./ScheduleWorkspace.jsx";
+import UndoStack from "./UndoStack.jsx";
 import {
   PatientProfileForm,
   formatDate,
   formatTime,
 } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
+
+function formatCheckInTime(value) {
+  if (!value) return "Not checked in";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
 
 function PatientList({
   patients,
@@ -75,24 +84,29 @@ function PatientList({
   );
 }
 
-function VisitHistoryRow({ visit, canManage, onEdit, onRemove }) {
+function VisitHistoryRow({ visit, canManage, onEdit, onDelete }) {
   return (
     <div className="history-row">
       <div>
         <strong>{formatDate(visit.date)}</strong>
-        <small>{visit.visit_type === "appointment" ? formatTime(visit.scheduled_time) : "Walk-in"}</small>
+        <small>{formatTime(visit.scheduled_time)}</small>
       </div>
       <div>
-        <strong>{visit.visit_type === "appointment" ? "Appointment" : "Walk-in"}</strong>
-        <small>{visit.reason || "No reason recorded"}</small>
+        <strong>{visit.status === "checked_in" ? "Checked in" : "Planned"}</strong>
+        <small>
+          {visit.status === "checked_in" ? `${formatCheckInTime(visit.checked_in_at)} · ` : ""}
+          {visit.reason || "No reason recorded"}
+        </small>
       </div>
       {canManage ? (
         <div className="history-row__actions">
           <button className="secondary-button" type="button" onClick={() => onEdit(visit.id)}>Edit</button>
-          {visit.can_delete && <button className="danger-button" type="button" onClick={() => onRemove(visit)}>Remove</button>}
+          {visit.can_delete && <button className="danger-button" type="button" onClick={() => onDelete(visit)}>Delete</button>}
         </div>
       ) : (
-        <span className="count-badge">View only</span>
+        <span className={`status-chip status-chip--${visit.status}`}>
+          {visit.status === "checked_in" ? "Checked in" : "Planned"}
+        </span>
       )}
     </div>
   );
@@ -106,7 +120,7 @@ function PatientDetail({
   onEdit,
   onDelete,
   onEditVisit,
-  onRemoveVisit,
+  onDeleteVisit,
   deleting,
   canManage,
 }) {
@@ -144,13 +158,13 @@ function PatientDetail({
       <section className="patient-history">
         <div className="schedule-section__heading">
           <div>
-            <p className="eyebrow">Visit history</p>
-            <h3>Past and future Visits</h3>
+            <p className="eyebrow">Appointment history</p>
+            <h3>Past and future appointments</h3>
           </div>
           <span>{visits.length}</span>
         </div>
         {visitsLoading ? (
-          <div className="patient-loading patient-loading--small"><div className="loader" aria-label="Loading visit history" /></div>
+          <div className="patient-loading patient-loading--small"><div className="loader" aria-label="Loading appointment history" /></div>
         ) : visits.length ? (
           visits.map((visit) => (
             <VisitHistoryRow
@@ -158,18 +172,18 @@ function PatientDetail({
               canManage={canManage}
               key={visit.id}
               onEdit={onEditVisit}
-              onRemove={onRemoveVisit}
+              onDelete={onDeleteVisit}
             />
           ))
         ) : (
-          <p className="schedule-empty">No Visits have been recorded for this Patient.</p>
+          <p className="schedule-empty">No appointments have been recorded for this Patient.</p>
         )}
       </section>
 
       {canManage && confirmDelete && (
         <div className="delete-confirmation" role="alertdialog" aria-modal="true" aria-label="Delete patient">
           <strong>Delete this active Patient profile?</strong>
-          <p>Future Visits must be removed first. Past Visits remain as historical records after deletion.</p>
+          <p>Current and future appointments must be deleted first. Past appointments remain historical.</p>
           <div className="form-actions">
             <button className="secondary-button" type="button" onClick={() => setConfirmDelete(false)}>Cancel</button>
             <button className="danger-button" type="button" disabled={deleting} onClick={onDelete}>{deleting ? "Deleting…" : "Delete Patient"}</button>
@@ -195,6 +209,9 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
   const [visitsLoading, setVisitsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [undoActions, setUndoActions] = useState([]);
+  const [undoingId, setUndoingId] = useState(null);
+  const [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0);
 
   async function loadPatients(query = search) {
     setLoading(true);
@@ -216,7 +233,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
       const payload = await apiRequest(`/api/visits/?patient=${encodeURIComponent(patientId)}`, { staffToken });
       setPatientVisits(payload.visits);
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Visit history could not be loaded."));
+      setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment history could not be loaded."));
     } finally {
       setVisitsLoading(false);
     }
@@ -251,12 +268,52 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
     await Promise.all([loadPatients(search), loadPatientVisits(patient.id)]);
   }
 
+  const registerUndo = useCallback((action) => {
+    setUndoActions((current) => [...current.filter((item) => item.id !== action.id), action]);
+  }, []);
+
+  const expireUndo = useCallback((actionId) => {
+    setUndoActions((current) => current.filter((item) => item.id !== actionId));
+  }, []);
+
+  async function undoAction(action) {
+    setUndoingId(action.id);
+    setError(null);
+    const endpoint = action.kind === "check_in"
+      ? `/api/visits/${action.resourceId}/undo-check-in/`
+      : action.kind === "appointment_delete"
+        ? `/api/visits/${action.resourceId}/undo-delete/`
+        : `/api/patients/${action.resourceId}/undo-delete/`;
+    try {
+      await apiRequest(endpoint, { method: "POST", staffToken });
+      expireUndo(action.id);
+      setScheduleRefreshVersion((value) => value + 1);
+      await loadPatients(search);
+      if (selectedPatient && action.kind !== "patient_delete") {
+        await loadPatientVisits(selectedPatient.id);
+      }
+    } catch (requestError) {
+      expireUndo(action.id);
+      setError(requestError instanceof ApiError ? requestError : new ApiError("The action could not be undone."));
+    } finally {
+      setUndoingId(null);
+    }
+  }
+
   async function deletePatient() {
     if (!canManage || !selectedPatient) return;
     setDeleting(true);
     setError(null);
     try {
-      await apiRequest(`/api/patients/${selectedPatient.id}/`, { method: "DELETE", staffToken });
+      const patientName = selectedPatient.full_name;
+      const deleted = await apiRequest(`/api/patients/${selectedPatient.id}/`, { method: "DELETE", staffToken });
+      registerUndo({
+        id: `patient-delete:${selectedPatient.id}:${Date.now()}`,
+        kind: "patient_delete",
+        resourceId: selectedPatient.id,
+        message: `${patientName} deleted.`,
+        undoUntil: deleted.undo_until,
+      });
       setSelectedPatient(null);
       setPatientVisits([]);
       setPatientView("list");
@@ -268,14 +325,22 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
     }
   }
 
-  async function removeVisit(visit) {
-    if (!canManage || !globalThis.confirm("Remove this future Visit?")) return;
+  async function deleteVisit(visit) {
+    if (!canManage) return;
     setError(null);
     try {
-      await apiRequest(`/api/visits/${visit.id}/`, { method: "DELETE", staffToken });
+      const deleted = await apiRequest(`/api/visits/${visit.id}/`, { method: "DELETE", staffToken });
+      registerUndo({
+        id: `appointment-delete:${visit.id}:${Date.now()}`,
+        kind: "appointment_delete",
+        resourceId: visit.id,
+        message: `${visit.patient.full_name}'s appointment deleted.`,
+        undoUntil: deleted.undo_until,
+      });
+      setScheduleRefreshVersion((value) => value + 1);
       if (selectedPatient) await loadPatientVisits(selectedPatient.id);
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Visit could not be removed."));
+      setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment could not be deleted."));
     }
   }
 
@@ -323,14 +388,14 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
       <main className="workspace-main">
         <section className="workspace-title">
           <div>
-            <p className="eyebrow">{section === "schedule" ? "Appointments" : "Patient records"}</p>
+            <p className="eyebrow">{section === "schedule" ? "Appointments and live queue" : "Patient records"}</p>
             <h1>{doctorWorkspace ? "Doctor workspace" : "Assistant workspace"}</h1>
             <p>
               {doctorWorkspace
-                ? "View Patient records and the appointment list without administrative controls."
+                ? "View Patient records, appointments, and the live queue without administrative controls."
                 : doctorAccount
-                  ? "Manage Patients and appointments through Administrator access to the Assistant workspace."
-                  : "Manage the clinic schedule, walk-ins, and reusable Patient profiles from one workspace."}
+                  ? "Manage Patients, appointments, check-in, and the queue through Administrator access to the Assistant workspace."
+                  : "Manage Patients, appointments, check-in, and the live queue from one workspace."}
             </p>
           </div>
           <div className="status-pill"><span /> Clinic access active</div>
@@ -338,7 +403,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
 
         <nav className="workspace-tabs" aria-label="Workspace sections">
           <button className={section === "schedule" ? "workspace-tab workspace-tab--active" : "workspace-tab"} type="button" onClick={() => setSection("schedule")}>
-            {doctorWorkspace ? "Appointment list" : "Schedule"}
+            {doctorWorkspace ? "Appointments & queue" : "Schedule & queue"}
           </button>
           <button className={section === "patients" ? "workspace-tab workspace-tab--active" : "workspace-tab"} type="button" onClick={() => setSection("patients")}>
             Patients
@@ -352,6 +417,8 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
             staffToken={staffToken}
             requestedVisitId={requestedVisitId}
             onRequestedVisitHandled={requestedHandled}
+            onRegisterUndo={registerUndo}
+            refreshVersion={scheduleRefreshVersion}
             readOnly={!canManage}
             onVisitChanged={() => {
               if (selectedPatient) loadPatientVisits(selectedPatient.id);
@@ -391,7 +458,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
                     onEdit={() => setPatientView("edit")}
                     onDelete={deletePatient}
                     onEditVisit={editVisit}
-                    onRemoveVisit={removeVisit}
+                    onDeleteVisit={deleteVisit}
                     deleting={deleting}
                     canManage={canManage}
                   />
@@ -405,7 +472,8 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
                 <div><dt>Account</dt><dd>{doctorAccount ? "Doctor" : "Assistant"}</dd></div>
                 <div><dt>Workspace</dt><dd>{doctorWorkspace ? "Doctor" : "Assistant"}</dd></div>
                 <div><dt>Patient access</dt><dd>{canManage ? "Create, view, edit, delete" : "View only"}</dd></div>
-                <div><dt>Visit access</dt><dd>{canManage ? "Create, view, edit, remove future" : "View only"}</dd></div>
+                <div><dt>Appointment access</dt><dd>{canManage ? "Manage and check in" : "View only"}</dd></div>
+                <div><dt>Live queue</dt><dd>View</dd></div>
                 <div><dt>Administrator</dt><dd>{user.is_clinic_admin ? "Yes" : "No"}</dd></div>
               </dl>
             </article>
@@ -423,6 +491,12 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
           </section>
         )}
       </main>
+      <UndoStack
+        actions={undoActions}
+        undoingId={undoingId}
+        onUndo={undoAction}
+        onExpire={expireUndo}
+      />
     </div>
   );
 }

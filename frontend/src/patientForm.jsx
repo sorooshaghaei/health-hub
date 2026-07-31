@@ -102,7 +102,7 @@ export function PatientFields({ form, onChange, includeNote = true }) {
           value={form.patient_note}
           onChange={update}
           rows="4"
-          hint="Shared plain text visible and editable by both Doctor and Assistant."
+          hint="Shared plain text visible to both workspaces and editable in the Assistant workspace."
         />
       )}
     </>
@@ -168,7 +168,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
         <div>
           <p className="eyebrow">{patient ? "Edit profile" : "New profile"}</p>
           <h3>{patient ? patient.full_name : "Add patient"}</h3>
-          <p>Create the reusable Patient profile here. Appointments and walk-ins can be added from Schedule.</p>
+          <p>Create the reusable Patient profile here. Appointments are managed from Schedule.</p>
         </div>
       </div>
       <ErrorMessage error={error} />

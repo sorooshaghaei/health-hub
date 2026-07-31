@@ -15,20 +15,36 @@ function localDateValue(date = new Date()) {
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
 }
 
-function PatientContext({ patient }) {
+function localTimeValue(date = new Date()) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function formatCheckInTime(value) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function PatientContext({ patient, showPhone = true }) {
   return (
     <span className="patient-context">
       <strong>{patient.full_name}</strong>
-      <small>{patient.gender} · {patient.phone_e164} · {formatDate(patient.date_of_birth)}</small>
+      <small>
+        {patient.gender}
+        {showPhone && patient.phone_e164 ? ` · ${patient.phone_e164}` : ""}
+        {patient.date_of_birth ? ` · ${formatDate(patient.date_of_birth)}` : ""}
+      </small>
     </span>
   );
 }
 
-function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCancel }) {
-  const type = visit?.visit_type ?? visitType;
+function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCancel }) {
+  const checkedIn = visit?.status === "checked_in";
   const [schedule, setSchedule] = useState({
     date: visit?.date ?? defaultDate,
-    scheduled_time: visit?.scheduled_time?.slice(0, 5) ?? "",
+    scheduled_time: visit?.scheduled_time?.slice(0, 5) ?? defaultTime,
     reason: visit?.reason ?? "",
   });
   const [patientMode, setPatientMode] = useState("existing");
@@ -43,7 +59,7 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (patientMode !== "existing" || !query.trim()) {
+    if (checkedIn || patientMode !== "existing" || !query.trim()) {
       setMatches([]);
       return undefined;
     }
@@ -63,7 +79,7 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
       cancelled = true;
       globalThis.clearTimeout(timer);
     };
-  }, [patientMode, query, staffToken]);
+  }, [checkedIn, patientMode, query, staffToken]);
 
   function selectPatient(patient) {
     setSelectedPatient(patient);
@@ -86,27 +102,27 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
   }
 
   async function save(confirmDuplicate = false) {
-    if (patientMode === "existing" && !selectedPatient && !visit) {
-      setError(new ApiError("Choose an existing patient or create a new patient."));
+    if (!visit && patientMode === "existing" && !selectedPatient) {
+      setError(new ApiError("Choose an existing Patient or create a new Patient."));
       return;
     }
 
-    const data = {};
-    if (!visit) data.visit_type = type;
-    if (type === "appointment") {
-      data.date = schedule.date;
-      data.scheduled_time = schedule.scheduled_time;
-      data.reason = schedule.reason;
-    }
+    const data = {
+      date: schedule.date,
+      scheduled_time: schedule.scheduled_time,
+      reason: schedule.reason,
+    };
 
-    if (patientMode === "new") {
-      data.new_patient = {
-        ...newPatient,
-        date_of_birth: newPatient.date_of_birth || null,
-        confirm_duplicate: confirmDuplicate,
-      };
-    } else if (selectedPatient && (!visit || patientChanged)) {
-      data.patient_id = selectedPatient.id;
+    if (!checkedIn) {
+      if (patientMode === "new") {
+        data.new_patient = {
+          ...newPatient,
+          date_of_birth: newPatient.date_of_birth || null,
+          confirm_duplicate: confirmDuplicate,
+        };
+      } else if (selectedPatient && (!visit || patientChanged)) {
+        data.patient_id = selectedPatient.id;
+      }
     }
 
     setError(null);
@@ -122,31 +138,23 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
       if (requestError instanceof ApiError && requestError.status === 409 && requestError.fields?.code === "possible_duplicate") {
         setWarning(requestError.fields);
       } else {
-        setError(requestError instanceof ApiError ? requestError : new ApiError("Visit could not be saved."));
+        setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment could not be saved."));
       }
     } finally {
       setSubmitting(false);
     }
   }
 
-  const heading = visit
-    ? `Edit ${type === "appointment" ? "appointment" : "walk-in"}`
-    : type === "appointment"
-      ? "Schedule appointment"
-      : "Add walk-in";
-
   return (
     <form className="visit-form" onSubmit={(event) => { event.preventDefault(); save(false); }}>
       <div className="patient-section-heading">
         <div>
-          <p className="eyebrow">{visit ? "Edit Visit" : "New Visit"}</p>
-          <h3>{heading}</h3>
+          <p className="eyebrow">{visit ? "Edit appointment" : "New appointment"}</p>
+          <h3>{visit ? "Edit appointment" : "Schedule appointment"}</h3>
           <p>
-            {type === "appointment"
-              ? "Choose a Patient, date, scheduled time, and an optional reason."
-              : visit
-                ? `The walk-in date remains ${formatDate(visit.date)}.`
-                : `The walk-in date is recorded automatically as ${formatDate(localDateValue())}.`}
+            {checkedIn
+              ? "The Patient and appointment date are locked after check-in. Scheduled time and reason can still be corrected."
+              : "Choose a Patient, date, scheduled time, and an optional reason."}
           </p>
         </div>
       </div>
@@ -161,52 +169,54 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
         onCreateSeparate={() => save(true)}
       />
 
-      {type === "appointment" && (
-        <div className="visit-schedule-fields">
-          <Field
-            label="Date"
-            name="date"
-            type="date"
-            value={schedule.date}
-            onChange={(event) => setSchedule((current) => ({ ...current, date: event.target.value }))}
-            required
-          />
-          <Field
-            label="Scheduled time"
-            name="scheduled_time"
-            type="time"
-            value={schedule.scheduled_time}
-            onChange={(event) => setSchedule((current) => ({ ...current, scheduled_time: event.target.value }))}
-            required
-          />
-        </div>
-      )}
-
-      {type === "appointment" && (
-        <TextAreaField
-          label="Visit reason"
-          name="reason"
-          value={schedule.reason}
-          onChange={(event) => setSchedule((current) => ({ ...current, reason: event.target.value }))}
-          rows="3"
-          hint="Optional."
+      <div className="visit-schedule-fields">
+        <Field
+          label="Date"
+          name="date"
+          type="date"
+          value={schedule.date}
+          onChange={(event) => setSchedule((current) => ({ ...current, date: event.target.value }))}
+          disabled={checkedIn}
+          required
         />
-      )}
+        <Field
+          label="Scheduled time"
+          name="scheduled_time"
+          type="time"
+          value={schedule.scheduled_time}
+          onChange={(event) => setSchedule((current) => ({ ...current, scheduled_time: event.target.value }))}
+          required
+        />
+      </div>
+
+      <TextAreaField
+        label="Visit reason"
+        name="reason"
+        value={schedule.reason}
+        onChange={(event) => setSchedule((current) => ({ ...current, reason: event.target.value }))}
+        rows="3"
+        hint="Optional."
+      />
 
       <section className="patient-picker">
         <div className="patient-picker__heading">
           <div>
             <p className="eyebrow">Patient</p>
-            <h4>{patientMode === "new" ? "Create a new Patient" : "Use an existing Patient"}</h4>
+            <h4>{checkedIn ? "Checked-in Patient" : patientMode === "new" ? "Create a new Patient" : "Use an existing Patient"}</h4>
           </div>
-          {patientMode === "new" ? (
+          {!checkedIn && (patientMode === "new" ? (
             <button className="text-button" type="button" onClick={() => { setPatientMode("existing"); setWarning(null); }}>Search existing</button>
           ) : (
             <button className="text-button" type="button" onClick={startNewPatient}>Create new Patient</button>
-          )}
+          ))}
         </div>
 
-        {patientMode === "existing" ? (
+        {checkedIn ? (
+          <div className="selected-patient selected-patient--locked">
+            <PatientContext patient={selectedPatient} />
+            <span>Locked after check-in</span>
+          </div>
+        ) : patientMode === "existing" ? (
           <>
             {selectedPatient && (
               <div className="selected-patient">
@@ -242,7 +252,7 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
           </>
         ) : (
           <div className="inline-patient-form">
-            <p>The Patient and this Visit will be created together. The schedule fields above remain attached to the new profile.</p>
+            <p>The Patient and appointment will be created together. The date, time, and reason remain attached.</p>
             <PatientFields form={newPatient} onChange={updateNewPatient} />
           </div>
         )}
@@ -251,19 +261,19 @@ function VisitForm({ visit, visitType, defaultDate, staffToken, onSaved, onCance
       <div className="form-actions">
         <button className="secondary-button" type="button" onClick={onCancel}>Cancel</button>
         <button className="primary-button primary-button--compact" type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : visit ? "Save Visit" : type === "appointment" ? "Add appointment" : "Add walk-in"}
+          {submitting ? "Saving…" : visit ? "Save appointment" : "Add appointment"}
         </button>
       </div>
     </form>
   );
 }
 
-function VisitRow({ visit, readOnly, onEdit, onRemove }) {
+function AppointmentRow({ visit, readOnly, onCheckIn, onEdit, onDelete }) {
   return (
-    <div className="visit-row">
-      <div className={`visit-time visit-time--${visit.visit_type}`}>
-        <strong>{visit.visit_type === "appointment" ? formatTime(visit.scheduled_time) : "Walk-in"}</strong>
-        <small>{visit.visit_type === "appointment" ? "Scheduled" : "Current day"}</small>
+    <div className="visit-row appointment-row">
+      <div className="visit-time">
+        <strong>{formatTime(visit.scheduled_time)}</strong>
+        <small>{visit.status === "checked_in" ? "Checked in" : "Planned"}</small>
       </div>
       <PatientContext patient={visit.patient} />
       <div className="visit-reason">
@@ -271,13 +281,39 @@ function VisitRow({ visit, readOnly, onEdit, onRemove }) {
         <span>{visit.reason || "No reason recorded"}</span>
       </div>
       {readOnly ? (
-        <span className="count-badge">View only</span>
+        <span className={`status-chip status-chip--${visit.status}`}>
+          {visit.status === "checked_in" ? "Checked in" : "Planned"}
+        </span>
       ) : (
         <div className="visit-row__actions">
+          {visit.can_check_in && (
+            <button className="check-in-button" type="button" onClick={() => onCheckIn(visit)}>Check in</button>
+          )}
           <button className="secondary-button" type="button" onClick={() => onEdit(visit)}>Edit</button>
-          {visit.can_delete && <button className="danger-button" type="button" onClick={() => onRemove(visit)}>Remove</button>}
+          {visit.can_delete && <button className="danger-button" type="button" onClick={() => onDelete(visit)}>Delete</button>}
         </div>
       )}
+    </div>
+  );
+}
+
+function QueueRow({ item }) {
+  return (
+    <div className="queue-row">
+      <div className="queue-position" aria-label={`Queue position ${item.queue_position}`}>{item.queue_position}</div>
+      <PatientContext patient={item.patient} showPhone={Boolean(item.patient.phone_e164)} />
+      <div className="queue-fact">
+        <small>Scheduled</small>
+        <strong>{formatTime(item.scheduled_time)}</strong>
+      </div>
+      <div className="queue-fact">
+        <small>Checked in</small>
+        <strong>{formatCheckInTime(item.checked_in_at)}</strong>
+      </div>
+      <div className="queue-reason">
+        <small>Reason</small>
+        <span>{item.reason || "No reason recorded"}</span>
+      </div>
     </div>
   );
 }
@@ -287,32 +323,58 @@ export default function ScheduleWorkspace({
   requestedVisitId,
   onRequestedVisitHandled,
   onVisitChanged,
+  onRegisterUndo,
+  refreshVersion = 0,
   readOnly = false,
 }) {
   const today = useMemo(() => localDateValue(), []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [visits, setVisits] = useState([]);
+  const [queue, setQueue] = useState([]);
   const [mode, setMode] = useState("list");
   const [editingVisit, setEditingVisit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [queueLoading, setQueueLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  async function loadVisits(date = selectedDate) {
-    setLoading(true);
+  async function loadVisits(date = selectedDate, { quiet = false } = {}) {
+    if (!quiet) setLoading(true);
     setError(null);
     try {
       const payload = await apiRequest(`/api/visits/?date=${encodeURIComponent(date)}`, { staffToken });
       setVisits(payload.visits);
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Visits could not be loaded."));
+      setError(requestError instanceof ApiError ? requestError : new ApiError("Appointments could not be loaded."));
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
+  }
+
+  async function loadQueue({ quiet = false } = {}) {
+    if (!quiet) setQueueLoading(true);
+    try {
+      const payload = await apiRequest("/api/visits/queue/", { staffToken });
+      setQueue(payload.queue);
+    } catch (requestError) {
+      if (!quiet) setError(requestError instanceof ApiError ? requestError : new ApiError("Live queue could not be loaded."));
+    } finally {
+      if (!quiet) setQueueLoading(false);
+    }
+  }
+
+  async function refreshAll({ quiet = false } = {}) {
+    await Promise.all([loadVisits(selectedDate, { quiet }), loadQueue({ quiet })]);
   }
 
   useEffect(() => {
     loadVisits(selectedDate);
-  }, [selectedDate, staffToken]);
+  }, [selectedDate, staffToken, refreshVersion]);
+
+  useEffect(() => {
+    loadQueue();
+    const timer = globalThis.setInterval(() => loadQueue({ quiet: true }), 3_000);
+    return () => globalThis.clearInterval(timer);
+  }, [staffToken, refreshVersion]);
 
   useEffect(() => {
     if (!requestedVisitId || readOnly) return;
@@ -326,7 +388,7 @@ export default function ScheduleWorkspace({
         onRequestedVisitHandled?.();
       })
       .catch((requestError) => {
-        if (!cancelled) setError(requestError instanceof ApiError ? requestError : new ApiError("Visit could not be opened."));
+        if (!cancelled) setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment could not be opened."));
       });
     return () => { cancelled = true; };
   }, [requestedVisitId, readOnly, staffToken, onRequestedVisitHandled]);
@@ -335,131 +397,155 @@ export default function ScheduleWorkspace({
     setSelectedDate(visit.date);
     setEditingVisit(null);
     setMode("list");
-    await loadVisits(visit.date);
+    await Promise.all([loadVisits(visit.date), loadQueue()]);
     onVisitChanged?.();
   }
 
-  async function removeVisit(visit) {
-    if (!globalThis.confirm("Remove this future Visit?")) return;
+  async function checkIn(visit) {
     setError(null);
     try {
-      await apiRequest(`/api/visits/${visit.id}/`, { method: "DELETE", staffToken });
-      await loadVisits(selectedDate);
+      const checkedIn = await apiRequest(`/api/visits/${visit.id}/check-in/`, {
+        method: "POST",
+        staffToken,
+      });
+      onRegisterUndo?.({
+        id: `check-in:${visit.id}:${Date.now()}`,
+        kind: "check_in",
+        resourceId: visit.id,
+        message: `${visit.patient.full_name} checked in.`,
+        undoUntil: checkedIn.check_in_undo_until,
+      });
+      await refreshAll();
       onVisitChanged?.();
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Visit could not be removed."));
+      setError(requestError instanceof ApiError ? requestError : new ApiError("Patient could not be checked in."));
     }
   }
 
-  const appointments = visits.filter((visit) => visit.visit_type === "appointment");
-  const walkIns = visits.filter((visit) => visit.visit_type === "walk_in");
+  async function deleteVisit(visit) {
+    setError(null);
+    try {
+      const deleted = await apiRequest(`/api/visits/${visit.id}/`, {
+        method: "DELETE",
+        staffToken,
+      });
+      onRegisterUndo?.({
+        id: `appointment-delete:${visit.id}:${Date.now()}`,
+        kind: "appointment_delete",
+        resourceId: visit.id,
+        message: `${visit.patient.full_name}'s appointment deleted.`,
+        undoUntil: deleted.undo_until,
+      });
+      await refreshAll();
+      onVisitChanged?.();
+    } catch (requestError) {
+      setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment could not be deleted."));
+    }
+  }
 
   return (
-    <section className="workspace-card phase2-card">
-      <div className="card-heading">
-        <div>
-          <p className="eyebrow">{readOnly ? "Appointment overview" : "Daily planning"}</p>
-          <h2>Appointments and walk-ins</h2>
+    <section className="schedule-workspace">
+      <article className="workspace-card live-queue-card">
+        <div className="card-heading">
+          <div>
+            <p className="eyebrow">Today · {formatDate(today)}</p>
+            <h2>Live queue</h2>
+          </div>
+          <span className="count-badge">{queue.length}</span>
         </div>
-        <span className="count-badge">{visits.length}</span>
-      </div>
+        <div className="phase3-content">
+          {queueLoading ? (
+            <div className="patient-loading patient-loading--small"><div className="loader" aria-label="Loading live queue" /></div>
+          ) : queue.length ? (
+            <div className="queue-list">{queue.map((item) => <QueueRow item={item} key={item.id} />)}</div>
+          ) : (
+            <p className="schedule-empty">No Patients are checked in.</p>
+          )}
+        </div>
+      </article>
 
-      <div className="phase2-content">
-        <ErrorMessage error={error} />
-        {readOnly && (
-          <p className="security-note">
-            The Doctor workspace shows the schedule without management controls. Open the Assistant workspace to make changes.
-          </p>
-        )}
+      <article className="workspace-card phase2-card">
+        <div className="card-heading">
+          <div>
+            <p className="eyebrow">{readOnly ? "Appointment overview" : "Daily planning"}</p>
+            <h2>Appointments</h2>
+          </div>
+          <span className="count-badge">{visits.length}</span>
+        </div>
 
-        {mode === "list" && (
-          <>
-            <div className="schedule-toolbar">
-              <div className="schedule-date-control">
-                <Field
-                  label="Working date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(event) => setSelectedDate(event.target.value)}
-                />
-                {selectedDate !== today && <button className="text-button" type="button" onClick={() => setSelectedDate(today)}>Today</button>}
-              </div>
-              {!readOnly && (
-                <div className="schedule-actions">
-                  <button className="secondary-button" type="button" onClick={() => setMode("walk_in")}>+ Add walk-in</button>
-                  <button className="primary-button primary-button--compact" type="button" onClick={() => setMode("appointment")}>+ New appointment</button>
+        <div className="phase2-content">
+          <ErrorMessage error={error} />
+          {readOnly && (
+            <p className="security-note">
+              The Doctor workspace shows appointments and the live queue without management controls.
+            </p>
+          )}
+
+          {mode === "list" && (
+            <>
+              <div className="schedule-toolbar">
+                <div className="schedule-date-control">
+                  <Field
+                    label="Appointment date"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(event) => setSelectedDate(event.target.value)}
+                  />
+                  {selectedDate !== today && <button className="text-button" type="button" onClick={() => setSelectedDate(today)}>Today</button>}
                 </div>
+                {!readOnly && (
+                  <div className="schedule-actions">
+                    <button className="primary-button primary-button--compact" type="button" onClick={() => setMode("create")}>+ New appointment</button>
+                  </div>
+                )}
+              </div>
+
+              {loading ? (
+                <div className="patient-loading"><div className="loader" aria-label="Loading appointments" /></div>
+              ) : visits.length ? (
+                <section className="schedule-section">
+                  <div className="schedule-section__heading">
+                    <h3>{formatDate(selectedDate)}</h3>
+                    <span>{visits.length}</span>
+                  </div>
+                  {visits.map((visit) => (
+                    <AppointmentRow
+                      visit={visit}
+                      readOnly={readOnly}
+                      key={visit.id}
+                      onCheckIn={checkIn}
+                      onEdit={(item) => { setEditingVisit(item); setMode("edit"); }}
+                      onDelete={deleteVisit}
+                    />
+                  ))}
+                </section>
+              ) : (
+                <p className="schedule-empty">No appointments for this date.</p>
               )}
-            </div>
+            </>
+          )}
 
-            {loading ? (
-              <div className="patient-loading"><div className="loader" aria-label="Loading visits" /></div>
-            ) : (
-              <>
-                <section className="schedule-section">
-                  <div className="schedule-section__heading">
-                    <h3>Scheduled appointments</h3>
-                    <span>{appointments.length}</span>
-                  </div>
-                  {appointments.length ? appointments.map((visit) => (
-                    <VisitRow
-                      visit={visit}
-                      readOnly={readOnly}
-                      key={visit.id}
-                      onEdit={(item) => { setEditingVisit(item); setMode("edit"); }}
-                      onRemove={removeVisit}
-                    />
-                  )) : <p className="schedule-empty">No appointments for this date.</p>}
-                </section>
-
-                <section className="schedule-section">
-                  <div className="schedule-section__heading">
-                    <h3>Walk-ins</h3>
-                    <span>{walkIns.length}</span>
-                  </div>
-                  {walkIns.length ? walkIns.map((visit) => (
-                    <VisitRow
-                      visit={visit}
-                      readOnly={readOnly}
-                      key={visit.id}
-                      onEdit={(item) => { setEditingVisit(item); setMode("edit"); }}
-                      onRemove={removeVisit}
-                    />
-                  )) : <p className="schedule-empty">No walk-ins recorded for this date.</p>}
-                </section>
-              </>
-            )}
-          </>
-        )}
-
-        {!readOnly && mode === "appointment" && (
-          <VisitForm
-            visitType="appointment"
-            defaultDate={selectedDate}
-            staffToken={staffToken}
-            onSaved={saved}
-            onCancel={() => setMode("list")}
-          />
-        )}
-        {!readOnly && mode === "walk_in" && (
-          <VisitForm
-            visitType="walk_in"
-            defaultDate={today}
-            staffToken={staffToken}
-            onSaved={saved}
-            onCancel={() => setMode("list")}
-          />
-        )}
-        {!readOnly && mode === "edit" && editingVisit && (
-          <VisitForm
-            visit={editingVisit}
-            defaultDate={editingVisit.date}
-            staffToken={staffToken}
-            onSaved={saved}
-            onCancel={() => { setEditingVisit(null); setMode("list"); }}
-          />
-        )}
-      </div>
+          {mode === "create" && (
+            <VisitForm
+              defaultDate={selectedDate}
+              defaultTime={selectedDate === today ? localTimeValue() : ""}
+              staffToken={staffToken}
+              onSaved={saved}
+              onCancel={() => setMode("list")}
+            />
+          )}
+          {mode === "edit" && editingVisit && (
+            <VisitForm
+              visit={editingVisit}
+              defaultDate={editingVisit.date}
+              defaultTime={editingVisit.scheduled_time?.slice(0, 5) ?? ""}
+              staffToken={staffToken}
+              onSaved={saved}
+              onCancel={() => { setEditingVisit(null); setMode("list"); }}
+            />
+          )}
+        </div>
+      </article>
     </section>
   );
 }
