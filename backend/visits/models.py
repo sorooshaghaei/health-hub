@@ -20,6 +20,8 @@ class Visit(models.Model):
     class Status(models.TextChoices):
         PLANNED = "planned", "Planned"
         CHECKED_IN = "checked_in", "Checked in"
+        WITH_DOCTOR = "with_doctor", "With doctor"
+        DOCTOR_FINISHED = "doctor_finished", "Doctor finished"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name="visits")
@@ -38,6 +40,8 @@ class Visit(models.Model):
     )
     checked_in_at = models.DateTimeField(null=True, blank=True, editable=False)
     queue_sequence = models.PositiveBigIntegerField(null=True, blank=True, editable=False)
+    with_doctor_at = models.DateTimeField(null=True, blank=True, editable=False)
+    doctor_finished_at = models.DateTimeField(null=True, blank=True, editable=False)
     deleted_at = models.DateTimeField(null=True, blank=True, editable=False, db_index=True)
 
     patient_full_name_snapshot = models.CharField(max_length=200, editable=False)
@@ -68,11 +72,29 @@ class Visit(models.Model):
                         status="planned",
                         checked_in_at__isnull=True,
                         queue_sequence__isnull=True,
+                        with_doctor_at__isnull=True,
+                        doctor_finished_at__isnull=True,
                     )
                     | Q(
                         status="checked_in",
                         checked_in_at__isnull=False,
                         queue_sequence__isnull=False,
+                        with_doctor_at__isnull=True,
+                        doctor_finished_at__isnull=True,
+                    )
+                    | Q(
+                        status="with_doctor",
+                        checked_in_at__isnull=False,
+                        queue_sequence__isnull=False,
+                        with_doctor_at__isnull=False,
+                        doctor_finished_at__isnull=True,
+                    )
+                    | Q(
+                        status="doctor_finished",
+                        checked_in_at__isnull=False,
+                        queue_sequence__isnull=False,
+                        with_doctor_at__isnull=False,
+                        doctor_finished_at__isnull=False,
                     )
                 ),
                 name="visit_status_queue_consistent",
@@ -110,7 +132,10 @@ class Visit(models.Model):
 
     @property
     def can_delete(self):
-        return self.date >= timezone.localdate()
+        return (
+            self.date >= timezone.localdate()
+            and self.status in {self.Status.PLANNED, self.Status.CHECKED_IN}
+        )
 
     @property
     def can_check_in(self):
@@ -121,6 +146,12 @@ class Visit(models.Model):
         if self.status != self.Status.CHECKED_IN or self.checked_in_at is None:
             return None
         return self.checked_in_at + timedelta(seconds=UNDO_WINDOW_SECONDS)
+
+    @property
+    def with_doctor_undo_until(self):
+        if self.status != self.Status.WITH_DOCTOR or self.with_doctor_at is None:
+            return None
+        return self.with_doctor_at + timedelta(seconds=UNDO_WINDOW_SECONDS)
 
     @property
     def delete_undo_until(self):
@@ -137,3 +168,53 @@ class Visit(models.Model):
         if self.deleted_at is not None:
             self.deleted_at = None
             self.save(update_fields=["deleted_at", "updated_at"])
+
+
+class RoomCall(models.Model):
+    clinic = models.OneToOneField(
+        Clinic,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name="room_call",
+    )
+    date = models.DateField(db_index=True)
+    requested_at = models.DateTimeField()
+    previous_visit = models.ForeignKey(
+        Visit,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    selected_visit = models.ForeignKey(
+        Visit,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(selected_visit__isnull=True, consumed_at__isnull=True)
+                    | Q(selected_visit__isnull=False, consumed_at__isnull=False)
+                ),
+                name="room_call_consumption_consistent",
+            )
+        ]
+
+    @property
+    def is_pending(self):
+        return self.selected_visit_id is None and self.consumed_at is None
+
+    @property
+    def undo_until(self):
+        return self.requested_at + timedelta(seconds=UNDO_WINDOW_SECONDS)
+
+    @property
+    def available_at(self):
+        return self.undo_until

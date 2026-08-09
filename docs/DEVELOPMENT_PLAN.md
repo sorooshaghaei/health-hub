@@ -42,7 +42,7 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | 1 | Patient records | Implemented |
 | 2 | Planned appointments | Implemented |
 | 3 | Check-in and live waiting queue | Implemented |
-| 4 | Doctor readiness and consultation flow | Decisions required |
+| 4 | Doctor room call and consultation handoff | Implemented |
 | 5 | Doctor-finished indication and checkout | Partially specified |
 | 6 | Shared tasks | Partially specified |
 | 7 | Private notes | Partially specified |
@@ -89,8 +89,8 @@ Implemented according to [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md):
 PLANNED → CHECKED_IN
 ```
 
-- check-in time is arrival time;
 - only today's Appointments can be checked in;
+- check-in time records the Assistant's check-in action;
 - live queue contains today's checked-in Patients only;
 - queue order is persisted check-in order, not scheduled time;
 - deterministic sequence resolves equal timestamps;
@@ -102,33 +102,27 @@ PLANNED → CHECKED_IN
 - Check in, Appointment deletion, and Patient deletion have five-second Undo;
 - queue refresh uses three-second authenticated polling.
 
-## Phase 4 — Doctor readiness and consultation flow
+## Phase 4 — Doctor room call and consultation handoff
 
-Confirmed transition:
+Implemented according to [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md):
 
 ```text
 CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
-Confirmed behavior:
-
-- Doctor taps **Ready for first patient**;
-- when ready and free, the first eligible checked-in Patient automatically becomes **With doctor**;
-- there is no Assistant Prepare patient, Send in, Call next, or Start consultation action;
-- **With doctor** means consultation has started;
-- Doctor taps **Finished** when consultation ends;
-- if another Patient is waiting and Doctor remains ready, the next eligible Patient automatically becomes **With doctor**;
-- discrete status actions require the global five-second Undo behavior.
-
-Before implementation, confirm:
-
-- how Doctor readiness is turned off or paused;
-- behavior when Doctor taps Ready with an empty queue;
-- whether a Patient can return from With doctor to the queue;
-- exact reversal/Undo behavior for automatic advancement;
-- Doctor consultation-row information;
-- Assistant visibility while a Patient is With doctor;
-- whether Finished needs a confirmation in addition to Undo.
+- Doctor taps **Room ready** as a one-time call to the Assistant;
+- the current `WITH_DOCTOR` Patient, if any, becomes `DOCTOR_FINISHED`;
+- the Assistant receives the call only after the Doctor's five-second Undo period;
+- one pending room call persists even when the waiting queue is empty;
+- the first waiting Patient is suggested, but the Assistant may choose any checked-in Patient;
+- Assistant taps **With doctor** to consume the pending call;
+- original check-in sequence remains unchanged and displayed positions recalculate;
+- Assistant has five-second Undo for **With doctor**, restoring the Patient and pending call;
+- Doctor consultation card shows scheduled time, check-in time, reason, shared Patient note, and Patient-profile access;
+- opening or closing the consultation overlay never changes workflow state;
+- there is no Doctor Finished, Pause, Return to queue, or automatic-next action;
+- server-side clinic locks protect the workflow across separate Doctor and Assistant computers;
+- browser-demo behavior and automated tests mirror the backend.
 
 ## Phase 5 — Doctor-finished indication and checkout
 
@@ -150,7 +144,7 @@ Before implementation, confirm self-assignment, due dates, editing, completion a
 
 ## Phase 7 — Private notes
 
-Confirmed: creator-only personal notes, save/delete, sticky-note-style text, and separation from tasks and Patient notes.
+Confirmed: creator-only personal notes, save/delete, sticky-note-style text, and separation from tasks and shared Patient notes.
 
 Before implementation, confirm titles, editing, autosave, ordering, deletion behavior, and workspace placement.
 

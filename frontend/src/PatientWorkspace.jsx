@@ -10,6 +10,17 @@ import {
 } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
 
+const STATUS_LABELS = {
+  planned: "Planned",
+  checked_in: "Checked in",
+  with_doctor: "With doctor",
+  doctor_finished: "Doctor finished",
+};
+
+function statusLabel(status) {
+  return STATUS_LABELS[status] ?? status;
+}
+
 function formatCheckInTime(value) {
   if (!value) return "Not checked in";
   return new Intl.DateTimeFormat(undefined, {
@@ -92,20 +103,23 @@ function VisitHistoryRow({ visit, canManage, onEdit, onDelete }) {
         <small>{formatTime(visit.scheduled_time)}</small>
       </div>
       <div>
-        <strong>{visit.status === "checked_in" ? "Checked in" : "Planned"}</strong>
+        <strong>{statusLabel(visit.status)}</strong>
         <small>
-          {visit.status === "checked_in" ? `${formatCheckInTime(visit.checked_in_at)} · ` : ""}
+          {visit.checked_in_at ? `${formatCheckInTime(visit.checked_in_at)} · ` : ""}
           {visit.reason || "No reason recorded"}
         </small>
       </div>
       {canManage ? (
         <div className="history-row__actions">
+          <span className={`status-chip status-chip--${visit.status}`}>
+            {statusLabel(visit.status)}
+          </span>
           <button className="secondary-button" type="button" onClick={() => onEdit(visit.id)}>Edit</button>
           {visit.can_delete && <button className="danger-button" type="button" onClick={() => onDelete(visit)}>Delete</button>}
         </div>
       ) : (
         <span className={`status-chip status-chip--${visit.status}`}>
-          {visit.status === "checked_in" ? "Checked in" : "Planned"}
+          {statusLabel(visit.status)}
         </span>
       )}
     </div>
@@ -249,6 +263,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
       const patient = await apiRequest(`/api/patients/${patientId}/`, { staffToken });
       setSelectedPatient(patient);
       setPatientView("detail");
+      setSection("patients");
       await loadPatientVisits(patientId);
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError : new ApiError("Patient could not be opened."));
@@ -279,11 +294,18 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
   async function undoAction(action) {
     setUndoingId(action.id);
     setError(null);
-    const endpoint = action.kind === "check_in"
-      ? `/api/visits/${action.resourceId}/undo-check-in/`
-      : action.kind === "appointment_delete"
-        ? `/api/visits/${action.resourceId}/undo-delete/`
-        : `/api/patients/${action.resourceId}/undo-delete/`;
+    let endpoint;
+    if (action.kind === "check_in") {
+      endpoint = `/api/visits/${action.resourceId}/undo-check-in/`;
+    } else if (action.kind === "with_doctor") {
+      endpoint = `/api/visits/${action.resourceId}/undo-with-doctor/`;
+    } else if (action.kind === "room_ready") {
+      endpoint = "/api/visits/room-ready/undo/";
+    } else if (action.kind === "appointment_delete") {
+      endpoint = `/api/visits/${action.resourceId}/undo-delete/`;
+    } else {
+      endpoint = `/api/patients/${action.resourceId}/undo-delete/`;
+    }
     try {
       await apiRequest(endpoint, { method: "POST", staffToken });
       expireUndo(action.id);
@@ -392,10 +414,10 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
             <h1>{doctorWorkspace ? "Doctor workspace" : "Assistant workspace"}</h1>
             <p>
               {doctorWorkspace
-                ? "View Patient records, appointments, and the live queue without administrative controls."
+                ? "View Patient records and signal when the consultation room is ready."
                 : doctorAccount
-                  ? "Manage Patients, appointments, check-in, and the queue through Administrator access to the Assistant workspace."
-                  : "Manage Patients, appointments, check-in, and the live queue from one workspace."}
+                  ? "Manage Patients, appointments, check-in, the queue, and consultation handoff through Administrator access."
+                  : "Manage Patients, appointments, check-in, the live queue, and consultation handoff from one workspace."}
             </p>
           </div>
           <div className="status-pill"><span /> Clinic access active</div>
@@ -403,7 +425,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
 
         <nav className="workspace-tabs" aria-label="Workspace sections">
           <button className={section === "schedule" ? "workspace-tab workspace-tab--active" : "workspace-tab"} type="button" onClick={() => setSection("schedule")}>
-            {doctorWorkspace ? "Appointments & queue" : "Schedule & queue"}
+            {doctorWorkspace ? "Consultations & queue" : "Schedule & queue"}
           </button>
           <button className={section === "patients" ? "workspace-tab workspace-tab--active" : "workspace-tab"} type="button" onClick={() => setSection("patients")}>
             Patients
@@ -418,6 +440,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
             requestedVisitId={requestedVisitId}
             onRequestedVisitHandled={requestedHandled}
             onRegisterUndo={registerUndo}
+            onOpenPatient={openPatient}
             refreshVersion={scheduleRefreshVersion}
             readOnly={!canManage}
             onVisitChanged={() => {
@@ -472,7 +495,7 @@ export default function Workspace({ user, staffToken, onSignOut, onLeaveClinic }
                 <div><dt>Account</dt><dd>{doctorAccount ? "Doctor" : "Assistant"}</dd></div>
                 <div><dt>Workspace</dt><dd>{doctorWorkspace ? "Doctor" : "Assistant"}</dd></div>
                 <div><dt>Patient access</dt><dd>{canManage ? "Create, view, edit, delete" : "View only"}</dd></div>
-                <div><dt>Appointment access</dt><dd>{canManage ? "Manage and check in" : "View only"}</dd></div>
+                <div><dt>Appointment access</dt><dd>{canManage ? "Manage and hand off" : "View and Room ready"}</dd></div>
                 <div><dt>Live queue</dt><dd>View</dd></div>
                 <div><dt>Administrator</dt><dd>{user.is_clinic_admin ? "Yes" : "No"}</dd></div>
               </dl>

@@ -15,15 +15,16 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 - Patient records: [`docs/PHASE_1_PATIENT_RECORDS.md`](docs/PHASE_1_PATIENT_RECORDS.md)
 - Planned appointments: [`docs/PHASE_2_VISITS.md`](docs/PHASE_2_VISITS.md)
 - Check-in and live queue: [`docs/PHASE_3_QUEUE.md`](docs/PHASE_3_QUEUE.md)
+- Doctor room call and consultation handoff: [`docs/PHASE_4_CONSULTATION.md`](docs/PHASE_4_CONSULTATION.md)
 - Visual direction: [`docs/design/README.md`](docs/design/README.md)
 
 The project is developed directly on `main`, one approved phase at a time. Implementation stops after each phase until the product owner explicitly says **continue**.
 
 ## Current phase
 
-**Phase 3 — Check-in and live waiting queue: repository implementation complete.**
+**Phase 4 — Doctor room call and consultation handoff: repository implementation complete.**
 
-Phase 4 has not been approved for implementation.
+Phase 5 has not been approved for implementation.
 
 ## Access model
 
@@ -34,14 +35,14 @@ The clinic supports one Doctor account and one Assistant account. The Doctor is 
 - Assistant credentials can open Assistant workspace.
 - Assistant credentials cannot open Doctor workspace.
 
-Doctor workspace views Patients, Appointments, and the live queue without administration controls. Assistant workspace owns Patient management, Appointment management, check-in, and destructive actions.
+Doctor workspace owns the Room ready signal and otherwise views Patient and Appointment administration read-only. Assistant workspace owns Patient management, Appointment management, check-in, queue actions, and sending a checked-in Patient into the Doctor's room.
 
 ## Implemented workflow
 
 ### Patient records
 
 - reusable clinic-scoped Patient profiles;
-- full name, `Man`/`Woman`, calling code, phone, optional date of birth, optional Patient note;
+- full name, `Man`/`Woman`, calling code, phone, optional date of birth, optional shared Patient note;
 - Iran `+98` default;
 - search by name, phone, or date of birth;
 - one **Possible duplicate patient** warning;
@@ -64,22 +65,42 @@ Every clinic attendance uses a normal Appointment. When a Patient arrives withou
 PLANNED → CHECKED_IN
 ```
 
-- check-in time is arrival time;
 - only today's Appointments can be checked in;
-- queue order is actual persisted check-in order, not scheduled time;
+- the check-in timestamp records the Assistant's check-in action;
+- queue order is persisted check-in order, not scheduled time;
 - equal check-in timestamps retain first-saved order through an internal sequence;
 - the queue shows position, Patient name, gender, scheduled time, check-in time, and optional reason;
 - Assistant Appointment list and queue show phone;
 - Doctor queue omits phone;
 - there are no early/late, unavailable, Left, Cancelled, or no-show states;
 - checked-in Patient and date are locked; scheduled time and reason remain editable;
-- live queue refreshes every three seconds.
+- live operational state refreshes every three seconds.
+
+### Room call and consultation handoff
+
+```text
+CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
+```
+
+- Doctor taps **Room ready** as a one-time call;
+- any current `WITH_DOCTOR` Patient becomes `DOCTOR_FINISHED`;
+- Assistant receives the call only after the Doctor's five-second Undo period;
+- the call persists even when the queue is empty;
+- first waiting Patient is suggested, but Assistant may select any checked-in Patient;
+- Assistant taps **With doctor** to consume the call;
+- the selected Patient leaves the waiting queue without changing any original check-in sequence;
+- the Assistant can Undo **With doctor** for five seconds, restoring both Patient and pending call;
+- Doctor sees the current Patient in a compact, expandable consultation card with the shared Patient note;
+- there is no Doctor Finished, Pause, Return, or automatic-next-patient action;
+- clinic-scoped transactional locking protects use from separate Doctor and Assistant computers.
 
 ### Five-second Undo
 
 Server-enforced Undo applies to:
 
 - Check in;
+- Room ready;
+- With doctor;
 - Appointment deletion;
 - Patient deletion.
 
@@ -90,8 +111,8 @@ Normal form edits use the regular Edit flow.
 ```text
 backend/accounts/                Clinic, staff, sessions, workspace access
 backend/patients/                Patient records and deletion Undo
-backend/visits/                  Appointments, check-in, queue, deletion Undo
-backend/health_hub/              Django project configuration
+backend/visits/                  Appointments, queue, room calls, consultation handoff
+backend/health_hub/             Django project configuration
 frontend/                        React/Vite app and browser adapter
 docs/                            Product specifications and handoff
 docker-compose.yml               Local PostgreSQL service
@@ -180,8 +201,13 @@ GET    /api/visits/<visit-id>/
 PATCH  /api/visits/<visit-id>/
 DELETE /api/visits/<visit-id>/
 GET    /api/visits/queue/
+GET    /api/visits/room-state/
 POST   /api/visits/<visit-id>/check-in/
 POST   /api/visits/<visit-id>/undo-check-in/
+POST   /api/visits/room-ready/
+POST   /api/visits/room-ready/undo/
+POST   /api/visits/<visit-id>/with-doctor/
+POST   /api/visits/<visit-id>/undo-with-doctor/
 POST   /api/visits/<visit-id>/undo-delete/
 ```
 
@@ -189,7 +215,7 @@ Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, and Appointment 
 
 ## Migration behavior
 
-The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. The browser demo performs the equivalent migration for old local-storage data.
+The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The browser demo performs equivalent local-storage migration for existing demo data.
 
 ## Production boundary
 

@@ -15,3 +15,10 @@ def require_assistant_workspace(request):
         raise PermissionDenied(
             "Open the Assistant workspace to manage Patients and appointments."
         )
+
+
+def require_doctor_workspace(request):
+    if active_workspace_role(request) != StaffUser.Role.DOCTOR:
+        raise PermissionDenied(
+            "Open the Doctor workspace to signal that the room is ready."
+        )

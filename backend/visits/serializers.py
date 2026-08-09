@@ -14,6 +14,7 @@ class VisitSerializer(serializers.ModelSerializer):
     can_check_in = serializers.BooleanField(read_only=True)
     is_future = serializers.BooleanField(read_only=True)
     check_in_undo_until = serializers.DateTimeField(read_only=True)
+    with_doctor_undo_until = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Visit
@@ -27,7 +28,10 @@ class VisitSerializer(serializers.ModelSerializer):
             "patient",
             "status",
             "checked_in_at",
+            "with_doctor_at",
+            "doctor_finished_at",
             "check_in_undo_until",
+            "with_doctor_undo_until",
             "can_check_in",
             "can_delete",
             "is_future",
@@ -38,6 +42,8 @@ class VisitSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "checked_in_at",
+            "with_doctor_at",
+            "doctor_finished_at",
             "created_at",
             "updated_at",
         ]
@@ -78,7 +84,7 @@ class VisitSerializer(serializers.ModelSerializer):
                 {"scheduled_time": "Scheduled time is required."}
             )
 
-        if instance is not None and instance.status == Visit.Status.CHECKED_IN:
+        if instance is not None and instance.status != Visit.Status.PLANNED:
             if "date" in attrs and attrs["date"] != instance.date:
                 raise serializers.ValidationError(
                     {"date": "The appointment date cannot change after check-in."}
@@ -121,6 +127,7 @@ class VisitSerializer(serializers.ModelSerializer):
                 "gender": patient.gender,
                 "phone_e164": patient.phone_e164,
                 "date_of_birth": patient.date_of_birth,
+                "patient_note": patient.patient_note,
                 "active": True,
             }
         return {
@@ -129,6 +136,7 @@ class VisitSerializer(serializers.ModelSerializer):
             "gender": obj.patient_gender_snapshot,
             "phone_e164": obj.patient_phone_snapshot,
             "date_of_birth": obj.patient_date_of_birth_snapshot,
+            "patient_note": "",
             "active": False,
         }
 
@@ -149,6 +157,7 @@ class QueueVisitSerializer(VisitSerializer):
 
     def get_patient(self, obj):
         patient = super().get_patient(obj)
+        patient.pop("patient_note", None)
         request = self.context.get("request")
         if request is not None and active_workspace_role(request) == StaffUser.Role.DOCTOR:
             patient.pop("phone_e164", None)

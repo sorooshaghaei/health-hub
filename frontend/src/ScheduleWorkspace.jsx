@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
 import {
@@ -10,6 +10,13 @@ import {
 } from "./patientForm.jsx";
 import { ErrorMessage, Field, TextAreaField } from "./ui.jsx";
 
+const STATUS_LABELS = {
+  planned: "Planned",
+  checked_in: "Checked in",
+  with_doctor: "With doctor",
+  doctor_finished: "Doctor finished",
+};
+
 function localDateValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
@@ -19,15 +26,40 @@ function localTimeValue(date = new Date()) {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+function statusLabel(status) {
+  return STATUS_LABELS[status] ?? status;
+}
+
 function formatCheckInTime(value) {
-  if (!value) return "—";
+  if (!value) return "Not checked in";
   return new Intl.DateTimeFormat(undefined, {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
 }
 
-function PatientContext({ patient, showPhone = true }) {
+function playRoomReadySound() {
+  try {
+    const AudioContext = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+    if (!AudioContext) return;
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(660, context.currentTime);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.32);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.35);
+    oscillator.addEventListener("ended", () => context.close(), { once: true });
+  } catch {
+    // The persistent visual notice remains when browser audio is unavailable.
+  }
+}
+
+function PatientContext({ patient, showPhone = false }) {
   return (
     <span className="patient-context">
       <strong>{patient.full_name}</strong>
@@ -41,7 +73,7 @@ function PatientContext({ patient, showPhone = true }) {
 }
 
 function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCancel }) {
-  const checkedIn = visit?.status === "checked_in";
+  const workflowStarted = Boolean(visit && visit.status !== "planned");
   const [schedule, setSchedule] = useState({
     date: visit?.date ?? defaultDate,
     scheduled_time: visit?.scheduled_time?.slice(0, 5) ?? defaultTime,
@@ -59,7 +91,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (checkedIn || patientMode !== "existing" || !query.trim()) {
+    if (workflowStarted || patientMode !== "existing" || !query.trim()) {
       setMatches([]);
       return undefined;
     }
@@ -79,7 +111,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
       cancelled = true;
       globalThis.clearTimeout(timer);
     };
-  }, [checkedIn, patientMode, query, staffToken]);
+  }, [workflowStarted, patientMode, query, staffToken]);
 
   function selectPatient(patient) {
     setSelectedPatient(patient);
@@ -113,7 +145,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
       reason: schedule.reason,
     };
 
-    if (!checkedIn) {
+    if (!workflowStarted) {
       if (patientMode === "new") {
         data.new_patient = {
           ...newPatient,
@@ -152,7 +184,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
           <p className="eyebrow">{visit ? "Edit appointment" : "New appointment"}</p>
           <h3>{visit ? "Edit appointment" : "Schedule appointment"}</h3>
           <p>
-            {checkedIn
+            {workflowStarted
               ? "The Patient and appointment date are locked after check-in. Scheduled time and reason can still be corrected."
               : "Choose a Patient, date, scheduled time, and an optional reason."}
           </p>
@@ -176,7 +208,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
           type="date"
           value={schedule.date}
           onChange={(event) => setSchedule((current) => ({ ...current, date: event.target.value }))}
-          disabled={checkedIn}
+          disabled={workflowStarted}
           required
         />
         <Field
@@ -202,25 +234,25 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
         <div className="patient-picker__heading">
           <div>
             <p className="eyebrow">Patient</p>
-            <h4>{checkedIn ? "Checked-in Patient" : patientMode === "new" ? "Create a new Patient" : "Use an existing Patient"}</h4>
+            <h4>{workflowStarted ? "Checked-in Patient" : patientMode === "new" ? "Create a new Patient" : "Use an existing Patient"}</h4>
           </div>
-          {!checkedIn && (patientMode === "new" ? (
+          {!workflowStarted && (patientMode === "new" ? (
             <button className="text-button" type="button" onClick={() => { setPatientMode("existing"); setWarning(null); }}>Search existing</button>
           ) : (
             <button className="text-button" type="button" onClick={startNewPatient}>Create new Patient</button>
           ))}
         </div>
 
-        {checkedIn ? (
+        {workflowStarted ? (
           <div className="selected-patient selected-patient--locked">
-            <PatientContext patient={selectedPatient} />
+            <PatientContext patient={selectedPatient} showPhone />
             <span>Locked after check-in</span>
           </div>
         ) : patientMode === "existing" ? (
           <>
             {selectedPatient && (
               <div className="selected-patient">
-                <PatientContext patient={selectedPatient} />
+                <PatientContext patient={selectedPatient} showPhone />
                 <button className="text-button" type="button" onClick={() => { setSelectedPatient(null); setPatientChanged(true); }}>Change</button>
               </div>
             )}
@@ -241,7 +273,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
                   <div className="patient-picker__results">
                     {matches.map((patient) => (
                       <button type="button" key={patient.id} onClick={() => selectPatient(patient)}>
-                        <PatientContext patient={patient} />
+                        <PatientContext patient={patient} showPhone />
                         <span aria-hidden="true">→</span>
                       </button>
                     ))}
@@ -273,22 +305,25 @@ function AppointmentRow({ visit, readOnly, onCheckIn, onEdit, onDelete }) {
     <div className="visit-row appointment-row">
       <div className="visit-time">
         <strong>{formatTime(visit.scheduled_time)}</strong>
-        <small>{visit.status === "checked_in" ? "Checked in" : "Planned"}</small>
+        <small>{statusLabel(visit.status)}</small>
       </div>
-      <PatientContext patient={visit.patient} />
+      <PatientContext patient={visit.patient} showPhone={!readOnly} />
       <div className="visit-reason">
         <small>Reason</small>
         <span>{visit.reason || "No reason recorded"}</span>
       </div>
       {readOnly ? (
         <span className={`status-chip status-chip--${visit.status}`}>
-          {visit.status === "checked_in" ? "Checked in" : "Planned"}
+          {statusLabel(visit.status)}
         </span>
       ) : (
         <div className="visit-row__actions">
           {visit.can_check_in && (
             <button className="check-in-button" type="button" onClick={() => onCheckIn(visit)}>Check in</button>
           )}
+          <span className={`status-chip status-chip--${visit.status}`}>
+            {statusLabel(visit.status)}
+          </span>
           <button className="secondary-button" type="button" onClick={() => onEdit(visit)}>Edit</button>
           {visit.can_delete && <button className="danger-button" type="button" onClick={() => onDelete(visit)}>Delete</button>}
         </div>
@@ -297,9 +332,9 @@ function AppointmentRow({ visit, readOnly, onCheckIn, onEdit, onDelete }) {
   );
 }
 
-function QueueRow({ item }) {
+function QueueRow({ item, roomReady, suggested, sending, onWithDoctor }) {
   return (
-    <div className="queue-row">
+    <div className={suggested ? "queue-row queue-row--suggested" : "queue-row"}>
       <div className="queue-position" aria-label={`Queue position ${item.queue_position}`}>{item.queue_position}</div>
       <PatientContext patient={item.patient} showPhone={Boolean(item.patient.phone_e164)} />
       <div className="queue-fact">
@@ -314,7 +349,108 @@ function QueueRow({ item }) {
         <small>Reason</small>
         <span>{item.reason || "No reason recorded"}</span>
       </div>
+      {roomReady && (
+        <button
+          className={suggested ? "with-doctor-button with-doctor-button--suggested" : "with-doctor-button"}
+          type="button"
+          disabled={sending}
+          onClick={() => onWithDoctor(item)}
+        >
+          {sending ? "Sending…" : "With doctor"}
+        </button>
+      )}
     </div>
+  );
+}
+
+function DoctorConsultationCard({ visit, onOpenPatient }) {
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setExpanded(false);
+    }
+    globalThis.addEventListener("keydown", closeOnEscape);
+    return () => globalThis.removeEventListener("keydown", closeOnEscape);
+  }, [expanded]);
+
+  if (!visit) {
+    return (
+      <div className="consultation-empty">
+        <span className="consultation-empty__dot" />
+        <span>No Patient is currently with the Doctor.</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button className="consultation-card" type="button" onClick={() => setExpanded(true)}>
+        <span>
+          <small>With doctor</small>
+          <strong>{visit.patient.full_name}</strong>
+        </span>
+        <span>
+          <small>Checked in</small>
+          <strong>{formatCheckInTime(visit.checked_in_at)}</strong>
+        </span>
+        <span aria-hidden="true">Open →</span>
+      </button>
+      {expanded && (
+        <div className="consultation-modal" role="presentation" onMouseDown={() => setExpanded(false)}>
+          <article
+            className="consultation-modal__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${visit.patient.full_name} consultation details`}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="consultation-modal__heading">
+              <div>
+                <p className="eyebrow">With doctor</p>
+                <h3>{visit.patient.full_name}</h3>
+              </div>
+              <button className="modal-close-button" type="button" onClick={() => setExpanded(false)} aria-label="Close consultation details">×</button>
+            </div>
+            <dl className="consultation-facts">
+              <div><dt>Scheduled time</dt><dd>{formatTime(visit.scheduled_time)}</dd></div>
+              <div><dt>Check-in time</dt><dd>{formatCheckInTime(visit.checked_in_at)}</dd></div>
+              <div className="consultation-facts__wide"><dt>Reason</dt><dd>{visit.reason || "No reason recorded"}</dd></div>
+            </dl>
+            <section className="patient-note-card">
+              <p className="eyebrow">Patient note</p>
+              <p>{visit.patient.patient_note || "No patient note has been added."}</p>
+            </section>
+            <div className="form-actions">
+              <button className="secondary-button" type="button" onClick={() => { setExpanded(false); onOpenPatient?.(visit.patient.id); }}>Open patient profile</button>
+            </div>
+          </article>
+        </div>
+      )}
+    </>
+  );
+}
+
+function RoomReadyNotification({ roomCall, queue, dismissed, onDismiss }) {
+  const suggested = queue.find((item) => item.id === roomCall.suggested_visit_id) ?? null;
+  return (
+    <>
+      {!dismissed && (
+        <div className="room-ready-notification" role="status" aria-live="assertive">
+          <span className="room-ready-notification__signal" aria-hidden="true" />
+          <div>
+            <strong>Doctor&apos;s room is ready</strong>
+            <span>{suggested ? `${suggested.patient.full_name} is suggested next.` : "Send a checked-in Patient when available."}</span>
+          </div>
+          <button type="button" onClick={onDismiss}>Dismiss</button>
+        </div>
+      )}
+      <div className="room-ready-indicator">
+        <span /> Room ready
+        {suggested && <strong>Suggested: {suggested.patient.full_name}</strong>}
+      </div>
+    </>
   );
 }
 
@@ -324,6 +460,7 @@ export default function ScheduleWorkspace({
   onRequestedVisitHandled,
   onVisitChanged,
   onRegisterUndo,
+  onOpenPatient,
   refreshVersion = 0,
   readOnly = false,
 }) {
@@ -331,20 +468,29 @@ export default function ScheduleWorkspace({
   const [selectedDate, setSelectedDate] = useState(today);
   const [visits, setVisits] = useState([]);
   const [queue, setQueue] = useState([]);
+  const [roomState, setRoomState] = useState({
+    current_visit: null,
+    room_call: null,
+    can_room_ready: false,
+  });
+  const [dismissedRoomCall, setDismissedRoomCall] = useState(null);
+  const notifiedRoomCall = useRef(null);
   const [mode, setMode] = useState("list");
   const [editingVisit, setEditingVisit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [queueLoading, setQueueLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [roomReadySubmitting, setRoomReadySubmitting] = useState(false);
+  const [sendingVisitId, setSendingVisitId] = useState(null);
 
   async function loadVisits(date = selectedDate, { quiet = false } = {}) {
     if (!quiet) setLoading(true);
-    setError(null);
+    if (!quiet) setError(null);
     try {
       const payload = await apiRequest(`/api/visits/?date=${encodeURIComponent(date)}`, { staffToken });
       setVisits(payload.visits);
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Appointments could not be loaded."));
+      if (!quiet) setError(requestError instanceof ApiError ? requestError : new ApiError("Appointments could not be loaded."));
     } finally {
       if (!quiet) setLoading(false);
     }
@@ -362,8 +508,19 @@ export default function ScheduleWorkspace({
     }
   }
 
+  async function loadRoomState({ quiet = false } = {}) {
+    try {
+      const payload = await apiRequest("/api/visits/room-state/", { staffToken });
+      setRoomState(payload);
+    } catch (requestError) {
+      if (!quiet) setError(requestError instanceof ApiError ? requestError : new ApiError("Room status could not be loaded."));
+    }
+  }
+
   async function refreshAll({ quiet = false } = {}) {
-    await Promise.all([loadVisits(selectedDate, { quiet }), loadQueue({ quiet })]);
+    const requests = [loadQueue({ quiet }), loadRoomState({ quiet })];
+    if (selectedDate === today) requests.push(loadVisits(selectedDate, { quiet }));
+    await Promise.all(requests);
   }
 
   useEffect(() => {
@@ -372,9 +529,19 @@ export default function ScheduleWorkspace({
 
   useEffect(() => {
     loadQueue();
-    const timer = globalThis.setInterval(() => loadQueue({ quiet: true }), 3_000);
+    loadRoomState();
+    const timer = globalThis.setInterval(() => refreshAll({ quiet: true }), 3_000);
     return () => globalThis.clearInterval(timer);
-  }, [staffToken, refreshVersion]);
+  }, [staffToken, refreshVersion, selectedDate]);
+
+  useEffect(() => {
+    if (readOnly || !roomState.room_call?.available) return;
+    const callKey = roomState.room_call.requested_at;
+    if (notifiedRoomCall.current === callKey) return;
+    notifiedRoomCall.current = callKey;
+    setDismissedRoomCall(null);
+    playRoomReadySound();
+  }, [readOnly, roomState.room_call]);
 
   useEffect(() => {
     if (!requestedVisitId || readOnly) return;
@@ -397,7 +564,7 @@ export default function ScheduleWorkspace({
     setSelectedDate(visit.date);
     setEditingVisit(null);
     setMode("list");
-    await Promise.all([loadVisits(visit.date), loadQueue()]);
+    await Promise.all([loadVisits(visit.date), loadQueue(), loadRoomState()]);
     onVisitChanged?.();
   }
 
@@ -422,6 +589,56 @@ export default function ScheduleWorkspace({
     }
   }
 
+  async function signalRoomReady() {
+    setRoomReadySubmitting(true);
+    setError(null);
+    try {
+      const payload = await apiRequest("/api/visits/room-ready/", {
+        method: "POST",
+        staffToken,
+      });
+      onRegisterUndo?.({
+        id: `room-ready:${payload.room_call.requested_at}`,
+        kind: "room_ready",
+        resourceId: null,
+        message: payload.previous_visit
+          ? `${payload.previous_visit.patient.full_name} finished. Room ready called.`
+          : "Room ready called.",
+        undoUntil: payload.room_call.undo_until,
+      });
+      await refreshAll();
+      onVisitChanged?.();
+    } catch (requestError) {
+      setError(requestError instanceof ApiError ? requestError : new ApiError("Room ready could not be sent."));
+    } finally {
+      setRoomReadySubmitting(false);
+    }
+  }
+
+  async function sendWithDoctor(visit) {
+    setSendingVisitId(visit.id);
+    setError(null);
+    try {
+      const sent = await apiRequest(`/api/visits/${visit.id}/with-doctor/`, {
+        method: "POST",
+        staffToken,
+      });
+      onRegisterUndo?.({
+        id: `with-doctor:${visit.id}:${Date.now()}`,
+        kind: "with_doctor",
+        resourceId: visit.id,
+        message: `${visit.patient.full_name} is with the Doctor.`,
+        undoUntil: sent.with_doctor_undo_until,
+      });
+      await refreshAll();
+      onVisitChanged?.();
+    } catch (requestError) {
+      setError(requestError instanceof ApiError ? requestError : new ApiError("Patient could not be sent to the Doctor."));
+    } finally {
+      setSendingVisitId(null);
+    }
+  }
+
   async function deleteVisit(visit) {
     setError(null);
     try {
@@ -443,8 +660,55 @@ export default function ScheduleWorkspace({
     }
   }
 
+  const availableRoomCall = !readOnly && roomState.room_call?.available
+    ? roomState.room_call
+    : null;
+  const dismissed = availableRoomCall
+    ? dismissedRoomCall === availableRoomCall.requested_at
+    : false;
+
   return (
     <section className="schedule-workspace">
+      {readOnly && (
+        <article className="workspace-card consultation-workspace-card">
+          <div className="card-heading">
+            <div>
+              <p className="eyebrow">Consultation room</p>
+              <h2>Current Patient</h2>
+            </div>
+            <button
+              className="room-ready-button"
+              type="button"
+              disabled={!roomState.can_room_ready || roomReadySubmitting}
+              onClick={signalRoomReady}
+            >
+              {roomReadySubmitting
+                ? "Sending…"
+                : roomState.room_call
+                  ? "Room call pending"
+                  : "Room ready"}
+            </button>
+          </div>
+          <DoctorConsultationCard visit={roomState.current_visit} onOpenPatient={onOpenPatient} />
+          {roomState.room_call && (
+            <p className="room-ready-pending-copy">
+              {roomState.room_call.available
+                ? "The Assistant has received the room-ready call."
+                : "The Assistant will receive this call after the five-second Undo period."}
+            </p>
+          )}
+        </article>
+      )}
+
+      {!readOnly && availableRoomCall && (
+        <RoomReadyNotification
+          roomCall={availableRoomCall}
+          queue={queue}
+          dismissed={dismissed}
+          onDismiss={() => setDismissedRoomCall(availableRoomCall.requested_at)}
+        />
+      )}
+
       <article className="workspace-card live-queue-card">
         <div className="card-heading">
           <div>
@@ -457,9 +721,22 @@ export default function ScheduleWorkspace({
           {queueLoading ? (
             <div className="patient-loading patient-loading--small"><div className="loader" aria-label="Loading live queue" /></div>
           ) : queue.length ? (
-            <div className="queue-list">{queue.map((item) => <QueueRow item={item} key={item.id} />)}</div>
+            <div className="queue-list">
+              {queue.map((item) => (
+                <QueueRow
+                  item={item}
+                  key={item.id}
+                  roomReady={Boolean(availableRoomCall)}
+                  suggested={availableRoomCall?.suggested_visit_id === item.id}
+                  sending={sendingVisitId === item.id}
+                  onWithDoctor={sendWithDoctor}
+                />
+              ))}
+            </div>
           ) : (
-            <p className="schedule-empty">No Patients are checked in.</p>
+            <p className="schedule-empty">
+              {availableRoomCall ? "The room is ready. Waiting for a Patient to check in." : "No Patients are checked in."}
+            </p>
           )}
         </div>
       </article>
@@ -477,7 +754,7 @@ export default function ScheduleWorkspace({
           <ErrorMessage error={error} />
           {readOnly && (
             <p className="security-note">
-              The Doctor workspace shows appointments and the live queue without management controls.
+              The Doctor workspace shows appointments and the live queue without administrative controls.
             </p>
           )}
 

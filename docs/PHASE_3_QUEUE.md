@@ -8,7 +8,7 @@ Status: **Implemented in the repository.**
 PLANNED → CHECKED_IN
 ```
 
-`CHECKED_IN` means the Patient is physically present in the clinic. The check-in timestamp is the arrival time.
+`CHECKED_IN` means the Patient is physically present in the clinic. The check-in timestamp records when the Assistant checks the Patient in.
 
 There is no separate Arrived state and no alternate Visit type.
 
@@ -16,7 +16,7 @@ There is no separate Arrived state and no alternate Visit type.
 
 - only an Appointment dated today can be checked in;
 - future and past Appointments cannot enter today's queue;
-- a checked-in Appointment cannot be checked in again;
+- an Appointment that already entered the clinic workflow cannot be checked in again;
 - the Assistant workspace performs check-in;
 - the Doctor workspace views the queue but does not perform Phase 3 actions.
 
@@ -32,7 +32,7 @@ Ordering is:
 
 The sequence is assigned while holding a clinic-level database lock. Therefore, when two check-in timestamps are equal, the first successfully saved check-in remains first.
 
-Displayed queue position is recalculated from the active ordered queue, so positions close automatically when an Appointment is removed.
+Displayed queue position is recalculated from the active ordered queue, so positions close automatically when an Appointment is removed or enters consultation.
 
 ## Queue row
 
@@ -42,7 +42,7 @@ Every row shows:
 - Patient name;
 - gender;
 - scheduled time;
-- check-in/arrival time;
+- check-in time;
 - optional visit reason.
 
 The Assistant queue also shows the Patient phone number. The Doctor queue omits the phone number. The Assistant daily Appointment list shows phone numbers so absent Patients can be called.
@@ -73,6 +73,8 @@ Deletion immediately removes it from:
 This frees the time and presents the Appointment as though it did not exist. Internally, deletion is soft for the five-second Undo mechanism.
 
 There is no Left, Cancelled, unavailable, or no-show state in Phase 3.
+
+Once consultation starts, Phase 4 prevents Appointment deletion; post-consultation handling belongs to Phase 5.
 
 ## Five-second Undo
 
