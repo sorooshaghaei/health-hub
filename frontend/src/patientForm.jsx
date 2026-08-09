@@ -1,31 +1,14 @@
 import { useState } from "react";
 
 import { ApiError } from "./api.js";
+import {
+  COUNTRY_CODES,
+  countryForCallingCode,
+  phonePlaceholderForCallingCode,
+} from "./patientPhoneFormats.js";
 import { ErrorMessage, Field, SelectField, TextAreaField } from "./ui.jsx";
 
-export const COUNTRY_CODES = [
-  { flag: "🇮🇷", country: "Iran", code: "+98" },
-  { flag: "🇫🇷", country: "France", code: "+33" },
-  { flag: "🇺🇸🇨🇦", country: "United States / Canada", code: "+1" },
-  { flag: "🇬🇧", country: "United Kingdom", code: "+44" },
-  { flag: "🇩🇪", country: "Germany", code: "+49" },
-  { flag: "🇹🇷", country: "Turkey", code: "+90" },
-  { flag: "🇦🇪", country: "United Arab Emirates", code: "+971" },
-  { flag: "🇸🇦", country: "Saudi Arabia", code: "+966" },
-  { flag: "🇶🇦", country: "Qatar", code: "+974" },
-  { flag: "🇰🇼", country: "Kuwait", code: "+965" },
-  { flag: "🇮🇶", country: "Iraq", code: "+964" },
-  { flag: "🇦🇫", country: "Afghanistan", code: "+93" },
-  { flag: "🇵🇰", country: "Pakistan", code: "+92" },
-  { flag: "🇮🇳", country: "India", code: "+91" },
-  { flag: "🇦🇲", country: "Armenia", code: "+374" },
-  { flag: "🇦🇿", country: "Azerbaijan", code: "+994" },
-  { flag: "🇬🇪", country: "Georgia", code: "+995" },
-];
-
-export function countryForCallingCode(code) {
-  return COUNTRY_CODES.find((item) => item.code === code) ?? null;
-}
+export { COUNTRY_CODES, countryForCallingCode } from "./patientPhoneFormats.js";
 
 export function formatPatientPhone(patient) {
   const code = patient?.country_calling_code ?? "";
@@ -76,6 +59,8 @@ export function formatTime(value) {
 
 export function PatientFields({ form, onChange, includeNote = true, includeName = true }) {
   const update = (event) => onChange(event.target.name, event.target.value);
+  const phonePlaceholder = phonePlaceholderForCallingCode(form.country_calling_code);
+
   return (
     <>
       <div className="patient-form-grid">
@@ -105,9 +90,13 @@ export function PatientFields({ form, onChange, includeNote = true, includeName 
                 name="phone_number"
                 value={form.phone_number}
                 onChange={update}
-                inputMode="tel"
-                autoComplete="tel-national"
-                placeholder="913 325 7259"
+                inputMode="numeric"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                placeholder={phonePlaceholder}
                 required
               />
             </span>
@@ -184,7 +173,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
   }
 
   return (
-    <form className="patient-form" onSubmit={(event) => { event.preventDefault(); save(false); }}>
+    <form className="patient-form" autoComplete="off" onSubmit={(event) => { event.preventDefault(); save(false); }}>
       <div className="patient-section-heading">
         <div>
           <p className="eyebrow">{patient ? "Edit profile" : "New profile"}</p>
