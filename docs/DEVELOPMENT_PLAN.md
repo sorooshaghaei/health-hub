@@ -67,10 +67,10 @@ Implemented according to [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.
 - Doctor and Assistant may edit all approved Patient fields;
 - Patient creation/deletion remains Assistant-workspace administration;
 - Doctor administrator receives full Assistant-workspace controls when entering that workspace;
-- compact flag/country/calling-code selector beside a large national-number field;
+- compact flag-and-country selector with the selected calling code beside a large national-number field, using a stacked two-part mobile layout;
 - one combined phone display; no separate Country code or National number cards;
 - Role boundary and Individual access cards removed;
-- Leave clinic completely retained with a browser-access explanation;
+- separate Leave clinic card and browser-access clearing action removed; the top Sign out control remains;
 - soft deletion with five-second Undo;
 - current/future Appointment deletion block.
 
@@ -86,7 +86,7 @@ Implemented according to [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md):
 - active uniqueness is protected by a database constraint and mirrored by the browser demo;
 - existing active duplicates are never silently deleted or merged; migration stops for manual resolution;
 - same-day ad-hoc Appointment defaults to current time in the frontend;
-- inline Patient plus Appointment creation;
+- Patient-first Appointment form with existing-Patient suggestions after two name characters and seamless inline new-Patient creation;
 - Patient Appointment history;
 - Doctor list visibility and Assistant-workspace management;
 - Appointment deletion is available to Assistant workspace, including Doctor administrator access there, but not Doctor workspace;

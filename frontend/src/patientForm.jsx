@@ -74,12 +74,14 @@ export function formatTime(value) {
   return value.slice(0, 5);
 }
 
-export function PatientFields({ form, onChange, includeNote = true }) {
+export function PatientFields({ form, onChange, includeNote = true, includeName = true }) {
   const update = (event) => onChange(event.target.name, event.target.value);
   return (
     <>
       <div className="patient-form-grid">
-        <Field label="Full name" name="full_name" value={form.full_name} onChange={update} autoComplete="name" required />
+        {includeName && (
+          <Field label="Full name" name="full_name" value={form.full_name} onChange={update} autoComplete="name" required />
+        )}
         <SelectField label="Gender" name="gender" value={form.gender} onChange={update} required>
           <option value="">Choose gender</option>
           <option value="Man">Man</option>
@@ -90,22 +92,27 @@ export function PatientFields({ form, onChange, includeNote = true }) {
             <span>Country</span>
             <select name="country_calling_code" value={form.country_calling_code} onChange={update} required>
               {COUNTRY_CODES.map(({ flag, country, code }) => (
-                <option value={code} key={`${country}-${code}`}>{flag} {country} {code}</option>
+                <option value={code} key={`${country}-${code}`}>{flag} {country}</option>
               ))}
             </select>
           </label>
-          <Field
-            className="patient-phone-input"
-            label="Phone number"
-            name="phone_number"
-            value={form.phone_number}
-            onChange={update}
-            inputMode="tel"
-            autoComplete="tel-national"
-            placeholder="913 325 7259"
-            hint="Enter the national number. The country code is added automatically."
-            required
-          />
+          <label className="field patient-phone-field">
+            <span>Phone number</span>
+            <span className="patient-phone-control">
+              <strong aria-hidden="true">{form.country_calling_code}</strong>
+              <input
+                className="patient-phone-input"
+                name="phone_number"
+                value={form.phone_number}
+                onChange={update}
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder="913 325 7259"
+                required
+              />
+            </span>
+            <small>Enter the national number without the country code.</small>
+          </label>
         </div>
         <Field label="Date of birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={update} />
       </div>

@@ -26,19 +26,63 @@
 .patient-phone-row {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(210px, 0.38fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(180px, 220px) minmax(320px, 1fr);
+  align-items: start;
   gap: 16px;
 }
 
 .patient-country-field select {
-  min-height: 49px;
+  min-height: 52px;
+  font-weight: 700;
+}
+
+.patient-phone-field {
+  min-width: 0;
+}
+
+.patient-phone-control {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfb;
+  transition: 150ms ease;
+}
+
+.patient-phone-control:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(23, 100, 72, 0.1);
+  background: white;
+}
+
+.patient-phone-control strong {
+  flex: 0 0 auto;
+  padding: 0 14px;
+  border-right: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 30px;
 }
 
 .patient-phone-input {
-  min-height: 49px;
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  border: 0;
+  background: transparent;
+  padding: 0 14px;
+  color: var(--ink);
+  outline: 0;
   font-size: 20px;
   font-weight: 750;
   letter-spacing: 0.025em;
+}
+
+.patient-phone-input::placeholder {
+  color: #9aa49f;
+  font-weight: 600;
 }
 
 .patient-facts--compact {
@@ -50,50 +94,35 @@
   line-height: 1.45;
 }
 
-.clinic-exit {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-top: 22px;
-  padding: 20px 0 8px;
-  border-top: 1px solid #edf1ee;
-}
-
-.clinic-exit strong,
-.clinic-exit span {
-  display: block;
-}
-
-.clinic-exit strong {
-  margin-bottom: 5px;
-  font-size: 14px;
-}
-
-.clinic-exit span {
-  max-width: 680px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.clinic-exit .secondary-button {
-  flex: 0 0 auto;
-}
-
 @media (max-width: 760px) {
   .patient-form-grid,
-  .patient-phone-row,
   .patient-facts--compact {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .patient-phone-row {
     grid-column: auto;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 
-  .clinic-exit {
-    align-items: stretch;
-    flex-direction: column;
+  .patient-country-field select {
+    min-height: 58px;
+    font-size: 17px;
+  }
+
+  .patient-phone-control {
+    min-height: 58px;
+  }
+
+  .patient-phone-control strong {
+    padding: 0 16px;
+    font-size: 18px;
+    line-height: 34px;
+  }
+
+  .patient-phone-input {
+    min-height: 56px;
+    font-size: 19px;
   }
 }

@@ -129,10 +129,10 @@ function RoleSelection({ context, onSelect, onLeave }) {
   };
 
   return (
-    <AuthShell title={`Welcome to ${context.clinic.name}.`} description="Choose the workspace you need. The Doctor workspace stays focused and view-only for Patient and appointment administration." onBack={onLeave}>
+    <AuthShell title={`Welcome to ${context.clinic.name}.`} description="Choose the workspace you need. The Doctor workspace stays focused while the Assistant workspace contains clinic administration." onBack={onLeave}>
       <div className="panel-heading"><p className="eyebrow">Clinic entered</p><h2>Which workspace?</h2><p>{context.clinic.email}</p></div>
       <div className="choice-stack">
-        {roleCard("doctor", "Doctor", "View Patient records, appointment lists, and the live queue without administrative controls.")}
+        {roleCard("doctor", "Doctor", "Use Room ready, review appointments and the queue, and update Patient information.")}
         {roleCard("assistant", "Assistant", "Manage Patients, appointments, check-in, and the live queue. Doctor administrator credentials are also accepted.")}
       </div>
       <p className="security-note">The Doctor is the clinic administrator but management tools remain inside the Assistant workspace.</p>
@@ -285,17 +285,6 @@ export default function App() {
     }
   }
 
-  async function leaveClinicCompletely() {
-    if (staffToken) {
-      try {
-        await apiRequest("/api/staff/logout/", { method: "POST", staffToken });
-      } catch {
-        // Clearing local access remains valid when the server session has expired.
-      }
-    }
-    leaveClinic();
-  }
-
   function leaveClinic() {
     localStorage.removeItem(STAFF_TOKEN_KEY);
     localStorage.removeItem(CLINIC_TOKEN_KEY);
@@ -313,6 +302,6 @@ export default function App() {
   if (screen === "enter-clinic") return <ClinicForm mode="enter" onSubmit={enterClinic} onBack={() => setScreen("landing")} />;
   if (screen === "roles" && clinicContext) return <RoleSelection context={clinicContext} onSelect={selectRole} onLeave={leaveClinic} />;
   if (screen === "staff" && clinicContext && selectedRole) return <StaffForm role={selectedRole} exists={clinicContext.roles[selectedRole].exists} onSubmit={submitStaff} onBack={() => setScreen("roles")} />;
-  if (screen === "workspace" && staffUser && staffToken) return <PatientWorkspace user={staffUser} staffToken={staffToken} onSignOut={signOut} onLeaveClinic={leaveClinicCompletely} />;
+  if (screen === "workspace" && staffUser && staffToken) return <PatientWorkspace user={staffUser} staffToken={staffToken} onSignOut={signOut} />;
   return <LoadingScreen />;
 }

@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
-import {
-  DuplicateWarning,
-  PatientFields,
-  emptyPatient,
-  formatDate,
-  formatTime,
-} from "./patientForm.jsx";
-import { ErrorMessage, Field, TextAreaField } from "./ui.jsx";
+import { formatDate, formatTime } from "./patientForm.jsx";
+import VisitForm from "./VisitForm.jsx";
+import { ErrorMessage, Field } from "./ui.jsx";
 
 const STATUS_LABELS = {
   planned: "Planned",
@@ -69,287 +64,6 @@ function PatientContext({ patient, showPhone = false }) {
         {patient.date_of_birth ? ` · ${formatDate(patient.date_of_birth)}` : ""}
       </small>
     </span>
-  );
-}
-
-function SameDayAppointmentWarning({ conflict, onOpenExisting }) {
-  if (!conflict) return null;
-  const appointment = conflict.appointment;
-  return (
-    <div className="duplicate-warning" role="alert">
-      <div>
-        <p className="eyebrow">Existing appointment</p>
-        <strong>This Patient already has an appointment on this date.</strong>
-        <span>
-          {conflict.recently_deleted
-            ? "The existing appointment was just deleted. Use the five-second Undo action or wait for it to expire."
-            : `${formatTime(appointment.scheduled_time)} · ${statusLabel(appointment.status)}`}
-        </span>
-      </div>
-      {!conflict.recently_deleted && (
-        <button className="secondary-button" type="button" onClick={() => onOpenExisting(appointment)}>
-          Open appointment
-        </button>
-      )}
-    </div>
-  );
-}
-
-function VisitForm({
-  visit,
-  defaultDate,
-  defaultTime,
-  staffToken,
-  onSaved,
-  onCancel,
-  onOpenExisting,
-}) {
-  const workflowStarted = Boolean(visit && visit.status !== "planned");
-  const [schedule, setSchedule] = useState({
-    date: visit?.date ?? defaultDate,
-    scheduled_time: visit?.scheduled_time?.slice(0, 5) ?? defaultTime,
-    reason: visit?.reason ?? "",
-  });
-  const [patientMode, setPatientMode] = useState("existing");
-  const [selectedPatient, setSelectedPatient] = useState(visit?.patient ?? null);
-  const [patientChanged, setPatientChanged] = useState(false);
-  const [query, setQuery] = useState("");
-  const [matches, setMatches] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [newPatient, setNewPatient] = useState(emptyPatient());
-  const [warning, setWarning] = useState(null);
-  const [sameDayConflict, setSameDayConflict] = useState(null);
-  const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (workflowStarted || patientMode !== "existing" || !query.trim()) {
-      setMatches([]);
-      return undefined;
-    }
-    let cancelled = false;
-    const timer = globalThis.setTimeout(async () => {
-      setSearching(true);
-      try {
-        const payload = await apiRequest(`/api/patients/?search=${encodeURIComponent(query.trim())}`, { staffToken });
-        if (!cancelled) setMatches(payload.patients.slice(0, 8));
-      } catch (requestError) {
-        if (!cancelled) setError(requestError instanceof ApiError ? requestError : new ApiError("Patient search failed."));
-      } finally {
-        if (!cancelled) setSearching(false);
-      }
-    }, 180);
-    return () => {
-      cancelled = true;
-      globalThis.clearTimeout(timer);
-    };
-  }, [workflowStarted, patientMode, query, staffToken]);
-
-  function selectPatient(patient) {
-    setSelectedPatient(patient);
-    setPatientChanged(!visit || patient.id !== visit.patient.id);
-    setQuery("");
-    setMatches([]);
-    setWarning(null);
-    setSameDayConflict(null);
-  }
-
-  function startNewPatient() {
-    setPatientMode("new");
-    setSelectedPatient(null);
-    setPatientChanged(true);
-    setWarning(null);
-    setSameDayConflict(null);
-  }
-
-  function updateNewPatient(name, value) {
-    setWarning(null);
-    setSameDayConflict(null);
-    setNewPatient((current) => ({ ...current, [name]: value }));
-  }
-
-  async function save(confirmDuplicate = false) {
-    if (!visit && patientMode === "existing" && !selectedPatient) {
-      setError(new ApiError("Choose an existing Patient or create a new Patient."));
-      return;
-    }
-
-    const data = {
-      date: schedule.date,
-      scheduled_time: schedule.scheduled_time,
-      reason: schedule.reason,
-    };
-
-    if (!workflowStarted) {
-      if (patientMode === "new") {
-        data.new_patient = {
-          ...newPatient,
-          date_of_birth: newPatient.date_of_birth || null,
-          confirm_duplicate: confirmDuplicate,
-        };
-      } else if (selectedPatient && (!visit || patientChanged)) {
-        data.patient_id = selectedPatient.id;
-      }
-    }
-
-    setError(null);
-    setSameDayConflict(null);
-    setSubmitting(true);
-    try {
-      const saved = await apiRequest(visit ? `/api/visits/${visit.id}/` : "/api/visits/", {
-        method: visit ? "PATCH" : "POST",
-        data,
-        staffToken,
-      });
-      await onSaved(saved);
-    } catch (requestError) {
-      if (
-        requestError instanceof ApiError
-        && requestError.status === 409
-        && requestError.fields?.code === "same_day_appointment_exists"
-      ) {
-        setSameDayConflict(requestError.fields);
-      } else if (
-        requestError instanceof ApiError
-        && requestError.status === 409
-        && requestError.fields?.code === "possible_duplicate"
-      ) {
-        setWarning(requestError.fields);
-      } else {
-        setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment could not be saved."));
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <form className="visit-form" onSubmit={(event) => { event.preventDefault(); save(false); }}>
-      <div className="patient-section-heading">
-        <div>
-          <p className="eyebrow">{visit ? "Edit appointment" : "New appointment"}</p>
-          <h3>{visit ? "Edit appointment" : "Schedule appointment"}</h3>
-          <p>
-            {workflowStarted
-              ? "The Patient and appointment date are locked after check-in. Scheduled time and reason can still be corrected."
-              : "Choose a Patient, date, scheduled time, and an optional reason."}
-          </p>
-        </div>
-      </div>
-
-      <ErrorMessage error={error} />
-      <SameDayAppointmentWarning
-        conflict={sameDayConflict}
-        onOpenExisting={onOpenExisting}
-      />
-      <DuplicateWarning
-        warning={warning}
-        onUseExisting={(match) => {
-          setPatientMode("existing");
-          selectPatient({ ...match, active: true });
-        }}
-        onCreateSeparate={() => save(true)}
-      />
-
-      <div className="visit-schedule-fields">
-        <Field
-          label="Date"
-          name="date"
-          type="date"
-          value={schedule.date}
-          onChange={(event) => {
-            setSameDayConflict(null);
-            setSchedule((current) => ({ ...current, date: event.target.value }));
-          }}
-          disabled={workflowStarted}
-          required
-        />
-        <Field
-          label="Scheduled time"
-          name="scheduled_time"
-          type="time"
-          value={schedule.scheduled_time}
-          onChange={(event) => setSchedule((current) => ({ ...current, scheduled_time: event.target.value }))}
-          required
-        />
-      </div>
-
-      <TextAreaField
-        label="Visit reason"
-        name="reason"
-        value={schedule.reason}
-        onChange={(event) => setSchedule((current) => ({ ...current, reason: event.target.value }))}
-        rows="3"
-        hint="Optional."
-      />
-
-      <section className="patient-picker">
-        <div className="patient-picker__heading">
-          <div>
-            <p className="eyebrow">Patient</p>
-            <h4>{workflowStarted ? "Checked-in Patient" : patientMode === "new" ? "Create a new Patient" : "Use an existing Patient"}</h4>
-          </div>
-          {!workflowStarted && (patientMode === "new" ? (
-            <button className="text-button" type="button" onClick={() => { setPatientMode("existing"); setWarning(null); setSameDayConflict(null); }}>Search existing</button>
-          ) : (
-            <button className="text-button" type="button" onClick={startNewPatient}>Create new Patient</button>
-          ))}
-        </div>
-
-        {workflowStarted ? (
-          <div className="selected-patient selected-patient--locked">
-            <PatientContext patient={selectedPatient} showPhone />
-            <span>Locked after check-in</span>
-          </div>
-        ) : patientMode === "existing" ? (
-          <>
-            {selectedPatient && (
-              <div className="selected-patient">
-                <PatientContext patient={selectedPatient} showPhone />
-                <button className="text-button" type="button" onClick={() => { setSelectedPatient(null); setPatientChanged(true); setSameDayConflict(null); }}>Change</button>
-              </div>
-            )}
-            {!selectedPatient && (
-              <>
-                <input
-                  className="patient-picker__search"
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Type name, phone, or date of birth"
-                  aria-label="Find existing patient"
-                  autoFocus
-                />
-                {searching && <span className="patient-picker__status">Searching…</span>}
-                {!searching && query && !matches.length && <span className="patient-picker__status">No matching active Patient.</span>}
-                {!!matches.length && (
-                  <div className="patient-picker__results">
-                    {matches.map((patient) => (
-                      <button type="button" key={patient.id} onClick={() => selectPatient(patient)}>
-                        <PatientContext patient={patient} showPhone />
-                        <span aria-hidden="true">→</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        ) : (
-          <div className="inline-patient-form">
-            <p>The Patient and appointment will be created together. The date, time, and reason remain attached.</p>
-            <PatientFields form={newPatient} onChange={updateNewPatient} />
-          </div>
-        )}
-      </section>
-
-      <div className="form-actions">
-        <button className="secondary-button" type="button" onClick={onCancel}>Cancel</button>
-        <button className="primary-button primary-button--compact" type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : visit ? "Save appointment" : "Add appointment"}
-        </button>
-      </div>
-    </form>
   );
 }
 
@@ -870,6 +584,7 @@ export default function ScheduleWorkspace({
               onSaved={saved}
               onCancel={() => setMode("list")}
               onOpenExisting={openExistingAppointment}
+              onOpenPatient={onOpenPatient}
             />
           )}
           {mode === "edit" && editingVisit && (
@@ -882,6 +597,7 @@ export default function ScheduleWorkspace({
               onSaved={saved}
               onCancel={() => { setEditingVisit(null); setMode("list"); }}
               onOpenExisting={openExistingAppointment}
+              onOpenPatient={onOpenPatient}
             />
           )}
         </div>

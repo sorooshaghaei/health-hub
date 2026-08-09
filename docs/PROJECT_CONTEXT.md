@@ -34,7 +34,7 @@ Doctor workspace owns Room ready and otherwise stays clinically focused. It may 
 - reusable Patient profile;
 - full name, `Man`/`Woman`, country/calling code, phone, optional date of birth, optional shared Patient note;
 - Iran `+98` default;
-- small country selector with flag, country name, and calling code beside a large national-number input;
+- compact flag-and-country selector with the selected calling code beside a large national-number input; on mobile the country row sits above the code-and-number row;
 - one combined phone display in the Patient profile; no separate Country code or National number cards;
 - search by name, phone, or date of birth updates automatically while typing;
 - Doctor workspace may edit every Patient field;
@@ -44,7 +44,7 @@ Doctor workspace owns Room ready and otherwise stays clinically focused. It may 
 - current/future Appointments block deletion;
 - five-second Patient deletion Undo;
 - Role boundary and Individual access cards are removed;
-- Leave clinic completely remains with an explanation that it clears browser access without deleting clinic data.
+- the separate Leave clinic card/action is removed; staff use the top Sign out control to leave or switch accounts.
 
 ### Appointments
 
@@ -57,7 +57,7 @@ Doctor workspace owns Room ready and otherwise stays clinically focused. It may 
 - database uniqueness, API validation, and browser-demo validation enforce the same rule;
 - migration never silently deletes or merges existing duplicates and stops for manual resolution if needed;
 - a Patient arriving without an Appointment for today receives a normal same-day Appointment, whose frontend time defaults to current time, then check-in;
-- inline Patient plus Appointment creation;
+- Patient-first Appointment create/edit form: after two typed name characters, existing Patients are suggested in a floating list; selecting one collapses to a compact card, otherwise the same form continues as new-Patient creation;
 - past and future history inside Patient profile;
 - current/future Appointment deletion before consultation with five-second Undo;
 - Appointment create/edit/delete controls are present in Assistant workspace, including when opened by the Doctor administrator;

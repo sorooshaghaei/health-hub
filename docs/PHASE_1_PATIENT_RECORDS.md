@@ -17,8 +17,8 @@ Returning Patients reuse the existing profile and receive another Appointment on
 | --- | --- | --- |
 | Full name | Yes | Stored without generated suffixes. |
 | Gender | Yes | `Man` or `Woman`. |
-| Country | Yes | Small country selector shows flag, country name, and calling code. Iran `+98` defaults. |
-| Phone number | Yes | Large national-number input; normalized national and E.164 values are stored. |
+| Country | Yes | Compact selector shows flag and country name. Iran defaults. |
+| Phone number | Yes | The selected calling code is shown beside the large national-number input; normalized national and E.164 values are stored. |
 | Date of birth | No | May be empty. |
 | Patient note | No | Shared plain text attached to the Patient. |
 
@@ -66,7 +66,7 @@ Patient deletion is an internal soft deletion with no visible archive state.
 
 - the Patient workspace uses the full available width;
 - Role boundary and Individual access cards are not shown;
-- **Leave clinic completely** remains at the bottom with a short explanation that it removes saved access from the current browser without deleting clinic data or accounts.
+- no separate clinic-exit card or browser-access clearing action is shown; staff use the top **Sign out** control to leave or switch accounts.
 
 ## Implemented scope
 
@@ -76,6 +76,6 @@ Patient deletion is an internal soft deletion with no visible archive state.
 - Doctor Patient-edit permission with Assistant-only creation/deletion;
 - Doctor administrator parity inside Assistant workspace;
 - duplicate detection and explicit override;
-- combined country/phone UI;
+- responsive country/phone UI with country selection above the code-and-number row on mobile;
 - browser-demo parity;
 - backend and browser-adapter tests.

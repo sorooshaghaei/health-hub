@@ -66,20 +66,20 @@ The database migration fills missing scheduled times in legacy rows, then remove
 - create a Patient and Appointment together;
 - Doctor administrator credentials may open this workspace.
 
-## Existing-Patient selection
+## Patient-first Appointment form
 
-Suggestions show:
+The create and edit forms show the Patient section before date, scheduled time, and visit reason. There is no separate first choice between “existing Patient” and “new Patient.”
+
+The Assistant types directly into the full-name field. After two typed characters, matching active Patients appear in a floating suggestion list over the form. Each suggestion shows:
 
 - full name;
 - phone;
-- date of birth;
-- gender.
+- gender;
+- date of birth when available.
 
-Selecting a suggestion attaches the Appointment to that Patient. If that Patient already has an Appointment on the selected date, the form shows the existing Appointment and provides **Open appointment**.
+Selecting a suggestion attaches the Appointment to that Patient and collapses the Patient section into a compact selected-Patient card with **Change** and **Open profile** actions. Patient details are not edited from the Appointment form.
 
-## Inline Patient creation
-
-The Assistant can create a Patient without leaving the Appointment form. Date, scheduled time, and reason remain attached to the draft. Patient and Appointment creation occurs atomically. The standard duplicate warning and explicit separate-profile action remain active.
+When no suggestion is selected, the Assistant continues filling gender, country/phone, optional date of birth, and optional Patient note in the same form. Patient and Appointment creation occurs atomically. The standard duplicate warning and explicit separate-profile action remain active. If the selected Patient already has an Appointment on the chosen date, the form shows the existing Appointment and provides **Open appointment**.
 
 ## Editing and deletion
 

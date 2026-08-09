@@ -5,7 +5,7 @@ import UndoStack from "./UndoStack.jsx";
 import { PatientProfileForm } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
 
-export default function PatientWorkspaceView({ user, staffToken, onSignOut, onLeaveClinic, controller }) {
+export default function PatientWorkspaceView({ user, staffToken, onSignOut, controller }) {
   const {
     doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient,
     canCreateDeletePatients, canManageAppointments, section, setSection, patients,
@@ -122,13 +122,6 @@ export default function PatientWorkspaceView({ user, staffToken, onSignOut, onLe
                     canManageAppointments={canManageAppointments}
                   />
                 )}
-              </div>
-              <div className="clinic-exit">
-                <div>
-                  <strong>Leave this clinic on this device</strong>
-                  <span>Removes the saved clinic access from this browser. It does not delete clinic data or staff accounts.</span>
-                </div>
-                <button className="secondary-button" type="button" onClick={onLeaveClinic}>Leave clinic completely</button>
               </div>
             </article>
           </section>

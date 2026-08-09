@@ -44,7 +44,7 @@ Doctor workspace owns the Room ready signal, views Appointment administration re
 - reusable clinic-scoped Patient profiles;
 - full name, `Man`/`Woman`, country/calling code, phone, optional date of birth, optional shared Patient note;
 - Iran `+98` default;
-- compact country selector with flag, country name, and calling code beside a large national-number field;
+- compact flag-and-country selector with the selected calling code beside a large national-number field; the control stacks into the same two-part structure on mobile;
 - one combined phone display in the Patient profile;
 - automatic search while typing by name, phone, or date of birth;
 - Doctor and Assistant workspaces may edit all approved Patient fields;
@@ -66,6 +66,8 @@ A Patient may have Appointments on different dates but may have only one active 
 Every clinic attendance uses a normal Appointment. When a Patient arrives without one for today, the Assistant creates a same-day Appointment; the frontend defaults its time to the current local time; then the Assistant checks the Patient in.
 
 Appointment create/edit/delete controls are available in Assistant workspace, including when a Doctor administrator enters that workspace. Doctor workspace intentionally omits those administrative controls.
+
+The Appointment create/edit form starts with Patient information. After two name characters, matching existing Patients appear in a floating suggestion list showing name, phone, gender, and date of birth when available. Selecting one collapses the Patient section into a compact card; otherwise the same fields continue as new-Patient creation. Date, scheduled time, and reason appear below the Patient section.
 
 ### Check-in and live queue
 
