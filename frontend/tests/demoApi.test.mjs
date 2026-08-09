@@ -92,7 +92,7 @@ const patientData = {
   patient_note: "",
 };
 
-test("browser demo enforces Doctor read-only and Doctor administrator Assistant access", async () => {
+test("browser demo allows Doctor Patient edits and Doctor administrator Assistant access", async () => {
   localStorage.clear();
   const { clinic, assistant, doctor, doctorAsAssistant } = await authenticatedDemo();
 
@@ -113,14 +113,12 @@ test("browser demo enforces Doctor read-only and Doctor administrator Assistant 
   });
   assert.equal(doctorSearch.patients[0].id, patient.id);
 
-  await assert.rejects(
-    demoApiRequest(`/api/patients/${patient.id}/`, {
-      method: "PATCH",
-      staffToken: doctor.session_token,
-      data: { patient_note: "Not allowed" },
-    }),
-    (error) => error.status === 403,
-  );
+  const doctorEdit = await demoApiRequest(`/api/patients/${patient.id}/`, {
+    method: "PATCH",
+    staffToken: doctor.session_token,
+    data: { patient_note: "Doctor correction" },
+  });
+  assert.equal(doctorEdit.patient_note, "Doctor correction");
 
   const adminEdit = await demoApiRequest(`/api/patients/${patient.id}/`, {
     method: "PATCH",

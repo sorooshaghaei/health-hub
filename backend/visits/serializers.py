@@ -16,6 +16,11 @@ class SameDayAppointmentConflict(APIException):
     status_code = 409
     default_code = "same_day_appointment_exists"
 
+    def __init__(self, detail):
+        # Keep booleans and nested appointment data as native JSON values.
+        # APIException normally converts every leaf into ErrorDetail strings.
+        self.detail = detail
+
 
 def conflicting_same_day_appointment(
     *,

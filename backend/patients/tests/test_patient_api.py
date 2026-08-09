@@ -93,7 +93,7 @@ class PatientApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data
 
-    def test_doctor_workspace_reads_but_cannot_mutate_patients(self):
+    def test_doctor_workspace_reads_and_edits_but_cannot_create_or_delete_patients(self):
         patient = self.create_patient()
 
         detail = self.request_as(
@@ -121,7 +121,8 @@ class PatientApiTests(APITestCase):
 
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
         self.assertEqual(create.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(edit.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(edit.status_code, status.HTTP_200_OK)
+        self.assertEqual(edit.data["patient_note"], "Changed")
         self.assertEqual(delete.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_assistant_and_doctor_admin_assistant_workspace_manage_patients(self):

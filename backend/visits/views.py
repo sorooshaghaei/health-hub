@@ -206,7 +206,7 @@ class VisitRoomStateView(APIView):
             .first()
         )
         room_call = pending_room_call(clinic)
-        first_waiting = ordered_queue(clinic).only("id").first()
+        first_waiting_id = ordered_queue(clinic).values_list("id", flat=True).first()
 
         visible_call = room_call
         if (
@@ -236,7 +236,7 @@ class VisitRoomStateView(APIView):
                 "room_call": (
                     room_call_payload(
                         visible_call,
-                        first_waiting.id if first_waiting is not None else None,
+                        first_waiting_id,
                     )
                     if visible_call is not None
                     else None
@@ -475,12 +475,12 @@ class RoomReadyView(APIView):
             room_call.consumed_at = None
             room_call.save()
 
-        first_waiting = ordered_queue(clinic).only("id").first()
+        first_waiting_id = ordered_queue(clinic).values_list("id", flat=True).first()
         return Response(
             {
                 "room_call": room_call_payload(
                     room_call,
-                    first_waiting.id if first_waiting is not None else None,
+                    first_waiting_id,
                 ),
                 "previous_visit": (
                     VisitSerializer(current_visit, context={"request": request}).data
