@@ -40,7 +40,7 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | --- | --- | --- |
 | 0 | Foundation verification | Implemented |
 | 1 | Patient records | Implemented |
-| 2 | Planned appointments | Implemented |
+| 2 | Planned appointments | Implemented; corrected to one Appointment per Patient per date |
 | 3 | Check-in and live waiting queue | Implemented |
 | 4 | Doctor room call and consultation handoff | Implemented |
 | 5 | Doctor-finished indication and checkout | Partially specified |
@@ -74,8 +74,12 @@ Implemented according to [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md):
 
 - Patient, date, scheduled time, optional reason;
 - one Appointment type for every clinic attendance;
+- one active Appointment maximum per Patient per clinic date;
+- duplicate create/edit returns the existing Appointment for opening instead of offering an override;
+- a deleted Appointment reserves its Patient/date during the five-second Undo period;
+- active uniqueness is protected by a database constraint and mirrored by the browser demo;
+- existing active duplicates are never silently deleted or merged; migration stops for manual resolution;
 - same-day ad-hoc Appointment defaults to current time in the frontend;
-- repeated same-day Appointments;
 - inline Patient plus Appointment creation;
 - Patient Appointment history;
 - Doctor list visibility and Assistant management;

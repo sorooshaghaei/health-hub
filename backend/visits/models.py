@@ -104,6 +104,11 @@ class Visit(models.Model):
                 condition=Q(queue_sequence__isnull=False, deleted_at__isnull=True),
                 name="visit_active_queue_sequence_unique",
             ),
+            models.UniqueConstraint(
+                fields=["clinic", "patient", "date"],
+                condition=Q(deleted_at__isnull=True),
+                name="visit_patient_date_unique",
+            ),
         ]
 
     def __str__(self):

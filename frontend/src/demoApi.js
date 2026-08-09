@@ -34,6 +34,37 @@ import {
   visitById,
 } from "./demoApiCore.js";
 
+function sameDayAppointmentConflict(store, patientId, date, excludeVisitId = null) {
+  const cutoff = Date.now() - UNDO_WINDOW_MS;
+  const matches = store.visits.filter(
+    (visit) => visit.id !== excludeVisitId
+      && visit.patient_id === patientId
+      && visit.date === date
+      && (
+        !visit.deleted_at
+        || new Date(visit.deleted_at).getTime() >= cutoff
+      ),
+  );
+  return matches.find((visit) => !visit.deleted_at)
+    ?? matches.sort((first, second) => String(second.deleted_at).localeCompare(String(first.deleted_at)))[0]
+    ?? null;
+}
+
+function rejectSameDayAppointment(store, conflict) {
+  fail(
+    {
+      code: "same_day_appointment_exists",
+      detail: "This Patient already has an appointment on this date.",
+      appointment: publicVisit(store, conflict),
+      recently_deleted: Boolean(conflict.deleted_at),
+      undo_until: conflict.deleted_at
+        ? addMilliseconds(conflict.deleted_at, UNDO_WINDOW_MS)
+        : null,
+    },
+    409,
+  );
+}
+
 export async function demoApiRequest(
   path,
   { method = "GET", data = {}, clinicToken, staffToken } = {},
@@ -152,6 +183,10 @@ export async function demoApiRequest(
   }
   if (pathname === "/api/visits/" && method === "POST") {
     requireAssistantWorkspace(session);
+    if (data.patient_id && data.date) {
+      const conflict = sameDayAppointmentConflict(store, data.patient_id, data.date);
+      if (conflict) rejectSameDayAppointment(store, conflict);
+    }
     return createVisit(store, data);
   }
 
@@ -236,6 +271,11 @@ export async function demoApiRequest(
     if (method === "GET") return publicVisit(store, visitById(store, visitId));
     if (method === "PATCH") {
       requireAssistantWorkspace(session);
+      const current = visitById(store, visitId);
+      const patientId = data.patient_id ?? current.patient_id;
+      const date = data.date ?? current.date;
+      const conflict = sameDayAppointmentConflict(store, patientId, date, visitId);
+      if (conflict) rejectSameDayAppointment(store, conflict);
       return updateVisit(store, visitId, data);
     }
     if (method === "DELETE") {

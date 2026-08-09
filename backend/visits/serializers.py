@@ -1,9 +1,47 @@
+from datetime import timedelta
+
+from django.db import IntegrityError, transaction
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 
 from accounts.models import StaffUser
 from accounts.permissions import active_workspace_role
 
-from .models import Visit
+from .models import UNDO_WINDOW_SECONDS, Visit
+
+
+class SameDayAppointmentConflict(APIException):
+    status_code = 409
+    default_code = "same_day_appointment_exists"
+
+
+def conflicting_same_day_appointment(
+    *,
+    clinic_id,
+    patient_id,
+    date,
+    exclude_visit_id=None,
+):
+    queryset = Visit.all_objects.select_related("patient").filter(
+        clinic_id=clinic_id,
+        patient_id=patient_id,
+        date=date,
+    )
+    if exclude_visit_id is not None:
+        queryset = queryset.exclude(pk=exclude_visit_id)
+
+    active = queryset.filter(deleted_at__isnull=True).order_by("created_at").first()
+    if active is not None:
+        return active
+
+    cutoff = timezone.now() - timedelta(seconds=UNDO_WINDOW_SECONDS)
+    return (
+        queryset.filter(deleted_at__gte=cutoff)
+        .order_by("-deleted_at", "created_at")
+        .first()
+    )
 
 
 class VisitSerializer(serializers.ModelSerializer):
@@ -100,22 +138,97 @@ class VisitSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    def _raise_same_day_conflict(self, conflict):
+        raise SameDayAppointmentConflict(
+            {
+                "code": "same_day_appointment_exists",
+                "detail": "This Patient already has an appointment on this date.",
+                "appointment": self.__class__(
+                    conflict,
+                    context=self.context,
+                ).data,
+                "recently_deleted": conflict.deleted_at is not None,
+                "undo_until": conflict.delete_undo_until,
+            }
+        )
+
+    def _ensure_one_appointment_per_date(
+        self,
+        *,
+        clinic_id,
+        patient_id,
+        date,
+        exclude_visit_id=None,
+    ):
+        conflict = conflicting_same_day_appointment(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            date=date,
+            exclude_visit_id=exclude_visit_id,
+        )
+        if conflict is not None:
+            self._raise_same_day_conflict(conflict)
+
     def create(self, validated_data):
         validated_data.pop("patient_id", None)
         validated_data.pop("new_patient", None)
+        clinic = validated_data["clinic"]
+        patient = validated_data["patient"]
+        date = validated_data["date"]
+
+        self._ensure_one_appointment_per_date(
+            clinic_id=clinic.pk,
+            patient_id=patient.pk,
+            date=date,
+        )
+
         visit = Visit(**validated_data)
-        visit.save()
+        try:
+            with transaction.atomic():
+                visit.save()
+        except IntegrityError:
+            conflict = conflicting_same_day_appointment(
+                clinic_id=clinic.pk,
+                patient_id=patient.pk,
+                date=date,
+            )
+            if conflict is not None:
+                self._raise_same_day_conflict(conflict)
+            raise
         return visit
 
     def update(self, instance, validated_data):
         validated_data.pop("patient_id", None)
         validated_data.pop("new_patient", None)
+        patient = validated_data.get("patient", instance.patient)
+        date = validated_data.get("date", instance.date)
+
+        self._ensure_one_appointment_per_date(
+            clinic_id=instance.clinic_id,
+            patient_id=patient.pk,
+            date=date,
+            exclude_visit_id=instance.pk,
+        )
+
         previous_patient_id = instance.patient_id
         for field, value in validated_data.items():
             setattr(instance, field, value)
         if instance.patient_id != previous_patient_id:
             instance.capture_patient_snapshot()
-        instance.save()
+
+        try:
+            with transaction.atomic():
+                instance.save()
+        except IntegrityError:
+            conflict = conflicting_same_day_appointment(
+                clinic_id=instance.clinic_id,
+                patient_id=instance.patient_id,
+                date=instance.date,
+                exclude_visit_id=instance.pk,
+            )
+            if conflict is not None:
+                self._raise_same_day_conflict(conflict)
+            raise
         return instance
 
     def get_patient(self, obj):

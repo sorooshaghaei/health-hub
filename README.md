@@ -24,7 +24,7 @@ The project is developed directly on `main`, one approved phase at a time. Imple
 
 **Phase 4 — Doctor room call and consultation handoff: repository implementation complete.**
 
-Phase 5 has not been approved for implementation.
+A post-Phase-4 correction now enforces one Appointment per Patient per clinic date. Phase 5 has not been approved for implementation.
 
 ## Access model
 
@@ -57,7 +57,9 @@ Every clinic attendance is an Appointment with:
 - scheduled time;
 - optional visit reason.
 
-Every clinic attendance uses a normal Appointment. When a Patient arrives without one, the Assistant creates a same-day Appointment; the frontend defaults its time to the current local time; then the Assistant checks the Patient in.
+A Patient may have Appointments on different dates but may have only one active Appointment on a given clinic date. Creating or editing a duplicate returns the existing Appointment so the Assistant can open it instead. A deleted Appointment reserves that Patient/date during its five-second Undo period; after expiry, a replacement may be created.
+
+Every clinic attendance uses a normal Appointment. When a Patient arrives without one for today, the Assistant creates a same-day Appointment; the frontend defaults its time to the current local time; then the Assistant checks the Patient in.
 
 ### Check-in and live queue
 
@@ -112,7 +114,7 @@ Normal form edits use the regular Edit flow.
 backend/accounts/                Clinic, staff, sessions, workspace access
 backend/patients/                Patient records and deletion Undo
 backend/visits/                  Appointments, queue, room calls, consultation handoff
-backend/health_hub/             Django project configuration
+backend/health_hub/              Django project configuration
 frontend/                        React/Vite app and browser adapter
 docs/                            Product specifications and handoff
 docker-compose.yml               Local PostgreSQL service
@@ -215,7 +217,7 @@ Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, and Appointment 
 
 ## Migration behavior
 
-The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The browser demo performs equivalent local-storage migration for existing demo data.
+The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. The browser demo performs equivalent local-storage migration and validation for existing demo data.
 
 ## Production boundary
 

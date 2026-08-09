@@ -72,7 +72,38 @@ function PatientContext({ patient, showPhone = false }) {
   );
 }
 
-function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCancel }) {
+function SameDayAppointmentWarning({ conflict, onOpenExisting }) {
+  if (!conflict) return null;
+  const appointment = conflict.appointment;
+  return (
+    <div className="duplicate-warning" role="alert">
+      <div>
+        <p className="eyebrow">Existing appointment</p>
+        <strong>This Patient already has an appointment on this date.</strong>
+        <span>
+          {conflict.recently_deleted
+            ? "The existing appointment was just deleted. Use the five-second Undo action or wait for it to expire."
+            : `${formatTime(appointment.scheduled_time)} · ${statusLabel(appointment.status)}`}
+        </span>
+      </div>
+      {!conflict.recently_deleted && (
+        <button className="secondary-button" type="button" onClick={() => onOpenExisting(appointment)}>
+          Open appointment
+        </button>
+      )}
+    </div>
+  );
+}
+
+function VisitForm({
+  visit,
+  defaultDate,
+  defaultTime,
+  staffToken,
+  onSaved,
+  onCancel,
+  onOpenExisting,
+}) {
   const workflowStarted = Boolean(visit && visit.status !== "planned");
   const [schedule, setSchedule] = useState({
     date: visit?.date ?? defaultDate,
@@ -87,6 +118,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
   const [searching, setSearching] = useState(false);
   const [newPatient, setNewPatient] = useState(emptyPatient());
   const [warning, setWarning] = useState(null);
+  const [sameDayConflict, setSameDayConflict] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -119,6 +151,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
     setQuery("");
     setMatches([]);
     setWarning(null);
+    setSameDayConflict(null);
   }
 
   function startNewPatient() {
@@ -126,10 +159,12 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
     setSelectedPatient(null);
     setPatientChanged(true);
     setWarning(null);
+    setSameDayConflict(null);
   }
 
   function updateNewPatient(name, value) {
     setWarning(null);
+    setSameDayConflict(null);
     setNewPatient((current) => ({ ...current, [name]: value }));
   }
 
@@ -158,6 +193,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
     }
 
     setError(null);
+    setSameDayConflict(null);
     setSubmitting(true);
     try {
       const saved = await apiRequest(visit ? `/api/visits/${visit.id}/` : "/api/visits/", {
@@ -167,7 +203,17 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
       });
       await onSaved(saved);
     } catch (requestError) {
-      if (requestError instanceof ApiError && requestError.status === 409 && requestError.fields?.code === "possible_duplicate") {
+      if (
+        requestError instanceof ApiError
+        && requestError.status === 409
+        && requestError.fields?.code === "same_day_appointment_exists"
+      ) {
+        setSameDayConflict(requestError.fields);
+      } else if (
+        requestError instanceof ApiError
+        && requestError.status === 409
+        && requestError.fields?.code === "possible_duplicate"
+      ) {
         setWarning(requestError.fields);
       } else {
         setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment could not be saved."));
@@ -192,6 +238,10 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
       </div>
 
       <ErrorMessage error={error} />
+      <SameDayAppointmentWarning
+        conflict={sameDayConflict}
+        onOpenExisting={onOpenExisting}
+      />
       <DuplicateWarning
         warning={warning}
         onUseExisting={(match) => {
@@ -207,7 +257,10 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
           name="date"
           type="date"
           value={schedule.date}
-          onChange={(event) => setSchedule((current) => ({ ...current, date: event.target.value }))}
+          onChange={(event) => {
+            setSameDayConflict(null);
+            setSchedule((current) => ({ ...current, date: event.target.value }));
+          }}
           disabled={workflowStarted}
           required
         />
@@ -237,7 +290,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
             <h4>{workflowStarted ? "Checked-in Patient" : patientMode === "new" ? "Create a new Patient" : "Use an existing Patient"}</h4>
           </div>
           {!workflowStarted && (patientMode === "new" ? (
-            <button className="text-button" type="button" onClick={() => { setPatientMode("existing"); setWarning(null); }}>Search existing</button>
+            <button className="text-button" type="button" onClick={() => { setPatientMode("existing"); setWarning(null); setSameDayConflict(null); }}>Search existing</button>
           ) : (
             <button className="text-button" type="button" onClick={startNewPatient}>Create new Patient</button>
           ))}
@@ -253,7 +306,7 @@ function VisitForm({ visit, defaultDate, defaultTime, staffToken, onSaved, onCan
             {selectedPatient && (
               <div className="selected-patient">
                 <PatientContext patient={selectedPatient} showPhone />
-                <button className="text-button" type="button" onClick={() => { setSelectedPatient(null); setPatientChanged(true); }}>Change</button>
+                <button className="text-button" type="button" onClick={() => { setSelectedPatient(null); setPatientChanged(true); setSameDayConflict(null); }}>Change</button>
               </div>
             )}
             {!selectedPatient && (
@@ -568,6 +621,12 @@ export default function ScheduleWorkspace({
     onVisitChanged?.();
   }
 
+  function openExistingAppointment(visit) {
+    setSelectedDate(visit.date);
+    setEditingVisit(visit);
+    setMode("edit");
+  }
+
   async function checkIn(visit) {
     setError(null);
     try {
@@ -804,21 +863,25 @@ export default function ScheduleWorkspace({
 
           {mode === "create" && (
             <VisitForm
+              key="create"
               defaultDate={selectedDate}
               defaultTime={selectedDate === today ? localTimeValue() : ""}
               staffToken={staffToken}
               onSaved={saved}
               onCancel={() => setMode("list")}
+              onOpenExisting={openExistingAppointment}
             />
           )}
           {mode === "edit" && editingVisit && (
             <VisitForm
+              key={editingVisit.id}
               visit={editingVisit}
               defaultDate={editingVisit.date}
               defaultTime={editingVisit.scheduled_time?.slice(0, 5) ?? ""}
               staffToken={staffToken}
               onSaved={saved}
               onCancel={() => { setEditingVisit(null); setMode("list"); }}
+              onOpenExisting={openExistingAppointment}
             />
           )}
         </div>

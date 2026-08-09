@@ -44,9 +44,14 @@ Doctor workspace is read-only for Patient and Appointment administration. Assist
 
 - Patient, date, scheduled time, optional reason;
 - one Appointment type for every clinic attendance;
-- a Patient arriving without an Appointment receives a normal same-day Appointment, whose frontend time defaults to current time, then check-in;
+- a Patient may have Appointments on different dates but only one active Appointment per clinic date;
+- duplicate create/edit returns the existing Appointment with **Open appointment** rather than an override;
+- a just-deleted Appointment reserves its Patient/date during the five-second Undo period;
+- after Undo expiry, a replacement Appointment may be created;
+- database uniqueness, API validation, and browser-demo validation enforce the same rule;
+- migration never silently deletes or merges existing duplicates and stops for manual resolution if needed;
+- a Patient arriving without an Appointment for today receives a normal same-day Appointment, whose frontend time defaults to current time, then check-in;
 - inline Patient plus Appointment creation;
-- multiple same-day Appointments allowed;
 - past and future history inside Patient profile;
 - current/future Appointment deletion before consultation with five-second Undo;
 - legacy Visit records migrate to the Appointment-only model.
@@ -102,7 +107,7 @@ See:
 
 ## Current phase
 
-**Phase 4 repository implementation is complete. Stop until the product owner explicitly says continue.**
+**Phase 4 repository implementation is complete, including the approved one-Appointment-per-Patient-per-date correction. Stop until the product owner explicitly says continue.**
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 
