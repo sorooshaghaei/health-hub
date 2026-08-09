@@ -127,7 +127,6 @@ export async function demoApiRequest(
     const patientId = patientMatch[1];
     if (method === "GET") return publicPatient(patientById(store, patientId));
     if (method === "PATCH") {
-      requireAssistantWorkspace(session);
       return updatePatient(store, patientId, data);
     }
     if (method === "DELETE") {

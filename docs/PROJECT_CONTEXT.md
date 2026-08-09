@@ -21,24 +21,30 @@ Health Hub is a deliberately simple clinic workflow application for one clinic w
 Account identity and active workspace are separate:
 
 - Doctor credentials can open Doctor workspace;
-- Doctor credentials can open Assistant workspace for administrator intervention;
+- Doctor credentials can open Assistant workspace for full administrator intervention;
 - Assistant credentials can open Assistant workspace;
 - Assistant credentials cannot open Doctor workspace.
 
-Doctor workspace is read-only for Patient and Appointment administration. Assistant workspace owns Patient, Appointment, check-in, queue, and Patient-to-room actions. Doctor workspace exclusively owns the Room ready action.
+Doctor workspace owns Room ready and otherwise stays clinically focused. It may view and edit every approved Patient field, but it cannot create/delete Patients or administer Appointments. Assistant workspace owns full Patient and Appointment administration, check-in, queue, and Patient-to-room actions. A Doctor account inside Assistant workspace receives exactly the same administrative controls as the Assistant.
 
 ## Implemented workflow
 
 ### Patients
 
 - reusable Patient profile;
-- full name, `Man`/`Woman`, calling code, phone, optional date of birth, optional shared Patient note;
+- full name, `Man`/`Woman`, country/calling code, phone, optional date of birth, optional shared Patient note;
 - Iran `+98` default;
-- search by name, phone, or date of birth;
+- small country selector with flag, country name, and calling code beside a large national-number input;
+- one combined phone display in the Patient profile; no separate Country code or National number cards;
+- search by name, phone, or date of birth updates automatically while typing;
+- Doctor workspace may edit every Patient field;
+- Patient creation and deletion remain Assistant-workspace actions;
 - one Possible duplicate patient warning;
 - internal soft deletion;
 - current/future Appointments block deletion;
-- five-second Patient deletion Undo.
+- five-second Patient deletion Undo;
+- Role boundary and Individual access cards are removed;
+- Leave clinic completely remains with an explanation that it clears browser access without deleting clinic data.
 
 ### Appointments
 
@@ -54,6 +60,8 @@ Doctor workspace is read-only for Patient and Appointment administration. Assist
 - inline Patient plus Appointment creation;
 - past and future history inside Patient profile;
 - current/future Appointment deletion before consultation with five-second Undo;
+- Appointment create/edit/delete controls are present in Assistant workspace, including when opened by the Doctor administrator;
+- Doctor workspace does not expose Appointment administration controls;
 - legacy Visit records migrate to the Appointment-only model.
 
 ### Check-in and queue
@@ -107,7 +115,7 @@ See:
 
 ## Current phase
 
-**Phase 4 repository implementation is complete, including the approved one-Appointment-per-Patient-per-date correction. Stop until the product owner explicitly says continue.**
+**Phase 4 repository implementation is complete, including the approved one-Appointment-per-Patient-per-date and Patient-workspace corrections. Stop until the product owner explicitly says continue.**
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 

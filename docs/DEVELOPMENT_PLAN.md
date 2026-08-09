@@ -22,8 +22,8 @@ Do not create branches, pull requests, speculative features, duplicate workflows
 - one Doctor account;
 - one Assistant account;
 - Doctor is clinic administrator;
-- Doctor credentials may open Assistant workspace;
-- Doctor workspace remains focused and read-only for administration;
+- Doctor credentials may open Assistant workspace with full administrative access;
+- Doctor workspace remains focused: it may edit Patient information but not create/delete Patients or administer Appointments;
 - React/Vite frontend;
 - Django REST Framework backend;
 - PostgreSQL primary database;
@@ -39,7 +39,7 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 0 | Foundation verification | Implemented |
-| 1 | Patient records | Implemented |
+| 1 | Patient records | Implemented; corrected permissions/search/phone layout |
 | 2 | Planned appointments | Implemented; corrected to one Appointment per Patient per date |
 | 3 | Check-in and live waiting queue | Implemented |
 | 4 | Doctor room call and consultation handoff | Implemented |
@@ -62,9 +62,15 @@ Implemented according to [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.
 
 - reusable Patient profiles;
 - approved fields and normalization;
-- combined search;
+- automatic search while typing;
 - one duplicate warning;
-- Doctor read-only and Assistant management access;
+- Doctor and Assistant may edit all approved Patient fields;
+- Patient creation/deletion remains Assistant-workspace administration;
+- Doctor administrator receives full Assistant-workspace controls when entering that workspace;
+- compact flag/country/calling-code selector beside a large national-number field;
+- one combined phone display; no separate Country code or National number cards;
+- Role boundary and Individual access cards removed;
+- Leave clinic completely retained with a browser-access explanation;
 - soft deletion with five-second Undo;
 - current/future Appointment deletion block.
 
@@ -82,7 +88,8 @@ Implemented according to [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md):
 - same-day ad-hoc Appointment defaults to current time in the frontend;
 - inline Patient plus Appointment creation;
 - Patient Appointment history;
-- Doctor list visibility and Assistant management;
+- Doctor list visibility and Assistant-workspace management;
+- Appointment deletion is available to Assistant workspace, including Doctor administrator access there, but not Doctor workspace;
 - legacy Visit data migration to the Appointment-only model.
 
 ## Phase 3 — Check-in and live waiting queue

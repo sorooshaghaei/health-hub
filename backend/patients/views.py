@@ -84,7 +84,8 @@ class PatientDetailView(APIView):
         return Response(PatientSerializer(self.get_patient(request, patient_id)).data)
 
     def patch(self, request, patient_id):
-        require_assistant_workspace(request)
+        # Both workspaces may keep shared Patient information up to date.
+        # Patient creation and deletion remain Assistant-workspace administration.
         patient = self.get_patient(request, patient_id)
         serializer = PatientSerializer(patient, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

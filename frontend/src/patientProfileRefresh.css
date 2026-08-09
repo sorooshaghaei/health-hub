@@ -1,0 +1,99 @@
+.workspace-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-grid--single .workspace-card--wide {
+  grid-row: auto;
+  min-height: 0;
+}
+
+.patient-search--live {
+  position: relative;
+}
+
+.patient-search__status {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.patient-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.patient-phone-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(210px, 0.38fr) minmax(280px, 1fr);
+  gap: 16px;
+}
+
+.patient-country-field select {
+  min-height: 49px;
+}
+
+.patient-phone-input {
+  min-height: 49px;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0.025em;
+}
+
+.patient-facts--compact {
+  grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.55fr);
+}
+
+.patient-phone-fact dd {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.clinic-exit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 22px;
+  padding: 20px 0 8px;
+  border-top: 1px solid #edf1ee;
+}
+
+.clinic-exit strong,
+.clinic-exit span {
+  display: block;
+}
+
+.clinic-exit strong {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.clinic-exit span {
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.clinic-exit .secondary-button {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .patient-form-grid,
+  .patient-phone-row,
+  .patient-facts--compact {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .patient-phone-row {
+    grid-column: auto;
+  }
+
+  .clinic-exit {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -4,24 +4,38 @@ import { ApiError } from "./api.js";
 import { ErrorMessage, Field, SelectField, TextAreaField } from "./ui.jsx";
 
 export const COUNTRY_CODES = [
-  ["Iran", "+98"],
-  ["France", "+33"],
-  ["United States / Canada", "+1"],
-  ["United Kingdom", "+44"],
-  ["Germany", "+49"],
-  ["Turkey", "+90"],
-  ["United Arab Emirates", "+971"],
-  ["Saudi Arabia", "+966"],
-  ["Qatar", "+974"],
-  ["Kuwait", "+965"],
-  ["Iraq", "+964"],
-  ["Afghanistan", "+93"],
-  ["Pakistan", "+92"],
-  ["India", "+91"],
-  ["Armenia", "+374"],
-  ["Azerbaijan", "+994"],
-  ["Georgia", "+995"],
+  { flag: "🇮🇷", country: "Iran", code: "+98" },
+  { flag: "🇫🇷", country: "France", code: "+33" },
+  { flag: "🇺🇸🇨🇦", country: "United States / Canada", code: "+1" },
+  { flag: "🇬🇧", country: "United Kingdom", code: "+44" },
+  { flag: "🇩🇪", country: "Germany", code: "+49" },
+  { flag: "🇹🇷", country: "Turkey", code: "+90" },
+  { flag: "🇦🇪", country: "United Arab Emirates", code: "+971" },
+  { flag: "🇸🇦", country: "Saudi Arabia", code: "+966" },
+  { flag: "🇶🇦", country: "Qatar", code: "+974" },
+  { flag: "🇰🇼", country: "Kuwait", code: "+965" },
+  { flag: "🇮🇶", country: "Iraq", code: "+964" },
+  { flag: "🇦🇫", country: "Afghanistan", code: "+93" },
+  { flag: "🇵🇰", country: "Pakistan", code: "+92" },
+  { flag: "🇮🇳", country: "India", code: "+91" },
+  { flag: "🇦🇲", country: "Armenia", code: "+374" },
+  { flag: "🇦🇿", country: "Azerbaijan", code: "+994" },
+  { flag: "🇬🇪", country: "Georgia", code: "+995" },
 ];
+
+export function countryForCallingCode(code) {
+  return COUNTRY_CODES.find((item) => item.code === code) ?? null;
+}
+
+export function formatPatientPhone(patient) {
+  const code = patient?.country_calling_code ?? "";
+  const country = countryForCallingCode(code);
+  const national = patient?.phone_number
+    || (patient?.phone_e164?.startsWith(code) ? patient.phone_e164.slice(code.length) : patient?.phone_e164)
+    || "";
+  if (!country) return `${code} ${national}`.trim() || "Not recorded";
+  return `${country.flag} ${country.country} ${country.code} ${national}`.trim();
+}
 
 export function emptyPatient() {
   return {
@@ -71,30 +85,30 @@ export function PatientFields({ form, onChange, includeNote = true }) {
           <option value="Man">Man</option>
           <option value="Woman">Woman</option>
         </SelectField>
-        <Field
-          label="Country calling code"
-          name="country_calling_code"
-          value={form.country_calling_code}
-          onChange={update}
-          list="patient-country-codes"
-          inputMode="tel"
-          required
-        />
-        <Field
-          label="Phone number"
-          name="phone_number"
-          value={form.phone_number}
-          onChange={update}
-          inputMode="tel"
-          autoComplete="tel-national"
-          hint="Enter the national number; the selected calling code is stored separately."
-          required
-        />
+        <div className="patient-phone-row">
+          <label className="field patient-country-field">
+            <span>Country</span>
+            <select name="country_calling_code" value={form.country_calling_code} onChange={update} required>
+              {COUNTRY_CODES.map(({ flag, country, code }) => (
+                <option value={code} key={`${country}-${code}`}>{flag} {country} {code}</option>
+              ))}
+            </select>
+          </label>
+          <Field
+            className="patient-phone-input"
+            label="Phone number"
+            name="phone_number"
+            value={form.phone_number}
+            onChange={update}
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder="913 325 7259"
+            hint="Enter the national number. The country code is added automatically."
+            required
+          />
+        </div>
         <Field label="Date of birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={update} />
       </div>
-      <datalist id="patient-country-codes">
-        {COUNTRY_CODES.map(([country, code]) => <option value={code} key={`${country}-${code}`}>{country}</option>)}
-      </datalist>
       {includeNote && (
         <TextAreaField
           label="Patient note"
@@ -102,7 +116,7 @@ export function PatientFields({ form, onChange, includeNote = true }) {
           value={form.patient_note}
           onChange={update}
           rows="4"
-          hint="Shared plain text visible to both workspaces and editable in the Assistant workspace."
+          hint="Shared plain text visible and editable in both Doctor and Assistant workspaces."
         />
       )}
     </>
@@ -168,7 +182,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
         <div>
           <p className="eyebrow">{patient ? "Edit profile" : "New profile"}</p>
           <h3>{patient ? patient.full_name : "Add patient"}</h3>
-          <p>Create the reusable Patient profile here. Appointments are managed from Schedule.</p>
+          <p>{patient ? "Update the Patient information shared by both workspaces." : "Create the reusable Patient profile here. Appointments are managed from Schedule."}</p>
         </div>
       </div>
       <ErrorMessage error={error} />

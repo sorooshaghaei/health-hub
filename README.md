@@ -24,7 +24,7 @@ The project is developed directly on `main`, one approved phase at a time. Imple
 
 **Phase 4 — Doctor room call and consultation handoff: repository implementation complete.**
 
-A post-Phase-4 correction now enforces one Appointment per Patient per clinic date. Phase 5 has not been approved for implementation.
+Post-Phase-4 corrections now enforce one Appointment per Patient per clinic date and the approved Patient-workspace permissions/layout. Phase 5 has not been approved for implementation.
 
 ## Access model
 
@@ -35,16 +35,20 @@ The clinic supports one Doctor account and one Assistant account. The Doctor is 
 - Assistant credentials can open Assistant workspace.
 - Assistant credentials cannot open Doctor workspace.
 
-Doctor workspace owns the Room ready signal and otherwise views Patient and Appointment administration read-only. Assistant workspace owns Patient management, Appointment management, check-in, queue actions, and sending a checked-in Patient into the Doctor's room.
+Doctor workspace owns the Room ready signal, views Appointment administration read-only, and may edit every approved Patient field. Patient creation/deletion and Appointment administration remain in Assistant workspace. A Doctor account inside Assistant workspace receives the same full administrative controls as the Assistant.
 
 ## Implemented workflow
 
 ### Patient records
 
 - reusable clinic-scoped Patient profiles;
-- full name, `Man`/`Woman`, calling code, phone, optional date of birth, optional shared Patient note;
+- full name, `Man`/`Woman`, country/calling code, phone, optional date of birth, optional shared Patient note;
 - Iran `+98` default;
-- search by name, phone, or date of birth;
+- compact country selector with flag, country name, and calling code beside a large national-number field;
+- one combined phone display in the Patient profile;
+- automatic search while typing by name, phone, or date of birth;
+- Doctor and Assistant workspaces may edit all approved Patient fields;
+- Patient creation/deletion remains Assistant-workspace administration;
 - one **Possible duplicate patient** warning;
 - internal soft deletion with five-second Undo.
 
@@ -60,6 +64,8 @@ Every clinic attendance is an Appointment with:
 A Patient may have Appointments on different dates but may have only one active Appointment on a given clinic date. Creating or editing a duplicate returns the existing Appointment so the Assistant can open it instead. A deleted Appointment reserves that Patient/date during its five-second Undo period; after expiry, a replacement may be created.
 
 Every clinic attendance uses a normal Appointment. When a Patient arrives without one for today, the Assistant creates a same-day Appointment; the frontend defaults its time to the current local time; then the Assistant checks the Patient in.
+
+Appointment create/edit/delete controls are available in Assistant workspace, including when a Doctor administrator enters that workspace. Doctor workspace intentionally omits those administrative controls.
 
 ### Check-in and live queue
 
