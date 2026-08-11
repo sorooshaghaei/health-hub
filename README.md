@@ -16,15 +16,16 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 - Planned appointments: [`docs/PHASE_2_VISITS.md`](docs/PHASE_2_VISITS.md)
 - Check-in and live queue: [`docs/PHASE_3_QUEUE.md`](docs/PHASE_3_QUEUE.md)
 - Doctor room call and consultation handoff: [`docs/PHASE_4_CONSULTATION.md`](docs/PHASE_4_CONSULTATION.md)
+- Completed consultation behavior: [`docs/PHASE_5_COMPLETION.md`](docs/PHASE_5_COMPLETION.md)
 - Visual direction: [`docs/design/README.md`](docs/design/README.md)
 
 The project is developed directly on `main`, one approved phase at a time. Implementation stops after each phase until the product owner explicitly says **continue**.
 
 ## Current phase
 
-**Phase 4 — Doctor room call and consultation handoff: repository implementation complete.**
+**Phase 5 — Completed consultation behavior: repository implementation complete.**
 
-Post-Phase-4 corrections now enforce one Appointment per Patient per clinic date and the approved Patient-workspace permissions/layout. Phase 5 has not been approved for implementation.
+`DOCTOR_FINISHED` is the final Appointment workflow state and is displayed to users as **Completed**. There is no separate checkout action or `CHECKED_OUT` state. Phase 6 has not been approved for implementation.
 
 ## Access model
 
@@ -86,7 +87,7 @@ PLANNED → CHECKED_IN
 - checked-in Patient and date are locked; scheduled time and reason remain editable;
 - live operational state refreshes every three seconds.
 
-### Room call and consultation handoff
+### Room call, consultation handoff, and completion
 
 ```text
 CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
@@ -94,14 +95,19 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 
 - Doctor taps **Room ready** as a one-time call;
 - any current `WITH_DOCTOR` Patient becomes `DOCTOR_FINISHED`;
-- Assistant receives the call only after the Doctor's five-second Undo period;
+- `DOCTOR_FINISHED` is final and appears as **Completed** in user-facing status text;
+- there is no separate Checkout action, checkout queue, checkout form, `CHECKED_OUT` state, or checkout timestamp;
+- `doctor_finished_at` remains the completion timestamp;
+- Assistant receives the room-ready call only after the Doctor's five-second Undo period;
+- Undo **Room ready** within that window restores the completed Patient to `WITH_DOCTOR`;
 - the call persists even when the queue is empty;
 - first waiting Patient is suggested, but Assistant may select any checked-in Patient;
 - Assistant taps **With doctor** to consume the call;
 - the selected Patient leaves the waiting queue without changing any original check-in sequence;
 - the Assistant can Undo **With doctor** for five seconds, restoring both Patient and pending call;
 - Doctor sees the current Patient in a compact, expandable consultation card with the shared Patient note;
-- there is no Doctor Finished, Pause, Return, or automatic-next-patient action;
+- completed Appointments remain visible in the daily Appointment list and Patient history;
+- there is no Doctor Finished, Checkout, Pause, Return, or automatic-next-patient action;
 - clinic-scoped transactional locking protects use from separate Doctor and Assistant computers.
 
 ### Five-second Undo
@@ -225,7 +231,7 @@ Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, and Appointment 
 
 ## Migration behavior
 
-The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. The browser demo performs equivalent local-storage migration and validation for existing demo data.
+The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. The browser demo performs equivalent local-storage migration and validation for existing demo data.
 
 ## Production boundary
 

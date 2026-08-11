@@ -43,7 +43,7 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | 2 | Planned appointments | Implemented; corrected to one Appointment per Patient per date |
 | 3 | Check-in and live waiting queue | Implemented |
 | 4 | Doctor room call and consultation handoff | Implemented |
-| 5 | Doctor-finished indication and checkout | Partially specified |
+| 5 | Completed consultation behavior | Implemented |
 | 6 | Shared tasks | Partially specified |
 | 7 | Private notes | Partially specified |
 | 8 | Daily operational estimate | Not started |
@@ -135,17 +135,25 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 - server-side clinic locks protect the workflow across separate Doctor and Assistant computers;
 - browser-demo behavior and automated tests mirror the backend.
 
-## Phase 5 — Doctor-finished indication and checkout
+## Phase 5 — Completed consultation behavior
 
-Confirmed transition:
+Implemented according to [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md).
 
 ```text
-DOCTOR_FINISHED → CHECKED_OUT
+PLANNED → CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
-Before implementation, confirm Assistant indication, multiple Patients awaiting checkout, row information, required checkout data, reversal behavior, completed visibility, and Doctor visibility of checkout completion.
+`DOCTOR_FINISHED` is the final Appointment state. It is displayed to users as **Completed**.
 
-No email, SMS, browser push, or external notification is added without approval.
+- there is no `CHECKED_OUT` state;
+- there is no Assistant Checkout action or checkout queue;
+- there is no checkout form or required checkout data;
+- there is no `checked_out_at` field;
+- `doctor_finished_at` remains the completion timestamp;
+- the existing five-second **Undo Room ready** is the only reversal of completion and restores the Appointment to `WITH_DOCTOR`;
+- completed Appointments remain visible in the daily Appointment list and Patient history;
+- existing post-check-in editing and post-consultation deletion rules remain unchanged;
+- no new notification, endpoint, migration, or browser-demo state is added.
 
 ## Phase 6 — Shared tasks
 

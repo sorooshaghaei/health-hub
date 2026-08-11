@@ -84,7 +84,7 @@ PLANNED → CHECKED_IN
 - Check in, Appointment deletion, and Patient deletion use server-enforced five-second Undo;
 - live operational data refreshes every three seconds.
 
-### Doctor room call and consultation handoff
+### Doctor room call, consultation handoff, and completion
 
 ```text
 CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
@@ -92,7 +92,11 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 
 - Doctor taps **Room ready** as a one-time ring/call;
 - any current `WITH_DOCTOR` Patient becomes `DOCTOR_FINISHED`;
+- `DOCTOR_FINISHED` is the final Appointment workflow state and is displayed to users as **Completed**;
+- there is no separate `CHECKED_OUT` state, Checkout button, checkout queue, checkout form, or checkout timestamp;
+- `doctor_finished_at` is the completion timestamp;
 - the Doctor receives five-second Undo before the Assistant is notified;
+- Undo Room ready restores the completed Appointment to `WITH_DOCTOR` within that existing five-second window;
 - after five seconds, the Assistant receives one short sound and persistent on-screen notice;
 - a smaller Room ready indicator remains after dismissal until the call is consumed;
 - one pending call persists even if the queue is empty;
@@ -101,9 +105,10 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 - queue sequence remains based on original check-in, while displayed positions recalculate;
 - Assistant's five-second Undo restores the Patient to the queue and restores the pending call;
 - `WITH_DOCTOR` disappears from the waiting queue and appears as a badge in the Appointment list;
+- completed Appointments remain in the daily Appointment list and Patient history;
 - Doctor consultation card shows Patient name, scheduled time, check-in time, reason, shared Patient note, and Patient-profile access;
 - card expansion and dismissal are visual only and never change status;
-- no Doctor Finished, Pause, Return, or automatic-next-patient action;
+- no Doctor Finished, Checkout, Pause, Return, or automatic-next-patient action;
 - clinic-scoped transactions prevent conflicts between separate Doctor and Assistant computers.
 
 See:
@@ -112,17 +117,16 @@ See:
 - [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md)
 - [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md)
 - [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md)
+- [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md)
 
 ## Current phase
 
-**Phase 4 repository implementation is complete, including the approved one-Appointment-per-Patient-per-date and Patient-workspace corrections. Stop until the product owner explicitly says continue.**
+**Phase 5 repository implementation is complete. Stop until the product owner explicitly says continue.**
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Do not begin Phase 5 automatically.
+Do not begin Phase 6 automatically.
 
-When the product owner says **continue**, first resolve the Phase 5 checkout decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
-
-The implemented handoff leaves completed consultations in `DOCTOR_FINISHED`; Phase 5 must define the Assistant's checkout flow before any further status or UI is added.
+When the product owner says **continue**, first resolve the Phase 6 shared-task decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).

@@ -15,7 +15,7 @@ const STATUS_LABELS = {
   planned: "Planned",
   checked_in: "Checked in",
   with_doctor: "With doctor",
-  doctor_finished: "Doctor finished",
+  doctor_finished: "Completed",
 };
 
 function statusLabel(status) {

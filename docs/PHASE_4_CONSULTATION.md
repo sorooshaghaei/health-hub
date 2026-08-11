@@ -13,9 +13,9 @@ PLANNED → CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 - `CHECKED_IN` means the Patient is waiting in the clinic queue.
 - `WITH_DOCTOR` means the Assistant has sent the Patient into the Doctor's room.
 - `DOCTOR_FINISHED` means the Doctor has subsequently tapped **Room ready**, indicating that the previous Patient has left and the next Patient may be sent.
-- Checkout remains Phase 5 scope.
+- Phase 5 confirms that `DOCTOR_FINISHED` is the final Appointment state and is displayed to users as **Completed**; there is no separate checkout state or action.
 
-There is no Doctor **Finished**, **Pause**, **Return to queue**, or automatic-next-patient action.
+There is no Doctor **Finished**, **Checkout**, **Pause**, **Return to queue**, or automatic-next-patient action.
 
 ## Doctor Room ready action
 
@@ -98,15 +98,15 @@ The Doctor queue and consultation card do not show the Patient phone number.
 ## Assistant visibility
 
 - `WITH_DOCTOR` Appointments disappear from the waiting queue.
-- The Appointment list displays `WITH_DOCTOR` and `DOCTOR_FINISHED` status badges.
-- No separate **With doctor** panel is added.
-- The Assistant has no Doctor Finished, Pause, Return, or consultation-management control.
+- The Appointment list displays `WITH_DOCTOR` and final `DOCTOR_FINISHED` status badges; the final status is labeled **Completed** in the UI.
+- No separate **With doctor** or checkout panel is added.
+- The Assistant has no Doctor Finished, Checkout, Pause, Return, or consultation-management control.
 
 ## Editing and deletion
 
 After check-in, Patient and Appointment date remain locked. Scheduled time, reason, and Patient profile details remain correctable through the existing Edit flows.
 
-Appointments cannot be deleted after consultation starts (`WITH_DOCTOR` or `DOCTOR_FINISHED`). Checkout and post-consultation removal behavior are reserved for Phase 5.
+Appointments cannot be deleted after consultation starts (`WITH_DOCTOR` or `DOCTOR_FINISHED`). Phase 5 adds no post-consultation deletion or checkout workflow.
 
 ## Concurrency and refresh
 
