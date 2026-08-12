@@ -18,16 +18,14 @@
   --hh-surface-soft: #f8faf8;
 
   /* Patient flow states */
-  --hh-arrived: #3e6f7b;
-  --hh-arrived-soft: #e1eef1;
-  --hh-waiting: #b78120;
-  --hh-waiting-soft: #fff2d8;
+  --hh-planned: #3e6f7b;
+  --hh-planned-soft: #e1eef1;
+  --hh-checked-in: #b78120;
+  --hh-checked-in-soft: #fff2d8;
   --hh-with-doctor: #6a5d8e;
   --hh-with-doctor-soft: #ece9f5;
-  --hh-doctor-finished: #176448;
-  --hh-doctor-finished-soft: #dff0e7;
-  --hh-checkout: #86502f;
-  --hh-checkout-soft: #f5e8dc;
+  --hh-completed: #176448;
+  --hh-completed-soft: #dff0e7;
   --hh-danger: #a64539;
   --hh-danger-soft: #fbe9e6;
 

@@ -1,6 +1,6 @@
 # Phase 2 — Planned appointments
 
-Status: **Implemented and updated to the appointment-only model approved before Phase 3.**
+Status: **Implemented and updated to the appointment-only model approved before Phase 3, including later consultation and completion rules.**
 
 A Patient is the permanent reusable profile. An Appointment is one separate clinic attendance. A Patient may have Appointments on different dates, but may have at most one Appointment on any single clinic date.
 
@@ -22,13 +22,14 @@ Scheduled time is planning information. It does not determine live queue order.
 
 The same Patient cannot have a second Appointment on the same date, regardless of scheduled time or workflow status.
 
-The rule applies to all active Appointment states, including:
+The rule applies to every active Appointment state:
 
 - `PLANNED`;
 - `CHECKED_IN`;
 - `WITH_DOCTOR`;
-- `DOCTOR_FINISHED`;
-- future completed states such as `CHECKED_OUT`.
+- `DOCTOR_FINISHED` (displayed to users as **Completed**).
+
+`DOCTOR_FINISHED` is the final Appointment workflow state. There is no `CHECKED_OUT` state.
 
 Creating a duplicate or editing an Appointment into a duplicate returns:
 
@@ -61,8 +62,8 @@ The database migration fills missing scheduled times in legacy rows, then remove
 ### Assistant workspace
 
 - create Appointments;
-- edit past and future Appointments;
-- delete current or future Appointments;
+- edit past and future Appointments subject to workflow locks;
+- delete current or future Appointments only before consultation starts (`PLANNED` or `CHECKED_IN`);
 - create a Patient and Appointment together;
 - Doctor administrator credentials may open this workspace.
 
@@ -83,11 +84,12 @@ When no suggestion is selected, the Assistant continues filling gender, country/
 
 ## Editing and deletion
 
-- past and future Appointment details are editable;
+- past and future Appointment details are editable subject to workflow locks;
 - editing cannot create a second Appointment for the same Patient and date;
-- after check-in, Phase 3 locks the Patient association and Appointment date;
-- scheduled time and reason remain correctable after check-in;
-- current and future Appointments can be deleted;
+- after check-in, the Patient association and Appointment date are locked;
+- scheduled time and reason remain correctable after check-in, including during and after consultation;
+- current and future Appointments may be deleted only while `PLANNED` or `CHECKED_IN`;
+- Appointments cannot be deleted after consultation starts (`WITH_DOCTOR` or `DOCTOR_FINISHED` / **Completed**);
 - past Appointments cannot be deleted;
 - deletion removes the Appointment from active lists, queue, and Patient history;
 - deletion has a server-enforced five-second Undo;

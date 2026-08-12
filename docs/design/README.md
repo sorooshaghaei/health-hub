@@ -41,9 +41,11 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 
 - Queue-first Assistant workspace
 - Consultation-first Doctor workspace
-- One decisive **Finished** action for the current consultation
+- One decisive **Room ready** action: it completes the current `WITH_DOCTOR` consultation, if any, and creates the call for the next Patient
+- No separate Doctor **Finished** or **Checkout** action
 - No separate Call next patient action
 - No duplicate Start consultation action
+- Current workflow labels are **Planned**, **Checked in**, **With doctor**, and **Completed**
 - Scheduled appointment time is informational; actual check-in order controls the live waiting queue
 - Patient states use clear text labels and are not communicated by color alone
 - Reversal, undo, and confirmation behavior must be approved for each workflow before implementation

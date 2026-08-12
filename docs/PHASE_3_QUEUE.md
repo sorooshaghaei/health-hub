@@ -74,7 +74,7 @@ This frees the time and presents the Appointment as though it did not exist. Int
 
 There is no Left, Cancelled, unavailable, or no-show state in Phase 3.
 
-Once consultation starts, Phase 4 prevents Appointment deletion; post-consultation handling belongs to Phase 5.
+Once consultation starts, Phase 4 prevents Appointment deletion. Phase 5 confirms that `DOCTOR_FINISHED` is the final **Completed** state and adds no checkout or post-consultation deletion workflow.
 
 ## Five-second Undo
 
