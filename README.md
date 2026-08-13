@@ -17,15 +17,16 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 - Check-in and live queue: [`docs/PHASE_3_QUEUE.md`](docs/PHASE_3_QUEUE.md)
 - Doctor room call and consultation handoff: [`docs/PHASE_4_CONSULTATION.md`](docs/PHASE_4_CONSULTATION.md)
 - Completed consultation behavior: [`docs/PHASE_5_COMPLETION.md`](docs/PHASE_5_COMPLETION.md)
+- Shared tasks: [`docs/PHASE_6_SHARED_TASKS.md`](docs/PHASE_6_SHARED_TASKS.md)
 - Visual direction: [`docs/design/README.md`](docs/design/README.md)
 
 The project is developed directly on `main`, one approved phase at a time. Implementation stops after each phase until the product owner explicitly says **continue**.
 
 ## Current phase
 
-**Phase 5 — Completed consultation behavior: repository implementation complete.**
+**Phase 6 — Shared tasks: repository implementation complete.**
 
-`DOCTOR_FINISHED` is the final Appointment workflow state and is displayed to users as **Completed**. There is no separate checkout action or `CHECKED_OUT` state. Phase 6 has not been approved for implementation.
+The Doctor can create simple shared tasks for the Assistant. Tasks use only `OPEN → DONE`, support a five-second Undo for Done and deletion, retain completed History, allow shared author-owned comments, and add no task notifications. Phase 7 has not been approved for implementation.
 
 ## Access model
 
@@ -37,6 +38,8 @@ The clinic supports one Doctor account and one Assistant account. The Doctor is 
 - Assistant credentials cannot open Doctor workspace.
 
 Doctor workspace owns the Room ready signal, views Appointment administration read-only, and may edit every approved Patient field. Patient creation/deletion and Appointment administration remain in Assistant workspace. A Doctor account inside Assistant workspace receives the same full administrative controls as the Assistant.
+
+Task authoring is based on account identity rather than active workspace: Doctor credentials may create/edit/delete Doctor-to-Assistant tasks from either workspace; Assistant credentials cannot author tasks.
 
 ## Implemented workflow
 
@@ -110,6 +113,28 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 - there is no Doctor Finished, Checkout, Pause, Return, or automatic-next-patient action;
 - clinic-scoped transactional locking protects use from separate Doctor and Assistant computers.
 
+### Shared tasks
+
+```text
+OPEN → DONE
+```
+
+- only the Doctor account creates tasks and every task is for the Assistant;
+- task fields are title, description, optional date-only due date, and optional single Patient association;
+- both workspaces see the same shared task data;
+- Open tasks sort oldest first;
+- the Assistant normally taps **Done** after performing a task; the Doctor can also mark Done if needed;
+- Done has a server-enforced five-second Undo back to Open;
+- after Undo expires there is no permanent Reopen action;
+- completed tasks leave Open and remain available in History;
+- the Doctor creator may edit tasks;
+- only the Doctor may delete tasks, including completed tasks, with five-second Undo;
+- Doctor and Assistant can comment, but each may edit/delete only their own comments;
+- edited comments show **Edited** and comment deletion has five-second Undo;
+- optional Patient links open the Patient profile without adding tasks to Patient profiles;
+- there are no task attachments or task notifications;
+- shared task state uses lightweight authenticated polling so separate Doctor and Assistant computers stay current.
+
 ### Five-second Undo
 
 Server-enforced Undo applies to:
@@ -118,7 +143,10 @@ Server-enforced Undo applies to:
 - Room ready;
 - With doctor;
 - Appointment deletion;
-- Patient deletion.
+- Patient deletion;
+- task Done;
+- task deletion;
+- task comment deletion.
 
 Normal form edits use the regular Edit flow.
 
@@ -128,6 +156,7 @@ Normal form edits use the regular Edit flow.
 backend/accounts/                Clinic, staff, sessions, workspace access
 backend/patients/                Patient records and deletion Undo
 backend/visits/                  Appointments, queue, room calls, consultation handoff
+backend/tasks/                   Shared Doctor-to-Assistant tasks and comments
 backend/health_hub/              Django project configuration
 frontend/                        React/Vite app and browser adapter
 docs/                            Product specifications and handoff
@@ -225,13 +254,26 @@ POST   /api/visits/room-ready/undo/
 POST   /api/visits/<visit-id>/with-doctor/
 POST   /api/visits/<visit-id>/undo-with-doctor/
 POST   /api/visits/<visit-id>/undo-delete/
+
+GET    /api/tasks/
+POST   /api/tasks/
+GET    /api/tasks/<task-id>/
+PATCH  /api/tasks/<task-id>/
+DELETE /api/tasks/<task-id>/
+POST   /api/tasks/<task-id>/done/
+POST   /api/tasks/<task-id>/undo-done/
+POST   /api/tasks/<task-id>/undo-delete/
+POST   /api/tasks/<task-id>/comments/
+PATCH  /api/task-comments/<comment-id>/
+DELETE /api/task-comments/<comment-id>/
+POST   /api/task-comments/<comment-id>/undo-delete/
 ```
 
-Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, and Appointment endpoints expect `Authorization: Bearer <session-token>`.
+Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, Appointment, and task endpoints expect `Authorization: Bearer <session-token>`.
 
 ## Migration behavior
 
-The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. The browser demo performs equivalent local-storage migration and validation for existing demo data.
+The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables without changing existing Patient or Appointment records. The browser demo performs equivalent local-storage migration and validation for existing demo data.
 
 ## Production boundary
 

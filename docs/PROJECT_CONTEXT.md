@@ -25,7 +25,9 @@ Account identity and active workspace are separate:
 - Assistant credentials can open Assistant workspace;
 - Assistant credentials cannot open Doctor workspace.
 
-Doctor workspace owns Room ready and otherwise stays clinically focused. It may view and edit every approved Patient field, but it cannot create/delete Patients or administer Appointments. Assistant workspace owns full Patient and Appointment administration, check-in, queue, and Patient-to-room actions. A Doctor account inside Assistant workspace receives exactly the same administrative controls as the Assistant.
+Doctor workspace owns Room ready and otherwise stays clinically focused. It may view and edit every approved Patient field, but it cannot create/delete Patients or administer Appointments. Assistant workspace owns full Patient and Appointment administration, check-in, queue, and Patient-to-room actions. A Doctor account inside Assistant workspace receives exactly the same administrative controls as the Assistant for those workflows.
+
+Phase 6 task authoring permissions are intentionally based on account identity rather than workspace: the Doctor account may create/edit/delete Doctor-to-Assistant tasks even when the Doctor is using Assistant workspace; the Assistant account cannot author tasks.
 
 ## Implemented workflow
 
@@ -111,6 +113,30 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 - no Doctor Finished, Checkout, Pause, Return, or automatic-next-patient action;
 - clinic-scoped transactions prevent conflicts between separate Doctor and Assistant computers.
 
+### Shared tasks
+
+```text
+OPEN → DONE
+```
+
+- only the Doctor account creates tasks, and every task is implicitly for the Assistant;
+- no assignment or self-assignment system;
+- task fields: title, description, optional date-only due date, optional one-Patient association;
+- same shared task data appears in both workspaces;
+- Open tasks sort oldest first;
+- the Assistant normally performs the task and taps **Done**; the Doctor may also mark Done;
+- Done has five-second Undo back to Open and no permanent Reopen action after expiry;
+- Done tasks leave Open and remain in History;
+- Doctor creator may edit tasks;
+- only Doctor may delete tasks, including completed tasks; deletion has five-second Undo;
+- both staff may comment, but each may edit/delete only their own comments;
+- edited comments show **Edited** without visible revision history;
+- comment deletion has five-second Undo;
+- optional Patient name opens the Patient profile, but tasks do not appear inside Patient profiles;
+- no task attachments;
+- no task notifications of any kind; Room ready remains the only notification workflow;
+- browser-demo behavior mirrors backend permissions and lifecycle.
+
 See:
 
 - [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md)
@@ -118,15 +144,16 @@ See:
 - [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md)
 - [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md)
 - [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md)
+- [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md)
 
 ## Current phase
 
-**Phase 5 repository implementation is complete. Stop until the product owner explicitly says continue.**
+**Phase 6 repository implementation is complete. Stop until the product owner explicitly says continue.**
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Do not begin Phase 6 automatically.
+Do not begin Phase 7 automatically.
 
-When the product owner says **continue**, first resolve the Phase 6 shared-task decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
+When the product owner says **continue**, first resolve the Phase 7 private-note decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).

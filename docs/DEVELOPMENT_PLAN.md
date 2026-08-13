@@ -44,7 +44,7 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | 3 | Check-in and live waiting queue | Implemented |
 | 4 | Doctor room call and consultation handoff | Implemented |
 | 5 | Completed consultation behavior | Implemented |
-| 6 | Shared tasks | Partially specified |
+| 6 | Shared tasks | Implemented |
 | 7 | Private notes | Partially specified |
 | 8 | Daily operational estimate | Not started |
 | 9 | Password recovery and clinic administration | Not started |
@@ -157,9 +157,29 @@ PLANNED → CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 
 ## Phase 6 — Shared tasks
 
-Confirmed: title, description, assignment between Doctor and Assistant, explicit Done, relevant shared visibility, comments, and no distracting completion notification.
+Implemented according to [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md).
 
-Before implementation, confirm self-assignment, due dates, editing, completion authority, reversal, deletion, comment editing, Patient association, and attachment postponement.
+```text
+OPEN → DONE
+```
+
+- only the Doctor account creates tasks for the Assistant;
+- there is no assignment/self-assignment system and no task for the Doctor workflow;
+- task fields are title, description, optional date-only due date, and optional single Patient association;
+- both workspaces see the same clinic-scoped task data;
+- Open tasks are oldest first;
+- Done tasks leave the normal Open view and remain in History;
+- the Assistant is the normal actor for Done, while either staff account may mark Done;
+- Done has a server-enforced five-second Undo back to Open; there is no permanent Reopen action;
+- the Doctor who created the task may edit it;
+- only the Doctor may delete Open or Done tasks; deletion has five-second Undo;
+- Doctor and Assistant may comment;
+- each user may edit/delete only their own comments; edited comments show **Edited**;
+- comment deletion has five-second Undo;
+- linked Patient names open the Patient profile, while tasks stay out of Patient profiles;
+- there are no task attachments;
+- there are no task, assignment, due-date, comment, or completion notifications;
+- browser-demo behavior and automated tests mirror the backend.
 
 ## Phase 7 — Private notes
 

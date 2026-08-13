@@ -1,189 +1,70 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import { ApiError, apiRequest } from "./api.js";
 
 export default function usePatientWorkspace({ user, staffToken }) {
-  const doctorAccount = user.role === "doctor";
-  const doctorWorkspace = user.workspace_role === "doctor";
-  const assistantWorkspace = user.workspace_role === "assistant";
-  const canEditPatient = assistantWorkspace || doctorWorkspace;
-  const canCreateDeletePatients = assistantWorkspace;
-  const canManageAppointments = assistantWorkspace;
-  const [section, setSection] = useState(doctorWorkspace ? "patients" : "schedule");
-  const [patients, setPatients] = useState([]);
-  const [search, setSearch] = useState("");
-  const [patientView, setPatientView] = useState("list");
-  const [selectedPatient, setSelectedPatient] = useState(null);
-  const [patientVisits, setPatientVisits] = useState([]);
-  const [requestedVisitId, setRequestedVisitId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [visitsLoading, setVisitsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-  const [undoActions, setUndoActions] = useState([]);
-  const [undoingId, setUndoingId] = useState(null);
-  const [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0);
-  const patientSearchRequest = useRef(0);
+  const doctorAccount = user.role === "doctor", doctorWorkspace = user.workspace_role === "doctor", assistantWorkspace = user.workspace_role === "assistant";
+  const canEditPatient = assistantWorkspace || doctorWorkspace, canCreateDeletePatients = assistantWorkspace, canManageAppointments = assistantWorkspace;
+  const [section, setSection] = useState(doctorWorkspace ? "patients" : "schedule"), [patients, setPatients] = useState([]), [search, setSearch] = useState("");
+  const [patientView, setPatientView] = useState("list"), [selectedPatient, setSelectedPatient] = useState(null), [patientVisits, setPatientVisits] = useState([]), [requestedVisitId, setRequestedVisitId] = useState(null);
+  const [loading, setLoading] = useState(true), [visitsLoading, setVisitsLoading] = useState(false), [error, setError] = useState(null), [deleting, setDeleting] = useState(false);
+  const [undoActions, setUndoActions] = useState([]), [undoingId, setUndoingId] = useState(null), [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0), [taskRefreshVersion, setTaskRefreshVersion] = useState(0);
+  const requestRef = useRef(0);
+  const asError = (e, message) => e instanceof ApiError ? e : new ApiError(message);
 
   async function loadPatients(query = search) {
-    const requestId = patientSearchRequest.current + 1;
-    patientSearchRequest.current = requestId;
-    setLoading(true);
-    setError(null);
-    try {
-      const suffix = query.trim() ? `?search=${encodeURIComponent(query.trim())}` : "";
-      const payload = await apiRequest(`/api/patients/${suffix}`, { staffToken });
-      if (patientSearchRequest.current === requestId) setPatients(payload.patients);
-    } catch (requestError) {
-      if (patientSearchRequest.current === requestId) {
-        setError(requestError instanceof ApiError ? requestError : new ApiError("Patients could not be loaded."));
-      }
-    } finally {
-      if (patientSearchRequest.current === requestId) setLoading(false);
-    }
+    const id = ++requestRef.current; setLoading(true); setError(null);
+    try { const suffix = query.trim() ? `?search=${encodeURIComponent(query.trim())}` : ""; const p = await apiRequest(`/api/patients/${suffix}`, { staffToken }); if (requestRef.current === id) setPatients(p.patients); }
+    catch (e) { if (requestRef.current === id) setError(asError(e, "Patients could not be loaded.")); }
+    finally { if (requestRef.current === id) setLoading(false); }
   }
-
-  async function loadPatientVisits(patientId) {
+  async function loadPatientVisits(id) {
     setVisitsLoading(true);
-    try {
-      const payload = await apiRequest(`/api/visits/?patient=${encodeURIComponent(patientId)}`, { staffToken });
-      setPatientVisits(payload.visits);
-    } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment history could not be loaded."));
-    } finally {
-      setVisitsLoading(false);
-    }
+    try { setPatientVisits((await apiRequest(`/api/visits/?patient=${encodeURIComponent(id)}`, { staffToken })).visits); }
+    catch (e) { setError(asError(e, "Appointment history could not be loaded.")); }
+    finally { setVisitsLoading(false); }
   }
+  useEffect(() => { const timer = setTimeout(() => loadPatients(search), search.trim() ? 220 : 0); return () => clearTimeout(timer); }, [search, staffToken]);
 
-  useEffect(() => {
-    const timer = globalThis.setTimeout(
-      () => loadPatients(search),
-      search.trim() ? 220 : 0,
-    );
-    return () => globalThis.clearTimeout(timer);
-  }, [search, staffToken]);
-
-  async function openPatient(patientId) {
+  async function openPatient(id) {
     setError(null);
-    try {
-      const patient = await apiRequest(`/api/patients/${patientId}/`, { staffToken });
-      setSelectedPatient(patient);
-      setPatientView("detail");
-      setSection("patients");
-      await loadPatientVisits(patientId);
-    } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Patient could not be opened."));
-    }
+    try { const p = await apiRequest(`/api/patients/${id}/`, { staffToken }); setSelectedPatient(p); setPatientView("detail"); setSection("patients"); await loadPatientVisits(id); }
+    catch (e) { setError(asError(e, "Patient could not be opened.")); }
   }
-
   async function savePatient(data) {
     const editing = patientView === "edit" && selectedPatient;
-    if (editing && !canEditPatient) return;
-    if (!editing && !canCreateDeletePatients) return;
-    const patient = await apiRequest(editing ? `/api/patients/${selectedPatient.id}/` : "/api/patients/", {
-      method: editing ? "PATCH" : "POST",
-      data,
-      staffToken,
-    });
-    setSelectedPatient(patient);
-    setPatientView("detail");
-    await Promise.all([loadPatients(search), loadPatientVisits(patient.id)]);
+    if ((editing && !canEditPatient) || (!editing && !canCreateDeletePatients)) return;
+    const p = await apiRequest(editing ? `/api/patients/${selectedPatient.id}/` : "/api/patients/", { method: editing ? "PATCH" : "POST", data, staffToken });
+    setSelectedPatient(p); setPatientView("detail"); await Promise.all([loadPatients(search), loadPatientVisits(p.id)]);
   }
 
-  const registerUndo = useCallback((action) => {
-    setUndoActions((current) => [...current.filter((item) => item.id !== action.id), action]);
-  }, []);
-
-  const expireUndo = useCallback((actionId) => {
-    setUndoActions((current) => current.filter((item) => item.id !== actionId));
-  }, []);
-
-  async function undoAction(action) {
-    setUndoingId(action.id);
-    setError(null);
-    let endpoint;
-    if (action.kind === "check_in") endpoint = `/api/visits/${action.resourceId}/undo-check-in/`;
-    else if (action.kind === "with_doctor") endpoint = `/api/visits/${action.resourceId}/undo-with-doctor/`;
-    else if (action.kind === "room_ready") endpoint = "/api/visits/room-ready/undo/";
-    else if (action.kind === "appointment_delete") endpoint = `/api/visits/${action.resourceId}/undo-delete/`;
-    else endpoint = `/api/patients/${action.resourceId}/undo-delete/`;
+  const registerUndo = useCallback((a) => setUndoActions((items) => [...items.filter((x) => x.id !== a.id), a]), []);
+  const expireUndo = useCallback((id) => setUndoActions((items) => items.filter((x) => x.id !== id)), []);
+  async function undoAction(a) {
+    setUndoingId(a.id); setError(null);
+    const map = { check_in: `/api/visits/${a.resourceId}/undo-check-in/`, with_doctor: `/api/visits/${a.resourceId}/undo-with-doctor/`, room_ready: "/api/visits/room-ready/undo/", appointment_delete: `/api/visits/${a.resourceId}/undo-delete/`, task_done: `/api/tasks/${a.resourceId}/undo-done/`, task_delete: `/api/tasks/${a.resourceId}/undo-delete/`, task_comment_delete: `/api/task-comments/${a.resourceId}/undo-delete/` };
+    const endpoint = map[a.kind] ?? `/api/patients/${a.resourceId}/undo-delete/`;
     try {
-      await apiRequest(endpoint, { method: "POST", staffToken });
-      expireUndo(action.id);
-      setScheduleRefreshVersion((value) => value + 1);
-      await loadPatients(search);
-      if (selectedPatient && action.kind !== "patient_delete") await loadPatientVisits(selectedPatient.id);
-    } catch (requestError) {
-      expireUndo(action.id);
-      setError(requestError instanceof ApiError ? requestError : new ApiError("The action could not be undone."));
-    } finally {
-      setUndoingId(null);
-    }
+      await apiRequest(endpoint, { method: "POST", staffToken }); expireUndo(a.id);
+      if (a.kind.startsWith("task_")) setTaskRefreshVersion((v) => v + 1);
+      else { setScheduleRefreshVersion((v) => v + 1); await loadPatients(search); if (selectedPatient && a.kind !== "patient_delete") await loadPatientVisits(selectedPatient.id); }
+    } catch (e) { expireUndo(a.id); setError(asError(e, "The action could not be undone.")); }
+    finally { setUndoingId(null); }
   }
 
   async function deletePatient() {
-    if (!canCreateDeletePatients || !selectedPatient) return;
-    setDeleting(true);
-    setError(null);
-    try {
-      const patientName = selectedPatient.full_name;
-      const deleted = await apiRequest(`/api/patients/${selectedPatient.id}/`, { method: "DELETE", staffToken });
-      registerUndo({
-        id: `patient-delete:${selectedPatient.id}:${Date.now()}`,
-        kind: "patient_delete",
-        resourceId: selectedPatient.id,
-        message: `${patientName} deleted.`,
-        undoUntil: deleted.undo_until,
-      });
-      setSelectedPatient(null);
-      setPatientVisits([]);
-      setPatientView("list");
-      await loadPatients(search);
-    } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Patient could not be deleted."));
-    } finally {
-      setDeleting(false);
-    }
+    if (!canCreateDeletePatients || !selectedPatient) return; setDeleting(true); setError(null);
+    try { const p = selectedPatient, d = await apiRequest(`/api/patients/${p.id}/`, { method: "DELETE", staffToken }); registerUndo({ id: `patient-delete:${p.id}:${Date.now()}`, kind: "patient_delete", resourceId: p.id, message: `${p.full_name} deleted.`, undoUntil: d.undo_until }); setSelectedPatient(null); setPatientVisits([]); setPatientView("list"); await loadPatients(search); }
+    catch (e) { setError(asError(e, "Patient could not be deleted.")); }
+    finally { setDeleting(false); }
   }
-
   async function deleteVisit(visit) {
-    if (!canManageAppointments) return;
-    setError(null);
-    try {
-      const deleted = await apiRequest(`/api/visits/${visit.id}/`, { method: "DELETE", staffToken });
-      registerUndo({
-        id: `appointment-delete:${visit.id}:${Date.now()}`,
-        kind: "appointment_delete",
-        resourceId: visit.id,
-        message: `${visit.patient.full_name}'s appointment deleted.`,
-        undoUntil: deleted.undo_until,
-      });
-      setScheduleRefreshVersion((value) => value + 1);
-      if (selectedPatient) await loadPatientVisits(selectedPatient.id);
-    } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError : new ApiError("Appointment could not be deleted."));
-    }
+    if (!canManageAppointments) return; setError(null);
+    try { const d = await apiRequest(`/api/visits/${visit.id}/`, { method: "DELETE", staffToken }); registerUndo({ id: `appointment-delete:${visit.id}:${Date.now()}`, kind: "appointment_delete", resourceId: visit.id, message: `${visit.patient.full_name}'s appointment deleted.`, undoUntil: d.undo_until }); setScheduleRefreshVersion((v) => v + 1); if (selectedPatient) await loadPatientVisits(selectedPatient.id); }
+    catch (e) { setError(asError(e, "Appointment could not be deleted.")); }
   }
-
-  function editVisit(visitId) {
-    if (!canManageAppointments) return;
-    setRequestedVisitId(visitId);
-    setSection("schedule");
-  }
-
+  function editVisit(id) { if (canManageAppointments) { setRequestedVisitId(id); setSection("schedule"); } }
   const requestedHandled = useCallback(() => setRequestedVisitId(null), []);
+  const clearSearch = () => setSearch("");
 
-  function clearSearch() {
-    setSearch("");
-  }
-
-  return {
-    doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient,
-    canCreateDeletePatients, canManageAppointments, section, setSection, patients,
-    search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient,
-    patientVisits, requestedVisitId, loading, visitsLoading, error, deleting,
-    undoActions, undoingId, scheduleRefreshVersion, openPatient, savePatient,
-    registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit,
-    requestedHandled, clearSearch, loadPatientVisits,
-  };
+  return { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients, canManageAppointments, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits };
 }

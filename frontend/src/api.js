@@ -1,4 +1,5 @@
 import { demoApiRequest } from "./demoApi.js";
+import { demoTaskApiRequest } from "./demoTasks.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
@@ -24,13 +25,18 @@ function firstError(payload) {
   return "The request could not be completed.";
 }
 
+function isTaskDemoPath(path) {
+  return path.startsWith("/api/tasks/") || path.startsWith("/api/task-comments/");
+}
+
 export async function apiRequest(
   path,
   { method = "GET", data, clinicToken, staffToken } = {},
 ) {
   if (DEMO_MODE) {
     try {
-      return await demoApiRequest(path, { method, data, clinicToken, staffToken });
+      const demoRequest = isTaskDemoPath(path) ? demoTaskApiRequest : demoApiRequest;
+      return await demoRequest(path, { method, data, clinicToken, staffToken });
     } catch (error) {
       throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0);
     }
