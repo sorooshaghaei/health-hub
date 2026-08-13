@@ -25,9 +25,11 @@ def require_doctor_account(request):
 
 def active_task_for_request(request, task_id, *, lock=False):
     clinic = clinic_for_staff(request)
-    queryset = SharedTask.objects.select_related("patient", "created_by", "completed_by").filter(clinic=clinic)
+    queryset = SharedTask.objects.filter(clinic=clinic)
     if lock:
         queryset = queryset.select_for_update()
+    else:
+        queryset = queryset.select_related("patient", "created_by", "completed_by")
     try:
         return queryset.get(pk=task_id)
     except SharedTask.DoesNotExist:
@@ -36,11 +38,13 @@ def active_task_for_request(request, task_id, *, lock=False):
 
 def deleted_task_for_request(request, task_id, *, lock=False):
     clinic = clinic_for_staff(request)
-    queryset = SharedTask.all_objects.select_related("patient", "created_by", "completed_by").filter(
+    queryset = SharedTask.all_objects.filter(
         clinic=clinic, deleted_at__isnull=False
     )
     if lock:
         queryset = queryset.select_for_update()
+    else:
+        queryset = queryset.select_related("patient", "created_by", "completed_by")
     try:
         return queryset.get(pk=task_id)
     except SharedTask.DoesNotExist:
