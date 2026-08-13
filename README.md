@@ -24,9 +24,9 @@ The project is developed directly on `main`, one approved phase at a time. Imple
 
 ## Current phase
 
-**Phase 6 — Shared tasks: repository implementation complete.**
+**Phase 6 — Shared tasks: repository implementation complete, including the approved attention-dot and New Task modal UX correction.**
 
-The Doctor can create simple shared tasks for the Assistant. Tasks use only `OPEN → DONE`, support a five-second Undo for Done and deletion, retain completed History, allow shared author-owned comments, and add no task notifications. Phase 7 has not been approved for implementation.
+The Doctor can create simple shared tasks for the Assistant. Tasks use only `OPEN → DONE`, support a five-second Undo for Done and deletion, retain completed History, allow shared author-owned comments, use small role-specific Tasks-tab attention dots for new/completed activity, and do not add a general task notification system. Phase 7 has not been approved for implementation.
 
 ## Access model
 
@@ -121,6 +121,7 @@ OPEN → DONE
 
 - only the Doctor account creates tasks and every task is for the Assistant;
 - task fields are title, description, optional date-only due date, and optional single Patient association;
+- clicking **New task** opens a compact modal so the Open task list stays visually stable instead of moving under an inline create form;
 - both workspaces see the same shared task data;
 - Open tasks sort oldest first;
 - the Assistant normally taps **Done** after performing a task; the Doctor can also mark Done if needed;
@@ -132,8 +133,13 @@ OPEN → DONE
 - Doctor and Assistant can comment, but each may edit/delete only their own comments;
 - edited comments show **Edited** and comment deletion has five-second Undo;
 - optional Patient links open the Patient profile without adding tasks to Patient profiles;
-- there are no task attachments or task notifications;
-- shared task state uses lightweight authenticated polling so separate Doctor and Assistant computers stay current.
+- there are no task attachments;
+- a new Doctor-created task shows a small red dot beside **Tasks** only for the Assistant account;
+- a task completed by the Assistant shows a small red dot beside **Tasks** for the Doctor account;
+- opening Tasks clears the current account's dot, and the active Tasks view keeps seen state current while it remains open;
+- tasks that existed before the attention feature was introduced are initialized as already seen;
+- the red dot is only an in-app attention marker: no task sound, push/OS notification, popup alert, email, badge count, comment alert, or due-date alert is added;
+- shared task and attention state use lightweight authenticated polling so separate Doctor and Assistant computers stay current.
 
 ### Five-second Undo
 
@@ -257,6 +263,8 @@ POST   /api/visits/<visit-id>/undo-delete/
 
 GET    /api/tasks/
 POST   /api/tasks/
+GET    /api/tasks/attention/
+POST   /api/tasks/attention/
 GET    /api/tasks/<task-id>/
 PATCH  /api/tasks/<task-id>/
 DELETE /api/tasks/<task-id>/
@@ -273,7 +281,7 @@ Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, Appointment, and
 
 ## Migration behavior
 
-The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables without changing existing Patient or Appointment records. The browser demo performs equivalent local-storage migration and validation for existing demo data.
+The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables. The attention-dot correction adds a per-staff task-seen timestamp initialized at migration time so existing tasks are treated as already seen. No existing Patient or Appointment record is changed. The browser demo performs equivalent local-storage migration and validation for existing demo data.
 
 ## Production boundary
 
