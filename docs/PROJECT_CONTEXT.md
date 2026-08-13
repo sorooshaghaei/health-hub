@@ -122,6 +122,7 @@ OPEN → DONE
 - only the Doctor account creates tasks, and every task is implicitly for the Assistant;
 - no assignment or self-assignment system;
 - task fields: title, description, optional date-only due date, optional one-Patient association;
+- clicking **New task** opens a compact modal instead of placing the create form above the Open list;
 - same shared task data appears in both workspaces;
 - Open tasks sort oldest first;
 - the Assistant normally performs the task and taps **Done**; the Doctor may also mark Done;
@@ -134,8 +135,13 @@ OPEN → DONE
 - comment deletion has five-second Undo;
 - optional Patient name opens the Patient profile, but tasks do not appear inside Patient profiles;
 - no task attachments;
-- no task notifications of any kind; Room ready remains the only notification workflow;
-- browser-demo behavior mirrors backend permissions and lifecycle.
+- when the Doctor creates a new task, only the Assistant account gets a small red dot beside the Tasks tab;
+- when the Assistant marks a task Done, the Doctor account gets a small red dot beside the Tasks tab;
+- opening Tasks clears the current account's red dot; while Tasks remains open, the same lightweight refresh keeps activity seen;
+- pre-existing tasks from before the attention-dot feature are initialized as already seen;
+- the red dot is an in-app attention marker only: no task sound, push notification, popup alert, email, badge count, comment alert, or due-date alert is added;
+- Room ready remains the only sound/persistent notification workflow;
+- browser-demo behavior mirrors backend permissions, lifecycle, attention state, and modal UX.
 
 See:
 
@@ -148,7 +154,7 @@ See:
 
 ## Current phase
 
-**Phase 6 repository implementation is complete. Stop until the product owner explicitly says continue.**
+**Phase 6 repository implementation is complete, including the approved task attention-dot and New Task modal UX correction. Stop until the product owner explicitly says continue.**
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 
