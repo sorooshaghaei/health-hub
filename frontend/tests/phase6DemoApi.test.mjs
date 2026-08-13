@@ -17,14 +17,21 @@ async function patient(token) {
   return core("/api/patients/", { method: "POST", staffToken: token, data: { full_name: "Sara Ahmadi", gender: "Woman", country_calling_code: "+98", phone_number: "09121234567", date_of_birth: "1994-05-11", patient_note: "" } });
 }
 
-test("Phase 6 demo task permissions, history, and Done Undo", async () => {
+test("Phase 6 demo task permissions, history, Done Undo, and attention dots", async () => {
   localStorage.clear(); const { assistant, doctor, admin } = await login(), p = await patient(assistant.session_token);
+  assert.equal((await tasks("/api/tasks/attention/", { staffToken: assistant.session_token })).attention_required, false);
+  assert.equal((await tasks("/api/tasks/attention/", { staffToken: doctor.session_token })).attention_required, false);
   await assert.rejects(() => tasks("/api/tasks/", { method: "POST", staffToken: assistant.session_token, data: { title: "No" } }), (e) => e.status === 403);
   const first = await tasks("/api/tasks/", { method: "POST", staffToken: doctor.session_token, data: { title: "Call Patient", description: "Confirm arrival.", due_date: "2026-08-20", patient_id: p.id } });
+  assert.equal((await tasks("/api/tasks/attention/", { staffToken: assistant.session_token })).attention_required, true);
+  assert.equal((await tasks("/api/tasks/attention/", { staffToken: doctor.session_token })).attention_required, false);
+  assert.equal((await tasks("/api/tasks/attention/", { method: "POST", staffToken: assistant.session_token })).attention_required, false);
   const second = await tasks("/api/tasks/", { method: "POST", staffToken: admin.session_token, data: { title: "Prepare form" } });
   let list = await tasks("/api/tasks/", { staffToken: assistant.session_token });
   assert.deepEqual(list.open_tasks.map((t) => t.id), [first.id, second.id]); assert.equal(list.open_tasks[0].patient.full_name, "Sara Ahmadi");
   const done = await tasks(`/api/tasks/${first.id}/done/`, { method: "POST", staffToken: assistant.session_token }); assert.equal(done.task.status, "done"); assert.ok(done.undo_until);
+  assert.equal((await tasks("/api/tasks/attention/", { staffToken: doctor.session_token })).attention_required, true);
+  assert.equal((await tasks("/api/tasks/attention/", { method: "POST", staffToken: doctor.session_token })).attention_required, false);
   list = await tasks("/api/tasks/", { staffToken: doctor.session_token }); assert.deepEqual(list.open_tasks.map((t) => t.id), [second.id]); assert.equal(list.completed_tasks[0].id, first.id);
   assert.equal((await tasks(`/api/tasks/${first.id}/undo-done/`, { method: "POST", staffToken: assistant.session_token })).status, "open");
 });
