@@ -5,6 +5,7 @@ const now = () => new Date().toISOString();
 
 function init(s) {
   if (!Array.isArray(s.tasks)) s.tasks = [];
+  let changed = false;
   s.tasks.forEach((t) => {
     t.comments ??= [];
     t.status = t.status === "done" ? "done" : "open";
@@ -12,6 +13,15 @@ function init(s) {
     t.completed_at ??= null; t.completed_by_id ??= null; t.deleted_at ??= null;
     t.comments.forEach((c) => { c.edited_at ??= null; c.deleted_at ??= null; });
   });
+  s.staff.forEach((u) => {
+    if (u.task_attention_seen_at) return;
+    const relevant = u.role === "assistant"
+      ? s.tasks.filter((t) => !t.deleted_at).map((t) => t.created_at)
+      : s.tasks.filter((t) => !t.deleted_at && t.status === "done" && s.staff.find((x) => x.id === t.completed_by_id)?.role === "assistant").map((t) => t.completed_at);
+    u.task_attention_seen_at = relevant.filter(Boolean).sort().at(-1) ?? new Date(Date.now() - 1).toISOString();
+    changed = true;
+  });
+  if (changed) saveStore(s);
 }
 function doctor(session) {
   if (session.user.role !== "doctor") fail({ detail: "Only the Doctor can create, edit, or remove shared tasks." }, 403);
@@ -73,6 +83,17 @@ export async function demoTaskApiRequest(path, { method = "GET", data = {}, staf
   const pathname = new URL(path, "https://health-hub.demo").pathname;
   const s = loadStore(); const session = resolveSession(s, staffToken); init(s);
 
+  if (pathname === "/api/tasks/attention/" && method === "GET") {
+    const seen = session.user.task_attention_seen_at;
+    const attention = session.user.role === "assistant"
+      ? s.tasks.some((t) => !t.deleted_at && t.created_at > seen)
+      : s.tasks.some((t) => !t.deleted_at && t.status === "done" && t.completed_at > seen && s.staff.find((u) => u.id === t.completed_by_id)?.role === "assistant");
+    return { attention_required: attention };
+  }
+  if (pathname === "/api/tasks/attention/" && method === "POST") {
+    session.user.task_attention_seen_at = now(); saveStore(s);
+    return { attention_required: false, seen_at: session.user.task_attention_seen_at };
+  }
   if (pathname === "/api/tasks/" && method === "GET") {
     const active = s.tasks.filter((t) => !t.deleted_at);
     return {
