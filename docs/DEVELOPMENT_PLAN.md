@@ -44,7 +44,7 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | 3 | Check-in and live waiting queue | Implemented |
 | 4 | Doctor room call and consultation handoff | Implemented |
 | 5 | Completed consultation behavior | Implemented |
-| 6 | Shared tasks | Implemented |
+| 6 | Shared tasks | Implemented; attention-dot and New Task modal UX correction included |
 | 7 | Private notes | Partially specified |
 | 8 | Daily operational estimate | Not started |
 | 9 | Password recovery and clinic administration | Not started |
@@ -166,6 +166,7 @@ OPEN → DONE
 - only the Doctor account creates tasks for the Assistant;
 - there is no assignment/self-assignment system and no task for the Doctor workflow;
 - task fields are title, description, optional date-only due date, and optional single Patient association;
+- clicking **New task** opens a compact modal instead of placing the create form above Open tasks;
 - both workspaces see the same clinic-scoped task data;
 - Open tasks are oldest first;
 - Done tasks leave the normal Open view and remain in History;
@@ -178,7 +179,11 @@ OPEN → DONE
 - comment deletion has five-second Undo;
 - linked Patient names open the Patient profile, while tasks stay out of Patient profiles;
 - there are no task attachments;
-- there are no task, assignment, due-date, comment, or completion notifications;
+- a new Doctor-created task produces a small red Tasks-tab attention dot only for the Assistant account;
+- an Assistant-completed task produces a small red Tasks-tab attention dot for the Doctor account;
+- opening Tasks clears the current account's attention dot, and current activity stays seen while Tasks remains open;
+- tasks that existed before the attention feature was deployed are initialized as already seen;
+- the attention dot is not a notification system: no task sound, browser/OS push, popup alert, email, badge count, comment alert, or due-date alert is added;
 - browser-demo behavior and automated tests mirror the backend.
 
 ## Phase 7 — Private notes
