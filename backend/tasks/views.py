@@ -92,6 +92,38 @@ def ensure_task_creator(request, task):
         raise PermissionDenied("Only the Doctor who created this task can edit it.")
 
 
+def task_attention_required(request):
+    clinic = clinic_for_staff(request)
+    seen_at = request.user.task_attention_seen_at
+
+    if request.user.role == StaffUser.Role.ASSISTANT:
+        return SharedTask.objects.filter(
+            clinic=clinic,
+            created_at__gt=seen_at,
+        ).exists()
+
+    if request.user.role == StaffUser.Role.DOCTOR:
+        return SharedTask.objects.filter(
+            clinic=clinic,
+            status=SharedTask.Status.DONE,
+            completed_at__gt=seen_at,
+            completed_by__role=StaffUser.Role.ASSISTANT,
+        ).exists()
+
+    return False
+
+
+class SharedTaskAttentionView(APIView):
+    def get(self, request):
+        return Response({"attention_required": task_attention_required(request)})
+
+    def post(self, request):
+        seen_at = timezone.now()
+        request.user.task_attention_seen_at = seen_at
+        request.user.save(update_fields=["task_attention_seen_at"])
+        return Response({"attention_required": False, "seen_at": seen_at})
+
+
 class SharedTaskListCreateView(APIView):
     def get(self, request):
         clinic = clinic_for_staff(request)

@@ -120,6 +120,70 @@ class SharedTaskApiTests(APITestCase):
         )
         self.assertEqual(shared.data["completed_tasks"], [])
 
+    def test_task_attention_dot_is_role_specific_and_clears_when_tasks_are_seen(self):
+        assistant_initial = self.client.get(
+            "/api/tasks/attention/", **self.auth(self.assistant_token)
+        )
+        doctor_initial = self.client.get(
+            "/api/tasks/attention/", **self.auth(self.doctor_token)
+        )
+        self.assertFalse(assistant_initial.data["attention_required"])
+        self.assertFalse(doctor_initial.data["attention_required"])
+
+        task = self.create_task()
+        assistant_new = self.client.get(
+            "/api/tasks/attention/", **self.auth(self.assistant_token)
+        )
+        doctor_after_create = self.client.get(
+            "/api/tasks/attention/", **self.auth(self.doctor_token)
+        )
+        self.assertTrue(assistant_new.data["attention_required"])
+        self.assertFalse(doctor_after_create.data["attention_required"])
+
+        assistant_seen = self.client.post(
+            "/api/tasks/attention/",
+            {},
+            format="json",
+            **self.auth(self.assistant_token),
+        )
+        self.assertFalse(assistant_seen.data["attention_required"])
+        self.assertFalse(
+            self.client.get(
+                "/api/tasks/attention/", **self.auth(self.assistant_token)
+            ).data["attention_required"]
+        )
+
+        done = self.client.post(
+            f"/api/tasks/{task['id']}/done/",
+            {},
+            format="json",
+            **self.auth(self.assistant_token),
+        )
+        self.assertEqual(done.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            self.client.get(
+                "/api/tasks/attention/", **self.auth(self.doctor_token)
+            ).data["attention_required"]
+        )
+        self.assertFalse(
+            self.client.get(
+                "/api/tasks/attention/", **self.auth(self.assistant_token)
+            ).data["attention_required"]
+        )
+
+        doctor_seen = self.client.post(
+            "/api/tasks/attention/",
+            {},
+            format="json",
+            **self.auth(self.doctor_token),
+        )
+        self.assertFalse(doctor_seen.data["attention_required"])
+        self.assertFalse(
+            self.client.get(
+                "/api/tasks/attention/", **self.auth(self.doctor_token)
+            ).data["attention_required"]
+        )
+
     def test_doctor_edits_task_and_optional_patient_link(self):
         patient = self.create_patient()
         task = self.create_task(patient_id=patient["id"], due_date="2026-08-20")

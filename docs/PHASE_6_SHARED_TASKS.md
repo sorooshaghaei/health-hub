@@ -1,6 +1,6 @@
 # Phase 6 — Shared tasks
 
-Status: **Implemented according to the approved Doctor-to-Assistant task workflow.**
+Status: **Implemented according to the approved Doctor-to-Assistant task workflow, including the approved task attention-dot and New Task modal UX correction.**
 
 Phase 6 adds one deliberately simple shared task area for clinic follow-up work. Tasks are separate from Appointments and Patient notes.
 
@@ -40,6 +40,8 @@ The Doctor may:
 
 Doctor permissions are based on the authenticated Doctor account identity, not the selected workspace. Therefore Doctor credentials retain Doctor task-authoring rights when the Doctor opens Assistant workspace.
 
+When the Assistant completes a task, the Doctor receives a small red attention dot beside the **Tasks** workspace tab. Opening Tasks clears that dot.
+
 ### Assistant account
 
 The Assistant may:
@@ -53,6 +55,8 @@ The Assistant may:
 
 The Assistant cannot create, edit, or delete tasks.
 
+When the Doctor creates a new task, the Assistant receives a small red attention dot beside the **Tasks** workspace tab. Opening Tasks clears that dot.
+
 ## Visibility
 
 The same clinic-scoped task data is visible in both Doctor and Assistant workspaces.
@@ -60,6 +64,19 @@ The same clinic-scoped task data is visible in both Doctor and Assistant workspa
 Open tasks are listed oldest first so older unfinished work naturally remains at the top.
 
 Completed tasks disappear from the normal Open view and remain available in **History**. History is not a second workflow state; it is simply the view containing `DONE` tasks.
+
+The red attention dot is role-specific account state rather than workspace state:
+
+- Assistant account: new Doctor-created task since Tasks was last viewed;
+- Doctor account: task completed by the Assistant since Tasks was last viewed.
+
+Opening Tasks marks current task activity as seen. While Tasks remains open, the lightweight refresh keeps that view state current. Existing tasks from before this attention feature was introduced are initialized as already seen and do not all appear as new.
+
+## New Task form UX
+
+Clicking **New task** opens the create form in a compact modal dialog instead of inserting the form above the Open task list. The underlying task list remains visually stable while the Doctor creates a task.
+
+The existing task fields and permissions are unchanged by this presentation change.
 
 ## Lifecycle
 
@@ -120,13 +137,13 @@ Only the Doctor may delete a task, whether it is Open or Done.
 
 Deletion is a soft deletion with a server-enforced five-second Undo. During deletion the task is removed from both Open and History views. Undo restores it to its prior state.
 
-## Notifications and refresh
+## Attention indicator, notifications, and refresh
 
-Phase 6 adds no sound, push, badge-alert, assignment, comment, due-date, or completion notification.
+The red Tasks-tab dot is a lightweight in-app attention indicator. It is intentionally not a notification system: there is no task sound, browser push, operating-system notification, popup alert, badge count, email, assignment alert, comment alert, or due-date alert.
 
-The existing Room ready call remains the clinic's only notification behavior.
+The existing Room ready call remains the clinic's only sound/persistent call-style notification behavior.
 
-The shared task list refreshes through the existing lightweight authenticated polling approach so Doctor and Assistant computers see current state without introducing a notification system.
+The task list and task attention state use the existing lightweight authenticated polling approach so Doctor and Assistant computers see current state without introducing a broader notification architecture.
 
 ## Browser demo parity
 
@@ -138,6 +155,8 @@ The public browser-only demo mirrors:
 - Done and five-second Undo;
 - Doctor-only deletion and Undo;
 - shared comment ownership/edit/delete rules;
-- comment deletion Undo.
+- comment deletion Undo;
+- role-specific Tasks-tab attention dots and seen state;
+- compact New Task modal behavior in the shared frontend.
 
 The browser demo remains demonstration storage only and must not contain real Patient information.

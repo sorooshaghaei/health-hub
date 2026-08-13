@@ -7,7 +7,7 @@ import { PatientProfileForm } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
 
 export default function PatientWorkspaceView({ user, staffToken, onSignOut, controller: c }) {
-  const { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients: canCreate, canManageAppointments: canManage, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits } = c;
+  const { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients: canCreate, canManageAppointments: canManage, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits } = c;
   const eyebrow = section === "schedule" ? "Appointments and live queue" : section === "tasks" ? "Shared tasks" : "Patient records";
   const workspace = doctorWorkspace ? "Doctor workspace" : "Assistant workspace";
   const intro = doctorWorkspace ? "Use Room ready, follow the live queue, keep Patient information up to date, and manage tasks for the Assistant." : doctorAccount ? "Manage Patients, appointments, check-in, the queue, consultation handoff, and Assistant tasks through Administrator access." : "Manage Patients, appointments, check-in, the live queue, consultation handoff, and Doctor-created tasks from one workspace.";
@@ -18,7 +18,7 @@ export default function PatientWorkspaceView({ user, staffToken, onSignOut, cont
       <nav className="workspace-tabs" aria-label="Workspace sections">
         <button className={`workspace-tab${section === "schedule" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("schedule")}>{doctorWorkspace ? "Consultations & queue" : "Schedule & queue"}</button>
         <button className={`workspace-tab${section === "patients" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("patients")}>Patients</button>
-        <button className={`workspace-tab${section === "tasks" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("tasks")}>Tasks</button>
+        <button className={`workspace-tab${section === "tasks" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("tasks")}>Tasks{taskAttention && <span className="task-attention-dot" aria-label={doctorAccount ? "Completed task activity" : "New task activity"} />}</button>
       </nav>
       <ErrorMessage error={error} />
       {section === "schedule" && <ScheduleWorkspace staffToken={staffToken} requestedVisitId={requestedVisitId} onRequestedVisitHandled={requestedHandled} onRegisterUndo={registerUndo} onOpenPatient={openPatient} refreshVersion={scheduleRefreshVersion} readOnly={!canManage} onVisitChanged={() => selectedPatient && loadPatientVisits(selectedPatient.id)} />}

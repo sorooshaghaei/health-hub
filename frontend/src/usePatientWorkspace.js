@@ -4,12 +4,13 @@ import { ApiError, apiRequest } from "./api.js";
 export default function usePatientWorkspace({ user, staffToken }) {
   const doctorAccount = user.role === "doctor", doctorWorkspace = user.workspace_role === "doctor", assistantWorkspace = user.workspace_role === "assistant";
   const canEditPatient = assistantWorkspace || doctorWorkspace, canCreateDeletePatients = assistantWorkspace, canManageAppointments = assistantWorkspace;
-  const [section, setSection] = useState(doctorWorkspace ? "patients" : "schedule"), [patients, setPatients] = useState([]), [search, setSearch] = useState("");
+  const [section, setSectionState] = useState(doctorWorkspace ? "patients" : "schedule"), [patients, setPatients] = useState([]), [search, setSearch] = useState("");
   const [patientView, setPatientView] = useState("list"), [selectedPatient, setSelectedPatient] = useState(null), [patientVisits, setPatientVisits] = useState([]), [requestedVisitId, setRequestedVisitId] = useState(null);
   const [loading, setLoading] = useState(true), [visitsLoading, setVisitsLoading] = useState(false), [error, setError] = useState(null), [deleting, setDeleting] = useState(false);
-  const [undoActions, setUndoActions] = useState([]), [undoingId, setUndoingId] = useState(null), [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0), [taskRefreshVersion, setTaskRefreshVersion] = useState(0);
+  const [undoActions, setUndoActions] = useState([]), [undoingId, setUndoingId] = useState(null), [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0), [taskRefreshVersion, setTaskRefreshVersion] = useState(0), [taskAttention, setTaskAttention] = useState(false);
   const requestRef = useRef(0);
   const asError = (e, message) => e instanceof ApiError ? e : new ApiError(message);
+  const setSection = useCallback((next) => { if (next === "tasks") setTaskAttention(false); setSectionState(next); }, []);
 
   async function loadPatients(query = search) {
     const id = ++requestRef.current; setLoading(true); setError(null);
@@ -24,6 +25,22 @@ export default function usePatientWorkspace({ user, staffToken }) {
     finally { setVisitsLoading(false); }
   }
   useEffect(() => { const timer = setTimeout(() => loadPatients(search), search.trim() ? 220 : 0); return () => clearTimeout(timer); }, [search, staffToken]);
+  useEffect(() => {
+    let active = true;
+    async function syncTaskAttention() {
+      try {
+        const payload = await apiRequest("/api/tasks/attention/", { method: section === "tasks" ? "POST" : "GET", staffToken });
+        if (active) setTaskAttention(section === "tasks" ? false : Boolean(payload.attention_required));
+      } catch { /* attention indicator is non-blocking */ }
+    }
+    syncTaskAttention();
+    const timer = setInterval(syncTaskAttention, 3000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      if (section === "tasks") apiRequest("/api/tasks/attention/", { method: "POST", staffToken }).catch(() => {});
+    };
+  }, [section, staffToken]);
 
   async function openPatient(id) {
     setError(null);
@@ -66,5 +83,5 @@ export default function usePatientWorkspace({ user, staffToken }) {
   const requestedHandled = useCallback(() => setRequestedVisitId(null), []);
   const clearSearch = () => setSearch("");
 
-  return { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients, canManageAppointments, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits };
+  return { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients, canManageAppointments, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits };
 }

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    SharedTaskAttentionView,
     SharedTaskDetailView,
     SharedTaskDoneView,
     SharedTaskListCreateView,
@@ -13,6 +14,7 @@ from .views import (
 
 urlpatterns = [
     path("tasks/", SharedTaskListCreateView.as_view(), name="shared-task-list"),
+    path("tasks/attention/", SharedTaskAttentionView.as_view(), name="shared-task-attention"),
     path("tasks/<uuid:task_id>/", SharedTaskDetailView.as_view(), name="shared-task-detail"),
     path("tasks/<uuid:task_id>/done/", SharedTaskDoneView.as_view(), name="shared-task-done"),
     path("tasks/<uuid:task_id>/undo-done/", SharedTaskUndoDoneView.as_view(), name="shared-task-undo-done"),

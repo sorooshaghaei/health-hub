@@ -7,6 +7,7 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
   const [view, setView] = useState("open"), [expanded, setExpanded] = useState(null), [formTask, setFormTask] = useState(undefined);
   const [drafts, setDrafts] = useState({}), [editing, setEditing] = useState(null), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [error, setError] = useState(null);
   const list = view === "history" ? completedTasks : openTasks;
+  const creating = formTask === null;
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -59,8 +60,9 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
   return <section className="task-workspace">
     <div className="task-toolbar"><div><p className="eyebrow">Shared work</p><h2>Tasks</h2><p>Doctor-created tasks for the Assistant.</p></div>{doctorAccount && formTask === undefined && <button className="primary-button" type="button" onClick={() => setFormTask(null)}>New task</button>}</div>
     <div className="task-view-tabs" role="tablist" aria-label="Task views"><button className={view === "open" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" onClick={() => setView("open")}>Open <span>{openTasks.length}</span></button><button className={view === "history" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" onClick={() => setView("history")}>History <span>{completedTasks.length}</span></button></div>
-    {error && <div className="task-error" role="alert">{error.message}</div>}
-    {doctorAccount && formTask !== undefined && <TaskForm key={formTask?.id ?? "new"} task={formTask} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} />}
+    {error && !creating && <div className="task-error" role="alert">{error.message}</div>}
+    {doctorAccount && formTask && <TaskForm key={formTask.id} task={formTask} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} />}
     {loading ? <div className="task-loading"><div className="loader" aria-label="Loading tasks" /></div> : list.length ? <div className="task-list">{list.map((task) => <TaskCard key={task.id} task={task} user={user} doctor={doctorAccount} expanded={expanded === task.id} toggle={() => setExpanded((id) => id === task.id ? null : task.id)} done={markDone} edit={setFormTask} remove={deleteTask} openPatient={onOpenPatient} comments={commentProps(task)} />)}</div> : <div className="task-empty"><strong>{view === "history" ? "No completed tasks yet." : "No open tasks."}</strong><p>{view === "history" ? "Done tasks will remain available here." : doctorAccount ? "Create a task for the Assistant when something needs follow-up." : "The Doctor has not assigned any tasks."}</p></div>}
+    {doctorAccount && creating && <div className="task-modal" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setFormTask(undefined); }}><div className="task-modal__dialog" role="dialog" aria-modal="true" aria-label="New task">{error && <div className="task-error" role="alert">{error.message}</div>}<TaskForm key="new" task={null} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} /></div></div>}
   </section>;
 }
