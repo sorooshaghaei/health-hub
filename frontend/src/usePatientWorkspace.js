@@ -4,7 +4,7 @@ import { ApiError, apiRequest } from "./api.js";
 export default function usePatientWorkspace({ user, staffToken }) {
   const doctorAccount = user.role === "doctor", doctorWorkspace = user.workspace_role === "doctor", assistantWorkspace = user.workspace_role === "assistant";
   const canEditPatient = assistantWorkspace || doctorWorkspace, canCreateDeletePatients = assistantWorkspace, canManageAppointments = assistantWorkspace;
-  const [section, setSectionState] = useState(doctorWorkspace ? "patients" : "schedule"), [patients, setPatients] = useState([]), [search, setSearch] = useState("");
+  const [section, setSectionState] = useState("schedule"), [patients, setPatients] = useState([]), [search, setSearch] = useState("");
   const [patientView, setPatientView] = useState("list"), [selectedPatient, setSelectedPatient] = useState(null), [patientVisits, setPatientVisits] = useState([]), [requestedVisitId, setRequestedVisitId] = useState(null);
   const [loading, setLoading] = useState(true), [visitsLoading, setVisitsLoading] = useState(false), [error, setError] = useState(null), [deleting, setDeleting] = useState(false);
   const [undoActions, setUndoActions] = useState([]), [undoingId, setUndoingId] = useState(null), [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0), [taskRefreshVersion, setTaskRefreshVersion] = useState(0), [taskAttention, setTaskAttention] = useState(false);
