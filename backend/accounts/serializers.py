@@ -170,3 +170,10 @@ class StaffLoginSerializer(serializers.Serializer):
         attrs["user"] = user
         attrs["workspace_role"] = workspace_role
         return attrs
+
+
+class PrivateNoteSerializer(serializers.Serializer):
+    content = serializers.CharField(
+        allow_blank=True,
+        trim_whitespace=False,
+    )

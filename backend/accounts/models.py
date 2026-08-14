@@ -45,6 +45,7 @@ class StaffUser(AbstractUser):
     )
     role = models.CharField(max_length=16, choices=Role.choices, blank=True)
     task_attention_seen_at = models.DateTimeField(default=timezone.now)
+    private_note = models.TextField(blank=True, default="")
 
     class Meta:
         constraints = [

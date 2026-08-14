@@ -29,6 +29,8 @@ Doctor workspace owns Room ready and otherwise stays clinically focused. It may 
 
 Phase 6 task authoring permissions are intentionally based on account identity rather than workspace: the Doctor account may create/edit/delete Doctor-to-Assistant tasks even when the Doctor is using Assistant workspace; the Assistant account cannot author tasks.
 
+Phase 7 private sticky access requires account identity to match the active workspace. The Doctor sees the Doctor sticky only in Doctor workspace. The Assistant sees the Assistant sticky only in Assistant workspace. Doctor credentials inside Assistant workspace see neither private sticky.
+
 ## Implemented workflow
 
 ### Patients
@@ -143,6 +145,23 @@ OPEN → DONE
 - Room ready remains the only sound/persistent notification workflow;
 - browser-demo behavior mirrors backend permissions, lifecycle, attention state, and modal UX.
 
+### Private sticky
+
+- exactly one private scratchpad per staff account, not multiple notes;
+- plain multiline text only, with no title, ordering, formatting, history, or Edited label;
+- autosaves to the server while typing with no routine Saving/Saved label;
+- persists across dates, reloads, and sign-ins until its owner changes or erases the text;
+- erasing the content saves a blank scratchpad; there is no Delete action or Undo;
+- stays fixed to the viewport throughout the owner's workspace and has no dedicated Notes tab;
+- minimizes to a small movable yellow strip at the lower-right; there is no Close button;
+- desktop expanded state is draggable and resizable;
+- mobile minimized state is movable and expands to a full-screen editor;
+- Doctor sticky appears only in Doctor workspace;
+- Assistant sticky appears only for the Assistant account in Assistant workspace;
+- Doctor administrator access to Assistant workspace shows neither account's sticky;
+- no Patient links, reminders, attachments, search, notifications, colors, or other note system;
+- browser-demo behavior mirrors backend persistence and workspace privacy.
+
 See:
 
 - [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md)
@@ -151,15 +170,16 @@ See:
 - [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md)
 - [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md)
 - [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md)
+- [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md)
 
 ## Current phase
 
-**Phase 6 repository implementation is complete, including the approved task attention-dot and New Task modal UX correction. Stop until the product owner explicitly says continue.**
+**Phase 7 repository implementation is complete. Stop until the product owner explicitly says continue.**
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Do not begin Phase 7 automatically.
+Do not begin Phase 8 automatically.
 
-When the product owner says **continue**, first resolve the Phase 7 private-note decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
+When the product owner says **continue**, first resolve the Phase 8 daily operational-estimate decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).

@@ -18,15 +18,16 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 - Doctor room call and consultation handoff: [`docs/PHASE_4_CONSULTATION.md`](docs/PHASE_4_CONSULTATION.md)
 - Completed consultation behavior: [`docs/PHASE_5_COMPLETION.md`](docs/PHASE_5_COMPLETION.md)
 - Shared tasks: [`docs/PHASE_6_SHARED_TASKS.md`](docs/PHASE_6_SHARED_TASKS.md)
+- Private sticky: [`docs/PHASE_7_PRIVATE_NOTES.md`](docs/PHASE_7_PRIVATE_NOTES.md)
 - Visual direction: [`docs/design/README.md`](docs/design/README.md)
 
 The project is developed directly on `main`, one approved phase at a time. Implementation stops after each phase until the product owner explicitly says **continue**.
 
 ## Current phase
 
-**Phase 6 — Shared tasks: repository implementation complete, including the approved attention-dot and New Task modal UX correction.**
+**Phase 7 — Private sticky: repository implementation complete.**
 
-The Doctor can create simple shared tasks for the Assistant. Tasks use only `OPEN → DONE`, support a five-second Undo for Done and deletion, retain completed History, allow shared author-owned comments, use small role-specific Tasks-tab attention dots for new/completed activity, and do not add a general task notification system. Phase 7 has not been approved for implementation.
+Each staff account has one private, persistent plain-text scratchpad in its own workspace. It autosaves to the server, stays fixed to the viewport, minimizes to a movable strip, and opens as a draggable/resizable desktop sticky or full-screen mobile editor. Doctor administrator access to Assistant workspace shows no private sticky. Phase 8 has not started.
 
 ## Access model
 
@@ -40,6 +41,8 @@ The clinic supports one Doctor account and one Assistant account. The Doctor is 
 Doctor workspace owns the Room ready signal, views Appointment administration read-only, and may edit every approved Patient field. Patient creation/deletion and Appointment administration remain in Assistant workspace. A Doctor account inside Assistant workspace receives the same full administrative controls as the Assistant.
 
 Task authoring is based on account identity rather than active workspace: Doctor credentials may create/edit/delete Doctor-to-Assistant tasks from either workspace; Assistant credentials cannot author tasks.
+
+Private sticky access is stricter and matches account ownership to the active workspace. The Doctor sees the Doctor sticky only in Doctor workspace; the Assistant sees the Assistant sticky only in Assistant workspace. Doctor administrator access to Assistant workspace exposes neither account's private sticky.
 
 ## Implemented workflow
 
@@ -141,6 +144,20 @@ OPEN → DONE
 - the red dot is only an in-app attention marker: no task sound, push/OS notification, popup alert, email, badge count, comment alert, or due-date alert is added;
 - shared task and attention state use lightweight authenticated polling so separate Doctor and Assistant computers stay current.
 
+### Private sticky
+
+- one plain-text scratchpad per staff account, not a collection of notes;
+- no title, ordering, history, Edited label, delete action, or separate Notes page;
+- text and line breaks autosave to the server while typing and persist across days and sign-ins;
+- erasing all text saves the same scratchpad as a blank page;
+- the sticky is fixed to the viewport on every page of the account's own workspace;
+- it minimizes to a movable yellow strip at the lower-right without a Close action;
+- on desktop, the opened sticky is draggable and resizable;
+- on mobile, the minimized strip remains movable and the opened editor fills the screen;
+- no formatting, colors, Patient links, reminders, attachments, search, notifications, or routine Saving/Saved indicator;
+- Doctor administrator access to Assistant workspace shows neither the Doctor nor Assistant sticky;
+- backend authorization and browser-demo behavior enforce the same workspace privacy rule.
+
 ### Five-second Undo
 
 Server-enforced Undo applies to:
@@ -236,6 +253,8 @@ GET    /api/clinic/context/
 POST   /api/staff/register/
 POST   /api/staff/login/
 GET    /api/staff/me/
+GET    /api/staff/private-note/
+PATCH  /api/staff/private-note/
 POST   /api/staff/logout/
 
 GET    /api/patients/?search=<name|phone|date>
@@ -281,7 +300,7 @@ Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, Appointment, and
 
 ## Migration behavior
 
-The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables. The attention-dot correction adds a per-staff task-seen timestamp initialized at migration time so existing tasks are treated as already seen. No existing Patient or Appointment record is changed. The browser demo performs equivalent local-storage migration and validation for existing demo data.
+The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables. The attention-dot correction adds a per-staff task-seen timestamp initialized at migration time so existing tasks are treated as already seen. Phase 7 adds one blank-by-default private-note text field to each staff account; it does not alter Patient, Appointment, task, or existing account data. The browser demo performs equivalent local-storage migration and validation for existing demo data.
 
 ## Production boundary
 

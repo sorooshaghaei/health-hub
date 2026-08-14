@@ -61,6 +61,11 @@ function migrateStore(parsed) {
     }),
   );
 
+  store.staff = store.staff.map((user) => ({
+    ...user,
+    private_note: typeof user.private_note === "string" ? user.private_note : "",
+  }));
+
   const validStatuses = new Set(["planned", "checked_in", "with_doctor", "doctor_finished"]);
   store.visits = store.visits.map((visit) => {
     const migrated = { ...visit };

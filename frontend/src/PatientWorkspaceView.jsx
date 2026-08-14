@@ -1,5 +1,6 @@
 import PatientDetail from "./PatientDetail.jsx";
 import PatientList from "./PatientList.jsx";
+import PrivateSticky from "./PrivateSticky.jsx";
 import ScheduleWorkspace from "./ScheduleWorkspace.jsx";
 import TaskWorkspace from "./TaskWorkspace.jsx";
 import UndoStack from "./UndoStack.jsx";
@@ -33,6 +34,7 @@ export default function PatientWorkspaceView({ user, staffToken, onSignOut, cont
       </article></section>}
       {section === "tasks" && <TaskWorkspace user={user} staffToken={staffToken} doctorAccount={doctorAccount} onRegisterUndo={registerUndo} onOpenPatient={openPatient} refreshVersion={taskRefreshVersion} />}
     </main>
+    {user.role === user.workspace_role && <PrivateSticky staffToken={staffToken} />}
     <UndoStack actions={undoActions} undoingId={undoingId} onUndo={undoAction} onExpire={expireUndo} />
   </div>;
 }

@@ -45,7 +45,7 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | 4 | Doctor room call and consultation handoff | Implemented |
 | 5 | Completed consultation behavior | Implemented |
 | 6 | Shared tasks | Implemented; attention-dot and New Task modal UX correction included |
-| 7 | Private notes | Partially specified |
+| 7 | Private notes | Implemented as one private sticky scratchpad per account/workspace |
 | 8 | Daily operational estimate | Not started |
 | 9 | Password recovery and clinic administration | Not started |
 | 10 | Sensitive attachment architecture | Not started |
@@ -188,9 +188,18 @@ OPEN → DONE
 
 ## Phase 7 — Private notes
 
-Confirmed: creator-only personal notes, save/delete, sticky-note-style text, and separation from tasks and shared Patient notes.
+Implemented according to [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md):
 
-Before implementation, confirm titles, editing, autosave, ordering, deletion behavior, and workspace placement.
+- one private persistent scratchpad per staff account rather than a notes collection;
+- plain multiline text with no title, ordering, formatting, history, or Edited label;
+- autosave while typing and blank-content persistence when all text is erased;
+- fixed viewport placement with a movable minimized strip and no Close action;
+- draggable/resizable expanded desktop sticky;
+- movable minimized mobile strip and full-screen mobile editor;
+- Doctor note only in Doctor workspace and Assistant note only for the Assistant account in Assistant workspace;
+- no sticky at all when Doctor credentials open Assistant workspace as administrator;
+- no Patient links, reminders, attachments, search, notifications, color choices, or routine save-status indicator;
+- browser-demo behavior and automated tests mirror backend persistence and authorization.
 
 ## Phase 8 — Daily operational estimate
 

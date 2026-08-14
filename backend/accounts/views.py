@@ -6,10 +6,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import StaffUser
+from .permissions import active_workspace_role
 from .serializers import (
     ClinicCreateSerializer,
     ClinicEnterSerializer,
     ClinicSummarySerializer,
+    PrivateNoteSerializer,
     StaffLoginSerializer,
     StaffRegistrationSerializer,
     StaffSerializer,
@@ -174,6 +176,26 @@ class StaffMeView(APIView):
                 ).data
             }
         )
+
+
+class StaffPrivateNoteView(APIView):
+    def ensure_own_workspace(self, request):
+        if active_workspace_role(request) != request.user.role:
+            raise PermissionDenied(
+                "Private notes are available only in your own workspace."
+            )
+
+    def get(self, request):
+        self.ensure_own_workspace(request)
+        return Response({"content": request.user.private_note})
+
+    def patch(self, request):
+        self.ensure_own_workspace(request)
+        serializer = PrivateNoteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request.user.private_note = serializer.validated_data["content"]
+        request.user.save(update_fields=["private_note"])
+        return Response({"content": request.user.private_note})
 
 
 class StaffLogoutView(APIView):

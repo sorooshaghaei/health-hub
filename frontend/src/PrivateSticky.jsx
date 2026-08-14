@@ -1,0 +1,314 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { apiRequest } from "./api.js";
+
+const EDGE_MARGIN = 14;
+const MINIMIZED_WIDTH = 236;
+const MINIMIZED_HEIGHT = 38;
+const MIN_WIDTH = 300;
+const MIN_HEIGHT = 260;
+const MOBILE_QUERY = "(max-width: 680px)";
+
+function viewportSize() {
+  return {
+    width: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
+    height: Math.max(document.documentElement.clientHeight, window.innerHeight || 0),
+  };
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
+}
+
+function defaultExpandedFrame() {
+  const viewport = viewportSize();
+  const width = Math.min(440, viewport.width - EDGE_MARGIN * 2);
+  const height = Math.min(460, viewport.height - EDGE_MARGIN * 2);
+  return {
+    width,
+    height,
+    x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
+    y: Math.max(EDGE_MARGIN, viewport.height - height - EDGE_MARGIN),
+  };
+}
+
+function bottomRightPosition() {
+  const viewport = viewportSize();
+  const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
+  return {
+    x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
+    y: Math.max(EDGE_MARGIN, viewport.height - MINIMIZED_HEIGHT - EDGE_MARGIN),
+  };
+}
+
+function constrainFrame(frame) {
+  const viewport = viewportSize();
+  const width = clamp(frame.width, Math.min(MIN_WIDTH, viewport.width), viewport.width);
+  const height = clamp(frame.height, Math.min(MIN_HEIGHT, viewport.height), viewport.height);
+  return {
+    width,
+    height,
+    x: clamp(frame.x, 0, viewport.width - width),
+    y: clamp(frame.y, 0, viewport.height - height),
+  };
+}
+
+function constrainMinimized(position) {
+  const viewport = viewportSize();
+  const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
+  return {
+    x: clamp(position.x, 0, viewport.width - width),
+    y: clamp(position.y, 0, viewport.height - MINIMIZED_HEIGHT),
+  };
+}
+
+export default function PrivateSticky({ staffToken }) {
+  const [content, setContent] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(null);
+  const [minimized, setMinimized] = useState(true);
+  const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+  const [frame, setFrame] = useState(defaultExpandedFrame);
+  const [minimizedPosition, setMinimizedPosition] = useState(bottomRightPosition);
+  const latestContent = useRef("");
+  const persistedContent = useRef("");
+  const saving = useRef(false);
+  const active = useRef(true);
+  const interaction = useRef(null);
+  const textArea = useRef(null);
+
+  useEffect(() => {
+    active.current = true;
+    let cancelled = false;
+    async function load() {
+      try {
+        const payload = await apiRequest("/api/staff/private-note/", { staffToken });
+        if (cancelled) return;
+        const value = typeof payload.content === "string" ? payload.content : "";
+        latestContent.current = value;
+        persistedContent.current = value;
+        setContent(value);
+      } catch {
+        if (!cancelled) setError("Private note could not be loaded.");
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+      active.current = false;
+    };
+  }, [staffToken]);
+
+  const flush = useCallback(async () => {
+    if (!loaded || saving.current || latestContent.current === persistedContent.current) return;
+    saving.current = true;
+    try {
+      while (active.current && latestContent.current !== persistedContent.current) {
+        const value = latestContent.current;
+        await apiRequest("/api/staff/private-note/", {
+          method: "PATCH",
+          data: { content: value },
+          staffToken,
+        });
+        persistedContent.current = value;
+      }
+      if (active.current) setError(null);
+    } catch {
+      if (active.current) setError("Private note could not be saved. Keep this page open and try again.");
+    } finally {
+      saving.current = false;
+    }
+  }, [loaded, staffToken]);
+
+  useEffect(() => {
+    if (!loaded || content === persistedContent.current) return undefined;
+    const timer = window.setTimeout(flush, 450);
+    return () => window.clearTimeout(timer);
+  }, [content, flush, loaded]);
+
+  useEffect(() => {
+    const media = window.matchMedia(MOBILE_QUERY);
+    const onMediaChange = (event) => setMobile(event.matches);
+    const onResize = () => {
+      setFrame((current) => constrainFrame(current));
+      setMinimizedPosition((current) => constrainMinimized(current));
+    };
+    media.addEventListener("change", onMediaChange);
+    window.addEventListener("resize", onResize);
+    return () => {
+      media.removeEventListener("change", onMediaChange);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!minimized) textArea.current?.focus();
+  }, [minimized]);
+
+  function updateContent(event) {
+    latestContent.current = event.target.value;
+    setContent(event.target.value);
+    setError(null);
+  }
+
+  function minimize() {
+    flush();
+    setMinimizedPosition(bottomRightPosition());
+    setMinimized(true);
+  }
+
+  function maximize() {
+    setFrame((current) => constrainFrame(current));
+    setMinimized(false);
+  }
+
+  function beginDrag(event) {
+    if (
+      event.button !== 0
+      || event.target.closest("button")
+      || (mobile && !minimized)
+    ) return;
+    const origin = minimized
+      ? {
+          ...minimizedPosition,
+          width: Math.min(
+            MINIMIZED_WIDTH,
+            viewportSize().width - EDGE_MARGIN * 2,
+          ),
+          height: MINIMIZED_HEIGHT,
+        }
+      : frame;
+    interaction.current = {
+      kind: "drag",
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      origin,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function beginResize(event) {
+    if (event.button !== 0 || mobile) return;
+    interaction.current = {
+      kind: "resize",
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      origin: frame,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  function moveInteraction(event) {
+    const current = interaction.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - current.startX;
+    const deltaY = event.clientY - current.startY;
+    const viewport = viewportSize();
+    if (current.kind === "drag") {
+      const next = {
+        x: clamp(current.origin.x + deltaX, 0, viewport.width - current.origin.width),
+        y: clamp(current.origin.y + deltaY, 0, viewport.height - current.origin.height),
+      };
+      if (minimized) setMinimizedPosition(next);
+      else setFrame((value) => ({ ...value, ...next }));
+      return;
+    }
+    setFrame({
+      ...current.origin,
+      width: clamp(
+        current.origin.width + deltaX,
+        Math.min(MIN_WIDTH, viewport.width - current.origin.x),
+        viewport.width - current.origin.x,
+      ),
+      height: clamp(
+        current.origin.height + deltaY,
+        Math.min(MIN_HEIGHT, viewport.height - current.origin.y),
+        viewport.height - current.origin.y,
+      ),
+    });
+  }
+
+  function endInteraction(event) {
+    if (interaction.current?.pointerId !== event.pointerId) return;
+    interaction.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  const minimizedWidth = Math.min(MINIMIZED_WIDTH, viewportSize().width - EDGE_MARGIN * 2);
+  const style = minimized
+    ? {
+        left: minimizedPosition.x,
+        top: minimizedPosition.y,
+        width: minimizedWidth,
+        height: MINIMIZED_HEIGHT,
+      }
+    : mobile
+      ? undefined
+      : {
+          left: frame.x,
+          top: frame.y,
+          width: frame.width,
+          height: frame.height,
+        };
+  const preview = content.trim().split("\n")[0] || "Private note";
+
+  if (minimized) {
+    return (
+      <aside className="private-sticky private-sticky--minimized" style={style} aria-label="Private note">
+        <div
+          className="private-sticky__bar"
+          onPointerDown={beginDrag}
+          onPointerMove={moveInteraction}
+          onPointerUp={endInteraction}
+          onPointerCancel={endInteraction}
+        >
+          <span className="private-sticky__preview">{preview}</span>
+          <button type="button" onClick={maximize} aria-label="Maximize private note">□</button>
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="private-sticky private-sticky--open" style={style} aria-label="Private note">
+      <header
+        className="private-sticky__header"
+        onPointerDown={beginDrag}
+        onPointerMove={moveInteraction}
+        onPointerUp={endInteraction}
+        onPointerCancel={endInteraction}
+      >
+        <span>Private note</span>
+        <button type="button" onClick={minimize} aria-label="Minimize private note">—</button>
+      </header>
+      <textarea
+        ref={textArea}
+        value={content}
+        onChange={updateContent}
+        onBlur={flush}
+        disabled={!loaded}
+        aria-label="Private note text"
+        spellCheck="true"
+      />
+      {error && <p className="private-sticky__error" role="alert">{error}</p>}
+      {!mobile && (
+        <button
+          className="private-sticky__resize"
+          type="button"
+          aria-label="Resize private note"
+          onPointerDown={beginResize}
+          onPointerMove={moveInteraction}
+          onPointerUp={endInteraction}
+          onPointerCancel={endInteraction}
+        />
+      )}
+    </aside>
+  );
+}

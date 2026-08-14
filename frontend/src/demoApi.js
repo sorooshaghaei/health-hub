@@ -101,6 +101,21 @@ export async function demoApiRequest(
   const store = loadStore();
   const session = resolveSession(store, staffToken);
 
+  if (pathname === "/api/staff/private-note/") {
+    if (session.workspaceRole !== session.user.role) {
+      fail({ detail: "Private notes are available only in your own workspace." }, 403);
+    }
+    if (method === "GET") return { content: session.user.private_note ?? "" };
+    if (method === "PATCH") {
+      if (typeof data.content !== "string") {
+        fail({ content: ["Not a valid string."] });
+      }
+      session.user.private_note = data.content;
+      saveStore(store);
+      return { content: session.user.private_note };
+    }
+  }
+
   if (pathname === "/api/patients/" && method === "GET") {
     return { patients: listPatients(store, url.searchParams.get("search")) };
   }

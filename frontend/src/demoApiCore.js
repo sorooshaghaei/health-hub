@@ -613,6 +613,7 @@ async function registerStaff(data, clinicToken) {
     last_name: lastName,
     role,
     password_hash: await hashSecret(password),
+    private_note: "",
   };
   store.staff.push(user);
   const sessionToken = randomToken("demo-staff");
