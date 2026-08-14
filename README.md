@@ -296,7 +296,7 @@ DELETE /api/task-comments/<comment-id>/
 POST   /api/task-comments/<comment-id>/undo-delete/
 ```
 
-Clinic-entry endpoints expect `X-Clinic-Token`. Staff, Patient, Appointment, and task endpoints expect `Authorization: Bearer <session-token>`.
+`GET /api/health/`, `POST /api/clinics/`, and `POST /api/clinics/enter/` are public. `GET /api/clinic/context/`, `POST /api/staff/register/`, and `POST /api/staff/login/` expect `X-Clinic-Token`. All other listed staff, Patient, Appointment, and task endpoints expect `Authorization: Bearer <session-token>`.
 
 ## Migration behavior
 

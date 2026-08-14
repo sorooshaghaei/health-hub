@@ -141,4 +141,4 @@ Room ready and its Undo require Doctor workspace. With doctor and its Undo requi
 
 ## Notes boundary
 
-The shared Patient note shown on the consultation card is part of the Patient profile. Personal Doctor and Assistant sticky notes remain separate creator-only helpers planned for Phase 7; Phase 4 does not turn them into consultation records.
+The shared Patient note shown on the consultation card is part of the Patient profile. Personal Doctor and Assistant sticky notes are separate owner-only helpers implemented in Phase 7; Phase 4 does not turn them into consultation records.
