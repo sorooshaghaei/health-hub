@@ -1,223 +1,173 @@
-# Phase 8 — Authentication recovery and clinic administration
+# Phase 8 — Account recovery, administration, and security
 
 ## Status
 
-**Not started. Clarification in progress.**
+**Not started. Decisions and open questions preserved for later.**
 
-Phase 8 includes the approved correction to the Phase 0 authentication boundary plus password recovery and clinic/staff administration. No Phase 8 application code has been implemented yet.
+The project will first make a small Phase 0 corrective pass to fix the base authentication boundary. Phase 8 no longer owns that entire foundational rewrite.
 
-## Problem being corrected
+Phase 8 begins only after the Phase 0 base-authentication correction is implemented, validated, documented, and stopped.
 
-The current application requires a shared clinic email/password before individual Doctor or Assistant authentication. That shared secret creates two product problems:
+## Scope boundary
 
-- changing or forgetting the clinic password affects both staff members and requires coordination;
-- a shared clinic password is not the desired final privacy boundary for preventing arbitrary outside devices from accessing clinic data.
+Phase 0 is responsible only for the minimum trusted-device + individual-staff authentication foundation needed to remove the shared clinic-password boundary safely.
 
-The final design therefore separates **clinic/device authorization** from **individual staff authentication**.
+Phase 8 is responsible for the more complicated account lifecycle, recovery, verification, administration, passkey management, multi-clinic identity, and security behavior described below.
 
-## Approved decisions
+Nothing in this document should be implemented early merely because it is related to authentication.
 
-The following decisions are approved and may be treated as fixed unless the product owner explicitly revises them.
+## Previously approved Phase 8 decisions
 
-### Trusted clinic devices
+The following answers from the product owner are preserved.
 
-- The shared clinic password is removed from normal daily authentication.
-- A clinic device/browser must be trusted before it can be used for normal clinic access.
-- An untrusted device cannot access clinic or Patient data, even if a staff password is known.
-- The first-device flow must explicitly ask whether the current computer/browser should be trusted and remembered.
-- Doctor and Assistant are both permitted to authorize additional clinic devices.
-- New-device authorization uses a verified email or SMS channel; the Doctor or Assistant performing the authorization chooses which channel.
-- A trusted device stays trusted indefinitely until Doctor or Assistant explicitly removes it.
-- Doctor and Assistant may explicitly remove a trusted device.
-- Trusted-device authorization is separate from the logged-in staff session.
-- Signing out Doctor or Assistant does not remove the device's trusted status.
-- Clearing browser storage, switching to a different browser, reinstalling the browser, or changing computers requires device authorization again.
-- Remote access from an untrusted device is blocked for both Doctor and Assistant.
+### Recovery channels and verification
 
-### Daily sign-in
-
-- The Doctor/Assistant role-selection screen remains.
-- Staff sign in using verified email or verified phone number rather than relying on the clinic email/password layer.
-- Phone number is required on staff accounts.
-- Passkey/device-biometric login is included in Phase 8.
-- Password-based account recovery remains supported.
-- Username remains an editable staff profile field, but it is not approved as a normal sign-in identifier at this point.
-
-### Contact verification and self-service account settings
-
-- Doctor and Assistant may edit their own first name, last name, username, email, phone number, and password.
-- Email addresses must be verified.
-- Phone numbers must be verified.
-- Initial account setup/activation must verify staff contact information.
-- Changing email, phone number, or password requires a verification step.
-- The exact sequencing of current-credential reauthentication versus contact verification remains unresolved.
-
-### Forgotten-password recovery
-
-- Doctor and Assistant choose whether to recover through verified email or verified SMS.
+- Both email and SMS are supported as account recovery channels.
+- For forgotten-password recovery, the staff member chooses email or SMS.
 - Recovery authorization is valid for 30 minutes or until a new password is successfully set, whichever occurs first.
 - A newer recovery request invalidates an older outstanding recovery authorization.
-- A successful forgotten-password reset revokes every existing staff session belonging to the affected account.
-- Recovery affects only that individual account; it never resets a clinic-wide shared password and never distributes the newly chosen password to the other staff member.
+- A successful forgotten-password reset revokes all existing sessions belonging to that staff account.
+- Doctor and Assistant recovery are individual; one person's reset does not alter another person's credentials.
+- Newly chosen passwords are never sent to the other staff member.
+- Staff email addresses must be verified.
+- Staff phone numbers must be verified.
+- Changing email, phone number, or password requires verification.
+- Phone number is required on staff accounts.
 
-### Offline emergency recovery
+### Staff profile editing
+
+Doctor and Assistant may edit their own:
+
+- first name;
+- last name;
+- username;
+- email;
+- phone number;
+- password.
+
+The exact reauthentication and contact-change sequence remains unresolved.
+
+### Passkeys and biometrics
+
+- Passkey/device-biometric sign-in is approved for Phase 8.
+- Exact passkey policy is not yet decided.
+
+### Doctor emergency recovery
 
 - The Doctor receives a list of offline recovery codes.
-- Each offline recovery code is one-time use.
-- The Doctor is responsible for keeping the codes somewhere safe.
-- Offline recovery codes are a Doctor-controlled recovery mechanism.
-- If an Assistant loses access to normal email/SMS recovery, the Doctor must be able to help recover/reset the Assistant rather than requiring a clinic-wide credential change.
-- The precise way a Doctor-held code is used for Assistant recovery is still unresolved and must not be invented during implementation.
+- Each code is one-time use.
+- The Doctor must keep the codes somewhere safe.
+- The exact number, regeneration behavior, and relationship to Assistant recovery remain unresolved.
 
-### Doctor administration of the Assistant account
+### Assistant recovery and replacement
 
 The Doctor may:
 
 - edit Assistant identity/contact information;
 - initiate Assistant recovery;
-- perform a total Assistant-account reset when the clinic hires a different Assistant.
+- perform a total Assistant-account reset when a different Assistant is hired.
 
-Assistant replacement uses the existing Assistant slot/account rather than retaining an archived former-Assistant account. Clinic, Patient, Appointment, queue, consultation, and other clinic operational data must remain unaffected by the personnel change.
+The existing Assistant slot/account is reused rather than preserving a separate archived former-Assistant account.
 
-After a total Assistant reset, the replacement Assistant establishes their own password and enters/verifies their own identity/contact information.
+After reset, the replacement Assistant establishes their own password and enters/verifies their own identity/contact information.
 
-A separate Assistant disable/re-enable workflow is not approved for Phase 8 at this point.
+Changing Assistant must not affect clinic, Patient, Appointment, queue, consultation, or other operational data.
 
-### Clinic contact fields
+The treatment of the former Assistant private sticky, credentials, passkeys, sessions, and historical authored task comments remains unresolved.
 
-- Clinic-level email and phone are no longer needed for authentication or recovery because those functions move to verified individual staff contacts.
-- The shared clinic password is removed from the target architecture.
-- The clinic itself remains the tenant/container for clinic-scoped data.
-
-### Doctor identity and multiple clinics
-
-- Doctor replacement/ownership transfer is not part of Phase 8.
-- A Doctor must be able to use one personal Doctor account across more than one clinic, rather than creating unrelated Doctor identities for each clinic.
-- Clinic operational and Patient data remain clinic-scoped.
-- Exact multi-clinic membership, clinic-selection, device-trust, and Doctor-private-sticky behavior remains unresolved.
+A separate Assistant disable/re-enable workflow was not approved as necessary for Phase 8.
 
 ### Security actions
 
-- Password changes/resets, trusted-device removal, account resets, and other security/account actions do not use the five-second Undo workflow.
+- Password changes/resets, device removal, account reset, and other security/account actions do not use the five-second Undo workflow.
+
+### Clinic contacts
+
+- Clinic-level email and phone are no longer intended to be authentication/recovery credentials once individual verified staff contacts provide those functions.
+- The shared clinic password is not part of the target architecture.
+- Whether clinic email/phone remain as ordinary non-authentication profile/contact fields or are removed entirely still needs an explicit decision before schema changes.
+
+### Doctor identity across clinics
+
+- Doctor replacement/ownership transfer is not part of Phase 8.
+- A Doctor should be able to use one personal Doctor identity across more than one clinic instead of creating unrelated Doctor identities for each clinic.
+- Clinic operational and Patient data remain clinic-scoped.
+- The current `StaffUser.clinic` model does not support this and must not be changed until the multi-clinic behavior is clarified.
 
 ### Browser demo
 
-- The public browser demo must remain the same frontend/codebase through the browser adapter rather than becoming a separately maintained code fork.
-- Real email/SMS recovery is unavailable in the browser-only demo.
-- Real trusted-device authorization is unavailable in the browser-only demo.
-- The exact demo entry/authentication flow still needs to be defined so the demo does not preserve obsolete production authentication merely for convenience.
+- The GitHub Pages demo must remain the same frontend/codebase through the browser adapter rather than becoming a separate application fork.
+- Real email/SMS delivery is unavailable in the browser-only demo.
+- Real trusted-device security is unavailable in the browser-only demo.
+- The final simplified demo entry behavior remains unresolved.
 
-## Existing implementation that Phase 8 must replace or migrate
+## Questions intentionally parked for Phase 8
 
-The current repository still contains:
+These questions are kept here and should **not** block the smaller Phase 0 correction unless one becomes strictly necessary for that correction.
 
-- `Clinic.password_hash`;
-- clinic entry using clinic email + clinic password;
-- a signed clinic-access token issued after clinic-password validation;
-- staff login performed after clinic access;
-- `StaffUser.clinic`, which links one staff account to one clinic;
-- separate `StaffSession` records for individual staff sessions;
-- clinic-level email and phone fields.
+### Account session policy
 
-Phase 8 must migrate this architecture deliberately. Documentation must not describe trusted-device authorization, passkeys, verified phone recovery, or multi-clinic Doctor membership as already implemented until code, migrations, tests, frontend, and browser adapter match it.
+- staff-session duration;
+- inactivity timeout;
+- browser-close behavior;
+- Remember me behavior.
 
-## Remaining clarification before implementation
+### Passkey policy
 
-The following decisions are intentionally **not predetermined**.
+- optional versus preferred/required after enrollment;
+- whether password remains a normal sign-in option;
+- number of passkeys/devices an account may register;
+- passkey removal/replacement flow.
 
-### 1. First-device/bootstrap sequence
+### Contact and credential changes
 
-The first computer/browser must ask whether it should be trusted and remembered. Still unresolved:
+- whether both email and phone must be verified before initial account activation;
+- whether changing email verifies only the new email, both old and new, or also requires current credential reauthentication;
+- equivalent behavior for phone changes;
+- whether normal password change requires current password/passkey plus an email/SMS code;
+- which channel is used for password-change verification.
 
-- at exactly what point that prompt appears during new-clinic/Doctor setup;
-- whether both Doctor email and phone must be verified before that first device may be trusted;
-- whether trusting the first device needs any additional verification beyond the already completed account/contact verification.
+### Offline recovery codes
 
-### 2. New/untrusted-device sequence
+- number generated at once;
+- whether generating a new list invalidates every unused old code;
+- whether Doctor codes recover only the Doctor;
+- how the Doctor helps an Assistant who has lost access to normal email/SMS recovery;
+- whether Assistant recovery should instead use a separate one-time Doctor-generated setup/recovery credential.
 
-Because untrusted devices are blocked from clinic data, the application still needs a limited pre-access authorization flow. Still unresolved:
+### Total Assistant reset
 
-- what the user sees before device authorization;
-- how the target clinic is identified/selected;
-- whether staff identity authentication happens before or after device authorization;
-- what exact device information is displayed in the trusted-device management list.
+- whether former Assistant private sticky is erased;
+- treatment of old task comments authored by the former Assistant;
+- which profile fields, credentials, passkeys, recovery state, and sessions are erased;
+- how the replacement Assistant receives the first setup credential before their new email/phone are established.
 
-### 3. Staff session behavior
+### Doctor account across multiple clinics
 
-Trusted-device lifetime is approved, but staff-session lifetime is separate and unresolved:
+- whether only Doctors may belong to multiple clinics or Assistants may also do so;
+- whether one Doctor may be Doctor for multiple clinics simultaneously;
+- clinic-selection flow;
+- whether trusted-device authorization is per clinic;
+- whether Doctor private sticky is global or per-clinic;
+- whether profile, contacts, password, passkeys, and recovery are global across clinic memberships.
 
-- session duration;
-- inactivity timeout, if any;
-- whether closing the browser ends the staff session;
-- whether there is any separate Remember me/session option.
+### Password and security internals
 
-### 4. Passkeys
-
-Passkeys/device biometrics are in scope, but still unresolved:
-
-- whether passkey is an optional alternative to password or the preferred/required sign-in method after enrollment;
-- whether password remains available for normal sign-in;
-- whether an account may register more than one passkey/device;
-- how passkeys are removed/replaced from account settings.
-
-### 5. Verification when changing credentials/contact information
-
-Verification is required, but still unresolved:
-
-- whether both email and phone must be verified before an account is considered fully activated;
-- when changing email, whether verification is sent only to the new email, also to the old email, or combined with current-password/passkey reauthentication;
-- equivalent behavior for changing phone number;
-- when changing password while already signed in, whether current password/passkey is also required in addition to the verification code;
-- which verified channel is used for a password-change verification code.
-
-### 6. Offline recovery codes
-
-Still unresolved:
-
-- how many Doctor offline codes are generated at a time;
-- whether generating a replacement list invalidates every unused code in the previous list;
-- whether a Doctor-held code can directly recover the Doctor account only, or whether it is also entered directly for Assistant recovery;
-- alternatively, whether the Doctor uses their own authenticated/recovered access to generate a separate one-time Assistant setup/recovery credential.
-
-### 7. Total Assistant reset
-
-Still unresolved:
-
-- whether total reset erases the former Assistant private sticky;
-- what happens to historical task comments authored by the former Assistant, because reusing the same database account could otherwise make those comments appear to have been written by the replacement Assistant;
-- which existing Assistant account fields/credentials/passkeys/sessions are erased by total reset;
-- how the replacement Assistant obtains the first setup credential before their own email and phone are established and verified.
-
-### 8. Doctor account across multiple clinics
-
-The requirement for one Doctor identity across multiple clinics changes the current one-clinic `StaffUser` model. Still unresolved:
-
-- whether only Doctors may belong to multiple clinics or Assistants may also work in multiple clinics;
-- whether one Doctor may be the Doctor for multiple clinics simultaneously;
-- how a Doctor selects which clinic to open;
-- whether each clinic must independently trust the same physical browser/device;
-- whether the Doctor's private sticky is one global personal sticky across all clinics or a separate private sticky per clinic;
-- whether Doctor profile/contact/passkeys/recovery are global across all clinic memberships.
-
-### 9. Password/security internals
-
-Still unresolved:
-
-- password validation/minimum requirements;
-- recovery/device-verification throttling;
+- password validation requirements;
+- recovery throttling/rate limits;
 - generic non-account-enumerating responses;
-- token/code hashing and other implementation-level protections that need an approved security policy.
+- token/code hashing and related implementation protections;
+- security event history, if any.
 
-### 10. Browser-demo entry flow
+### Demo behavior
 
-Trusted-device and real recovery features are unavailable in the demo, but the same frontend is retained. Still unresolved:
+- exact demo entry flow after production authentication changes;
+- whether demo password/passkey UI is simplified, simulated, or omitted.
 
-- what replaces production device authorization in the demo;
-- whether the demo starts with a simple Demo access action before the existing Doctor/Assistant role chooser;
-- whether demo password/passkey behavior is simulated, simplified, or omitted.
+## Relationship to Phase 0
 
-## Implementation boundary
+See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
-Do not implement Phase 8 until the remaining clarification questions are answered. Do not invent screens, permissions, account-membership behavior, recovery-code semantics, session lifetimes, passkey policy, reset behavior, or demo behavior to fill gaps.
+Phase 0 now owns the immediate base-authentication correction. Phase 8 keeps these account-management/recovery/security decisions for later.
 
-After the decisions are approved, Phase 8 must update backend models/services/API, frontend flows, browser-adapter parity, tests, migrations, documentation, and the Phase 0 foundation record together.
+Do not implement Phase 8 until Phase 0 correction is complete and the product owner explicitly moves the project forward to Phase 8.
