@@ -2,17 +2,26 @@
 
 ## Status
 
-**Not started. Decisions and open questions preserved for later.**
+**Not started. Phase 0 authentication foundation is complete; decisions and open questions below are preserved for Phase 8.**
 
-The project will first complete the smaller Phase 0 base-authentication correction. Phase 8 begins only after that correction is implemented, validated, documented, committed, and stopped.
+The smaller Phase 0 base-authentication correction has been implemented and validated. Phase 8 must build on that trusted-device + individual-staff foundation rather than reintroducing the removed shared clinic-password layer.
 
-## Scope boundary
+## Implemented Phase 0 foundation that Phase 8 inherits
 
-Phase 0 owns only the minimum trusted-device + individual-staff authentication foundation needed to remove the shared clinic-password boundary safely.
+Phase 0 now provides:
+
+- trusted clinic browsers/devices as the clinic access boundary;
+- automatic trust of the first browser when a clinic is created;
+- six-digit, short-lived new-device pairing approved from an already trusted device;
+- trusted-device list and revocation for both Doctor and Assistant;
+- staff sessions bound to the trusted device that created them;
+- existing username + password staff sign-in behind the trusted-device boundary;
+- no shared clinic-password entry flow;
+- a static-demo exception that bypasses real trusted-device authority rather than simulating it.
 
 Phase 8 owns the more complicated account lifecycle, recovery, contact verification, administration, passkey management, multi-clinic identity, and broader security behavior described below.
 
-Nothing in this document should be implemented early merely because it is related to authentication.
+Nothing in this document should be implemented without resolving its remaining questions and receiving explicit product-owner approval.
 
 ## Previously approved Phase 8 decisions
 
@@ -32,7 +41,7 @@ Nothing in this document should be implemented early merely because it is relate
 
 ### New-device authorization upgrade
 
-The Phase 0 correction deliberately authorizes additional clinic devices from an already trusted clinic device so that email/SMS infrastructure does not have to be pulled into the foundation correction.
+Phase 0 currently authorizes additional clinic devices from an already trusted clinic device so email/SMS infrastructure did not have to be pulled into the foundation correction.
 
 In Phase 8, preserve the previously approved target behavior:
 
@@ -91,7 +100,7 @@ A separate Assistant disable/re-enable workflow was not approved as necessary fo
 ### Clinic contacts
 
 - Clinic-level email and phone are no longer intended to be authentication/recovery credentials once individual verified staff contacts provide those functions.
-- The shared clinic password is not part of the target architecture.
+- The shared clinic password is not part of the architecture.
 - Whether clinic email/phone remain as ordinary non-authentication profile/contact fields or are removed entirely still needs an explicit decision before Phase 8 schema changes.
 
 ### Doctor identity across clinics
@@ -106,12 +115,10 @@ A separate Assistant disable/re-enable workflow was not approved as necessary fo
 - The GitHub Pages demo remains the same frontend/codebase through the browser adapter rather than becoming a separate application fork.
 - Real email/SMS delivery is unavailable in the browser-only demo.
 - Real trusted-device security is unavailable in the browser-only demo.
-- Phase 0 uses the minimal adapter behavior: bypass real trusted-device authorization and continue into the existing demo Doctor/Assistant flow.
+- Phase 0 bypasses real trusted-device authorization and continues into the demo Doctor/Assistant flow.
 - Any later Phase 8 demo representation of account recovery/passkeys must remain simplified and must not pretend that real email/SMS or hardware trust exists.
 
 ## Questions intentionally parked for Phase 8
-
-These questions should **not** block the Phase 0 correction unless one becomes strictly necessary there.
 
 ### Account session policy
 
@@ -164,7 +171,7 @@ These questions should **not** block the Phase 0 correction unless one becomes s
 - password validation requirements;
 - recovery/device-verification throttling and rate limits;
 - generic non-account-enumerating responses;
-- token/code hashing and related implementation protections;
+- token/code hashing and related implementation protections beyond the Phase 0 foundation;
 - security event history, if any.
 
 ### Demo behavior
@@ -176,8 +183,8 @@ These questions should **not** block the Phase 0 correction unless one becomes s
 
 See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
-Phase 0 owns the immediate base-authentication correction. Its approved temporary foundation keeps username/password staff login, uses already-trusted-device approval for additional devices, and bypasses real trusted-device authorization in the static demo.
+Phase 0 is complete. Its implemented foundation keeps username/password staff login, uses already-trusted-device approval for additional devices, binds staff sessions to trusted devices, and bypasses real trusted-device authorization in the static demo.
 
 Phase 8 keeps the account-management/recovery/security decisions above for later, including the eventual verified email/SMS new-device authorization flow.
 
-Do not implement Phase 8 until the Phase 0 correction is complete and the product owner explicitly moves the project forward to Phase 8.
+Do not implement Phase 8 until the product owner explicitly says **continue** and the remaining Phase 8 questions are resolved.
