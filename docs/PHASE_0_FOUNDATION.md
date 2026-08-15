@@ -2,15 +2,15 @@
 
 ## Status
 
-**Implemented through Phase 7, with the base authentication boundary reopened for a small corrective pass before Phase 8.**
+**Implemented, including the base-authentication corrective pass.**
 
-Phase 0 originally established the application foundation. Its shared clinic-password layer is no longer the intended authentication boundary, so the project is returning to Phase 0 only to correct that foundation before adding the more complicated recovery and account-administration work planned for Phase 8.
+Phase 0 originally established the application foundation. After Phases 1–7, its shared clinic-password layer was reopened and corrected before Phase 8. That corrective pass is now implemented and validated.
 
-This is not a rollback of Phases 1–7. Patient, Appointment, queue, consultation, task, and private-sticky behavior remain implemented and out of scope for the Phase 0 correction.
+This was not a rollback of Phases 1–7. Patient, Appointment, queue, consultation, task, and private-sticky behavior remain implemented.
 
-## Existing foundation
+## Implemented foundation
 
-The repository currently has:
+The repository has:
 
 - React/Vite frontend;
 - Django REST Framework backend;
@@ -19,130 +19,101 @@ The repository currently has:
 - Doctor and Assistant workspaces;
 - Doctor administrator access to Assistant workspace;
 - individual staff accounts and staff sessions;
+- trusted clinic-device authorization;
 - browser-only public demo adapter;
 - the completed Phase 1–7 workflows.
 
-## Current authentication implementation
+## Implemented authentication boundary
 
-The current code still uses two authentication layers:
+The old shared clinic password is no longer part of normal application authentication.
 
-1. clinic email + shared clinic password, which establishes clinic access;
-2. individual staff username + staff password, which establishes a Doctor or Assistant session and workspace.
+The implemented boundary is:
 
-The backend therefore still contains `Clinic.password_hash`, clinic-password entry, clinic-access tokens, and individual `StaffSession` records. A `StaffUser` is currently linked to one clinic.
+1. a browser must be trusted for the clinic;
+2. on that trusted browser, Doctor or Assistant chooses the workspace role;
+3. staff authenticates with the existing individual username + password flow;
+4. the resulting staff session is bound to the trusted device that created it.
 
-## Problem with the current base authentication
+The clinic remains the tenant/container for clinic data. Trusted-device authorization and individual staff sessions are separate. Signing a staff member out ends the staff session without untrusting the browser.
 
-The shared clinic password is both inconvenient and the wrong privacy boundary:
+An untrusted browser cannot use staff credentials to open normal clinic or Patient data. The removed `/api/clinics/enter/` shared-password route is not part of the implemented API.
 
-- Doctor and Assistant must share and coordinate one credential;
-- resetting that credential affects both people;
-- knowing the shared clinic password does not meaningfully represent being physically or operationally inside the clinic;
-- individual staff recovery should never require distributing a clinic-wide password.
-
-## Approved target direction
-
-The following architectural direction is approved:
-
-- the clinic remains the tenant/container for clinic data;
-- the shared clinic password is removed from normal daily authentication;
-- clinic access is gated by a trusted clinic device/browser;
-- trusted-device authorization is separate from an individual staff session;
-- signing a staff member out does not automatically untrust the clinic device;
-- an untrusted device must not gain clinic or Patient-data access merely because somebody knows a staff credential;
-- remote access from an untrusted device is blocked;
-- the Doctor/Assistant role-selection step remains;
-- Doctor and Assistant remain individually authenticated people rather than sharing a clinic credential.
-
-## Approved Phase 0 corrective behavior
-
-### First clinic device
+## First clinic device
 
 For a brand-new clinic:
 
-1. create the clinic;
-2. create the Doctor account using the existing Phase 0 account mechanism;
-3. automatically register the current computer/browser as the clinic's first trusted device.
+1. the clinic is created;
+2. the current browser is automatically registered as the clinic's first trusted device;
+3. the Doctor account is created using the existing Phase 0 username/password mechanism;
+4. the UI explains that Health Hub only allows clinic access from trusted devices and that the current browser has been registered.
 
-The first device is auto-trusted deliberately so the Doctor cannot accidentally create a clinic and immediately lose access to it. Do not ask an ambiguous **Trust and remember this computer?** question during first-clinic setup.
+The first browser is auto-trusted so the Doctor cannot create a clinic and immediately lose access to it.
 
-The UI should instead explain clearly that Health Hub only allows clinic access from trusted devices and that this first device has been registered as trusted.
+Email/SMS verification is intentionally not part of this Phase 0 flow. Contact verification belongs to Phase 8.
 
-Email/SMS verification is not added to this first-device flow in the Phase 0 corrective pass. Contact verification belongs to Phase 8.
+## Additional clinic devices
 
-### Normal daily staff sign-in
+Phase 0 authorizes another browser through an already trusted clinic device:
 
-For this corrective pass, keep the existing individual staff authentication deliberately simple:
+- the new/untrusted browser identifies the clinic and receives a six-digit pairing code;
+- the pairing request expires after 10 minutes;
+- no clinic or Patient data is returned to that browser before approval;
+- on an already trusted device, a signed-in Doctor or Assistant opens **Devices** and enters the pairing code;
+- the code is single-use;
+- after approval, the requesting browser claims its own trusted-device token and can continue to the normal role-selection/sign-in flow.
 
-- the Doctor/Assistant role-selection step remains;
-- after the device is trusted, Doctor or Assistant signs in using the existing username + password credentials;
-- passkeys, email/phone sign-in, verified contact activation, and account recovery remain deferred to Phase 8.
+Verified email/SMS authorization of new devices remains a Phase 8 enhancement.
 
-### Additional clinic devices
+## Trusted-device management
 
-Phase 0 does **not** introduce email/SMS infrastructure merely to authorize additional devices.
-
-For this corrective pass:
-
-- a new/untrusted browser displays a short one-time pairing code;
-- on an already trusted clinic device, a signed-in Doctor or Assistant opens trusted-device management and enters that pairing code;
-- successful approval registers the requesting browser as trusted for that clinic;
-- the pairing code is single-use and short-lived;
-- no clinic or Patient data is exposed on the requesting browser before approval;
-- email/SMS authorization of new devices remains a Phase 8 enhancement, preserving the product owner's earlier decision that Doctor or Assistant should eventually be able to choose either verified email or SMS.
-
-### Trusted-device lifetime and management
-
-- A trusted browser remains trusted indefinitely until explicitly revoked.
-- Both Doctor and Assistant may view a simple trusted-device list.
-- Each device row shows only the minimum recognition information: browser + operating system, added date, and a **Current device** marker when applicable; example: `Chrome on macOS · Added 16 Aug 2026 · Current device`.
-- Each device row has a **Remove** action.
-- Both Doctor and Assistant may revoke a trusted browser/computer from that list.
-- Signing out a staff account does not remove the device's trusted status.
+- Trusted browsers remain trusted indefinitely until explicitly revoked.
+- Both Doctor and Assistant may open the trusted-device list.
+- Each row shows browser + operating system, added date, and **Current device** when applicable; for example: `Chrome on macOS · Added 16 Aug 2026 · Current device`.
+- Each removable row has a **Remove** action.
+- Removing a trusted device also ends staff sessions created from that device because sessions are bound to the trusted-device record.
+- The last remaining trusted device cannot be removed in the Phase 0 implementation; another device must be paired first. This prevents an unrecoverable clinic lockout before Phase 8 recovery channels exist.
+- Signing out does not untrust the current browser.
 - Clearing browser storage, changing browser, reinstalling the browser, or using another computer requires authorization again.
 - Device removal and other security actions do not use the five-second Undo workflow.
 
-### Existing development data
+## Tokens and API boundary
 
-There is no requirement to preserve existing clinics/accounts created under the old shared-clinic-password architecture.
+- Production frontend trusted-device requests use `X-Device-Token`.
+- Trusted-device secrets are stored as hashes rather than plaintext database values.
+- Staff bearer sessions remain the authenticated API mechanism after staff sign-in and are linked to the trusted device that created them.
+- The backend currently accepts the old `X-Clinic-Token` header name as a compatibility alias for the same trusted-device token so existing Phase 1–7 regression fixtures can exercise the corrected boundary; it no longer represents a clinic password or a separate clinic-password credential.
 
-This is still pre-release development data, so the corrective implementation may discard/reset incompatible existing clinic/account data rather than carrying a legacy clinic-password migration path forward. Do not add one-time legacy clinic-password login or compatibility code solely to preserve current development clinics.
+## Existing development data
 
-This permission is limited to the current pre-release Phase 0 correction; it is not a general permission to discard future production data.
+Migration `accounts.0005_trusted_device_auth` deliberately resets incompatible pre-release clinic/authentication data before removing `Clinic.password_hash` and adding the trusted-device models.
 
-### Browser demo
+This was explicitly approved because existing clinics/accounts were development data and did not require a compatibility migration. This is **not** a general permission to discard future production data.
 
-The GitHub Pages demo remains the same frontend/codebase through the browser adapter.
+## Browser demo
 
-Because the static browser demo has no real backend trusted-device authority, it will bypass real trusted-device authorization and continue into the existing demo Doctor/Assistant role/sign-in flow. Do not create fake email/SMS delivery or a second separately maintained authentication application for the demo.
+The GitHub Pages demo remains the same React frontend through the browser adapter.
 
-This is a demo adapter exception only. Production/backend behavior must enforce the trusted-device boundary.
+Because the static demo has no backend trusted-device authority, it bypasses real trusted-device authorization and continues into the demo Doctor/Assistant flow. It does not simulate real email/SMS delivery or hardware/device trust and is not a medical-data backend.
 
-## Phase 0 corrective scope
+## Validation
 
-The Phase 0 corrective pass is deliberately limited to the minimum base-authentication architecture needed to remove the shared clinic-password boundary safely.
+The corrective implementation was validated through the repository verification workflow after one transactional cleanup bug was fixed:
 
-It must implement only:
-
-- the trusted-device representation and backend authorization boundary;
-- automatic first-device trust for a new clinic with clear explanatory UI;
-- the approved one-time-code pairing flow for authorizing another clinic device from an already trusted device;
-- the simple device list and revocation available to both Doctor and Assistant;
-- existing role selection + username/password staff authentication behind the trusted-device boundary;
-- removal of the shared clinic password from normal daily authentication;
-- removal/reset of incompatible pre-release clinic/account data rather than a legacy migration flow;
-- the minimal browser-demo bypass described above;
-- tests and documentation proving Phases 1–7 still work behind the corrected boundary.
-
-Do **not** pull the rest of Phase 8 into this correction merely because it touches authentication.
+- frontend browser-demo tests passed;
+- production frontend build passed;
+- GitHub Pages demo build passed;
+- Django system checks passed;
+- committed-migration check passed;
+- migrations applied successfully to PostgreSQL;
+- all backend tests passed against PostgreSQL.
 
 ## Explicitly deferred to Phase 8
 
-The following approved ideas and unanswered questions are preserved in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) and are not part of the Phase 0 corrective implementation unless the product owner explicitly moves one of them forward:
+The following approved ideas and unanswered questions remain in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) and were not pulled into Phase 0:
 
 - forgotten-password recovery;
 - email/SMS recovery protocols and throttling;
-- email/SMS authorization of new devices;
+- verified email/SMS authorization of new devices;
 - offline Doctor recovery codes;
 - contact verification and contact editing;
 - passkeys/device-biometric account management;
@@ -155,10 +126,8 @@ The following approved ideas and unanswered questions are preserved in [`PHASE_8
 - security event history;
 - other production-hardening rules.
 
-## Clarification status
+## Phase relationship
 
-**Phase 0 base-authentication clarification is complete.**
+**Phase 0 is complete. Stop here before Phase 8.**
 
-Do not ask the Phase 8 recovery/account-management questions again until this Phase 0 corrective pass is complete.
-
-The next step is implementation of only this approved Phase 0 correction. After implementation, validate it, update documentation, commit on `main`, and stop before Phase 8.
+Phase 8 remains not started until the product owner explicitly says **continue**. Its previously approved decisions and unresolved questions must be preserved rather than re-inferred.
