@@ -4,7 +4,7 @@
 [![Deploy frontend demo](https://github.com/sorooshaghaei/health-hub/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/sorooshaghaei/health-hub/actions/workflows/pages.yml)
 [![Sponsor Health Hub](https://img.shields.io/badge/Sponsor-Health%20Hub-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sorooshaghaei)
 
-Health Hub is a deliberately simple clinic workflow application for one Doctor and one Assistant. The frontend is React/Vite. The backend is Django REST Framework with PostgreSQL as the primary database.
+Health Hub is a deliberately simple clinic workflow application for Doctor and Assistant roles. The frontend is React/Vite. The backend is Django REST Framework with PostgreSQL as the primary database.
 
 Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
@@ -12,6 +12,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 - Continuation handoff: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
 - Phased roadmap: [`docs/DEVELOPMENT_PLAN.md`](docs/DEVELOPMENT_PLAN.md)
+- Foundation/base authentication: [`docs/PHASE_0_FOUNDATION.md`](docs/PHASE_0_FOUNDATION.md)
 - Patient records: [`docs/PHASE_1_PATIENT_RECORDS.md`](docs/PHASE_1_PATIENT_RECORDS.md)
 - Planned appointments: [`docs/PHASE_2_VISITS.md`](docs/PHASE_2_VISITS.md)
 - Check-in and live queue: [`docs/PHASE_3_QUEUE.md`](docs/PHASE_3_QUEUE.md)
@@ -19,19 +20,24 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 - Completed consultation behavior: [`docs/PHASE_5_COMPLETION.md`](docs/PHASE_5_COMPLETION.md)
 - Shared tasks: [`docs/PHASE_6_SHARED_TASKS.md`](docs/PHASE_6_SHARED_TASKS.md)
 - Private sticky: [`docs/PHASE_7_PRIVATE_NOTES.md`](docs/PHASE_7_PRIVATE_NOTES.md)
+- Phase 8 account/recovery/security decisions: [`docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
 - Visual direction: [`docs/design/README.md`](docs/design/README.md)
 
-The project is developed directly on `main`, one approved phase at a time. Implementation stops after each phase until the product owner explicitly says **continue**.
+The project is developed directly on `main`, one approved phase or corrective pass at a time. Implementation stops after each approved unit until the product owner explicitly says **continue**.
 
-## Current phase
+## Current work
 
-**Phase 7 — Private sticky: repository implementation complete.**
+**Phases 1–7 are complete. Current work has returned to Phase 0 only for a small base-authentication correction.**
 
-Each staff account has one private, persistent plain-text scratchpad in its own workspace. It autosaves to the server, stays fixed to the viewport, minimizes to a movable strip, and opens as a draggable/resizable desktop sticky or full-screen mobile editor. Doctor administrator access to Assistant workspace shows no private sticky. The next phase is **Phase 8 — Password recovery and clinic administration**; it has not started.
+The current code still uses a shared clinic email/password before individual staff login. That shared clinic-password boundary is no longer the intended design. The Phase 0 correction will remove it from normal daily authentication and establish the minimum trusted-clinic-device + individual-staff authentication foundation.
+
+The more complicated recovery, account administration, passkey management, multi-clinic identity, and security questions already discussed are preserved for Phase 8 and are intentionally not being implemented all at once.
+
+No Phase 0 authentication correction code has been changed yet.
 
 ## Access model
 
-The clinic supports one Doctor account and one Assistant account. The Doctor is always the clinic administrator.
+The current implemented clinic workflow has Doctor and Assistant roles. The Doctor is the clinic administrator.
 
 - Doctor credentials can open Doctor workspace.
 - Doctor credentials can also open Assistant workspace.
@@ -171,7 +177,7 @@ Server-enforced Undo applies to:
 - task deletion;
 - task comment deletion.
 
-Normal form edits use the regular Edit flow.
+Normal form edits use the regular Edit flow. Security/account actions do not use this five-second Undo workflow unless explicitly specified later.
 
 ## Repository structure
 
@@ -245,6 +251,8 @@ npm run build:demo
 
 ## API surface
 
+The API currently still reflects the pre-correction shared clinic-password architecture. See the source and `docs/PHASE_0_FOUNDATION.md` before making authentication changes.
+
 ```text
 GET    /api/health/
 POST   /api/clinics/
@@ -296,11 +304,11 @@ DELETE /api/task-comments/<comment-id>/
 POST   /api/task-comments/<comment-id>/undo-delete/
 ```
 
-`GET /api/health/`, `POST /api/clinics/`, and `POST /api/clinics/enter/` are public. `GET /api/clinic/context/`, `POST /api/staff/register/`, and `POST /api/staff/login/` expect `X-Clinic-Token`. All other listed staff, Patient, Appointment, and task endpoints expect `Authorization: Bearer <session-token>`.
-
 ## Migration behavior
 
 The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables. The attention-dot correction adds a per-staff task-seen timestamp initialized at migration time so existing tasks are treated as already seen. Phase 7 adds one blank-by-default private-note text field to each staff account; it does not alter Patient, Appointment, task, or existing account data. The browser demo performs equivalent local-storage migration and validation for existing demo data.
+
+The Phase 0 authentication correction has not been implemented yet, so no authentication migration described in the new Phase 0 plan should be treated as present in the repository.
 
 ## Production boundary
 
