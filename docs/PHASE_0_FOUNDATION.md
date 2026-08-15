@@ -62,12 +62,13 @@ For a brand-new clinic:
 
 1. create the clinic;
 2. create the Doctor account using the existing Phase 0 account mechanism;
-3. ask whether the current computer/browser should be trusted and remembered;
-4. if approved, register that browser as a trusted clinic device.
+3. automatically register the current computer/browser as the clinic's first trusted device.
+
+The first device is auto-trusted deliberately so the Doctor cannot accidentally create a clinic and immediately lose access to it. Do not ask an ambiguous **Trust and remember this computer?** question during first-clinic setup.
+
+The UI should instead explain clearly that Health Hub only allows clinic access from trusted devices and that this first device has been registered as trusted.
 
 Email/SMS verification is not added to this first-device flow in the Phase 0 corrective pass. Contact verification belongs to Phase 8.
-
-The behavior when the Doctor chooses **No** on the very first trust prompt is still unresolved because no already-trusted device would exist yet.
 
 ### Normal daily staff sign-in
 
@@ -83,15 +84,19 @@ Phase 0 does **not** introduce email/SMS infrastructure merely to authorize addi
 
 For this corrective pass:
 
-- a new/untrusted browser must be authorized from an already trusted clinic device;
-- the exact pairing/approval mechanism between the new browser and the already trusted browser is not yet approved and must be clarified before implementation;
-- after approval, the new browser becomes trusted for that clinic;
+- a new/untrusted browser displays a short one-time pairing code;
+- on an already trusted clinic device, a signed-in Doctor or Assistant opens trusted-device management and enters that pairing code;
+- successful approval registers the requesting browser as trusted for that clinic;
+- the pairing code is single-use and short-lived;
+- no clinic or Patient data is exposed on the requesting browser before approval;
 - email/SMS authorization of new devices remains a Phase 8 enhancement, preserving the product owner's earlier decision that Doctor or Assistant should eventually be able to choose either verified email or SMS.
 
 ### Trusted-device lifetime and management
 
 - A trusted browser remains trusted indefinitely until explicitly revoked.
 - Both Doctor and Assistant may view a simple trusted-device list.
+- Each device row shows only the minimum recognition information: browser + operating system, added date, and a **Current device** marker when applicable; example: `Chrome on macOS · Added 16 Aug 2026 · Current device`.
+- Each device row has a **Remove** action.
 - Both Doctor and Assistant may revoke a trusted browser/computer from that list.
 - Signing out a staff account does not remove the device's trusted status.
 - Clearing browser storage, changing browser, reinstalling the browser, or using another computer requires authorization again.
@@ -120,8 +125,8 @@ The Phase 0 corrective pass is deliberately limited to the minimum base-authenti
 It must implement only:
 
 - the trusted-device representation and backend authorization boundary;
-- first-device trust for a new clinic;
-- the approved already-trusted-device path for authorizing another clinic device, once its exact pairing UX is confirmed;
+- automatic first-device trust for a new clinic with clear explanatory UI;
+- the approved one-time-code pairing flow for authorizing another clinic device from an already trusted device;
 - the simple device list and revocation available to both Doctor and Assistant;
 - existing role selection + username/password staff authentication behind the trusted-device boundary;
 - removal of the shared clinic password from normal daily authentication;
@@ -150,14 +155,10 @@ The following approved ideas and unanswered questions are preserved in [`PHASE_8
 - security event history;
 - other production-hardening rules.
 
-## Remaining clarification before Phase 0 code changes
+## Clarification status
 
-Only the following base-authentication questions remain open:
-
-1. What happens if the Doctor chooses **No** when asked to trust the very first browser during clinic creation?
-2. What exact pairing mechanism should an untrusted new browser use to request/receive authorization from an already trusted clinic device?
-3. What minimal information should appear for each item in the trusted-device list so staff can identify the correct device to revoke?
+**Phase 0 base-authentication clarification is complete.**
 
 Do not ask the Phase 8 recovery/account-management questions again until this Phase 0 corrective pass is complete.
 
-Once these Phase 0 points are approved, implement only this correction, validate it, update documentation, commit on `main`, and stop before Phase 8.
+The next step is implementation of only this approved Phase 0 correction. After implementation, validate it, update documentation, commit on `main`, and stop before Phase 8.
