@@ -42,7 +42,7 @@ That is the **current implementation**, not the intended final architecture.
 
 The project is now returning to **Phase 0 for a small base-authentication corrective pass before Phase 8**.
 
-Approved architectural direction for that correction:
+Approved Phase 0 behavior:
 
 - keep the clinic as the tenant/container for clinic data;
 - remove the shared clinic password from normal daily authentication;
@@ -50,13 +50,24 @@ Approved architectural direction for that correction:
 - keep trusted-device authorization separate from individual staff sessions;
 - signing out Doctor or Assistant ends that staff session without automatically untrusting the device;
 - keep the Doctor/Assistant role-selection step;
-- keep Doctor and Assistant individually authenticated;
+- keep existing username + password staff login for this corrective pass;
 - an untrusted device must not gain clinic/Patient-data access merely because somebody knows a staff credential;
-- remote access from an untrusted device is blocked.
+- remote access from an untrusted device is blocked;
+- for a new clinic, create the clinic and Doctor account, then ask whether the current browser should be trusted and remembered; if approved, register it as the first trusted device;
+- additional devices are authorized from an already trusted clinic device for Phase 0; exact pairing UX is still unresolved;
+- trusted devices remain trusted until explicitly revoked;
+- both Doctor and Assistant see a simple trusted-device list and may revoke devices;
+- clearing browser storage, changing browser, reinstalling the browser, or changing computers requires authorization again;
+- there is no requirement to preserve existing pre-release clinics/accounts from the old shared-clinic-password implementation; incompatible development data may be reset/discarded rather than supporting a legacy compatibility flow;
+- the GitHub Pages demo keeps the same frontend/browser adapter, bypasses real trusted-device authorization, and continues into the existing demo Doctor/Assistant flow.
 
-The Phase 0 correction is intentionally small. It must resolve only the minimum behavior needed for first-device trust, legitimate additional-device trust, normal staff sign-in behind that boundary, migration of existing clinics/staff, and minimum browser-demo behavior.
+The only Phase 0 questions still open are:
 
-Recovery, contact verification, offline codes, passkey policy/management, Assistant reset/replacement, multi-clinic Doctor identity, detailed session/security policy, and the other previously discussed questions remain preserved for **Phase 8** rather than being implemented all at once.
+1. what happens if the Doctor says **No** to trusting the very first browser;
+2. the exact new-device ↔ already-trusted-device pairing/approval mechanism;
+3. the minimal device information shown in the trusted-device list.
+
+Recovery, email/SMS verification, email/SMS new-device authorization, offline codes, passkey policy/management, Assistant reset/replacement, multi-clinic Doctor identity, detailed session/security policy, and the other previously discussed questions remain preserved for **Phase 8** rather than being implemented all at once.
 
 See:
 
@@ -216,6 +227,6 @@ External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Before implementing the Phase 0 correction, resolve only the minimum base-authentication questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
+Resolve only the three remaining Phase 0 questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
 Do not predetermine or pull forward Phase 8 recovery, account-management, multi-clinic, passkey-management, or broader security behavior unless one item is strictly required for the Phase 0 correction and the product owner explicitly approves it.
