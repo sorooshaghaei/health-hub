@@ -31,39 +31,36 @@ Phase 6 task authoring permissions are based on account identity rather than wor
 
 Phase 7 private sticky access requires account identity to match the active workspace. The Doctor sees the Doctor sticky only in Doctor workspace. The Assistant sees the Assistant sticky only in Assistant workspace. Doctor credentials inside Assistant workspace see neither private sticky.
 
-## Authentication foundation: current implementation and current correction
+## Authentication foundation — implemented Phase 0 correction
 
-The current code still has two authentication layers:
+The shared clinic-password boundary has been removed from the implemented application.
 
-1. clinic email + shared clinic password, which establishes clinic access;
-2. individual staff username + staff password, which establishes a Doctor or Assistant session.
+The current Phase 0 authentication foundation is:
 
-That is the **current implementation**, not the intended final architecture.
-
-The project is now returning to **Phase 0 for a small base-authentication corrective pass before Phase 8**.
-
-Approved Phase 0 behavior:
-
-- keep the clinic as the tenant/container for clinic data;
-- remove the shared clinic password from normal daily authentication;
-- gate clinic access through trusted clinic devices/browsers;
-- keep trusted-device authorization separate from individual staff sessions;
-- signing out Doctor or Assistant ends that staff session without automatically untrusting the device;
-- keep the Doctor/Assistant role-selection step;
-- keep existing username + password staff login for this corrective pass;
-- an untrusted device must not gain clinic/Patient-data access merely because somebody knows a staff credential;
-- remote access from an untrusted device is blocked;
-- for a new clinic, create the clinic and Doctor account and automatically register that browser as the first trusted device so the Doctor cannot accidentally lose access immediately after setup; explain clearly that Health Hub only allows access from trusted devices;
-- an additional/untrusted browser displays a short one-time pairing code; a signed-in Doctor or Assistant enters that code on an already trusted clinic device to approve the new browser;
+- the clinic remains the tenant/container for clinic data;
+- a browser must be trusted for that clinic before normal clinic access;
+- the first browser is automatically trusted when a new clinic is created, with explanatory UI so the Doctor cannot accidentally create a clinic and immediately lose access;
+- additional browsers display a six-digit pairing code that is approved by a signed-in Doctor or Assistant from an already trusted clinic device;
+- pairing requests are short-lived and no clinic/Patient data is exposed to the requesting browser before approval;
 - trusted devices remain trusted until explicitly revoked;
-- both Doctor and Assistant see a simple trusted-device list and may revoke devices; each row shows browser + operating system, added date, and **Current device** when applicable, with a **Remove** action;
-- clearing browser storage, changing browser, reinstalling the browser, or changing computers requires authorization again;
-- there is no requirement to preserve existing pre-release clinics/accounts from the old shared-clinic-password implementation; incompatible development data may be reset/discarded rather than supporting a legacy compatibility flow;
-- the GitHub Pages demo keeps the same frontend/browser adapter, bypasses real trusted-device authorization, and continues into the existing demo Doctor/Assistant flow.
+- both Doctor and Assistant may open a simple device list and remove trusted devices;
+- device rows show browser + operating system, added date, and **Current device** when applicable;
+- the last remaining trusted device cannot be removed until another device has been paired, preventing lockout before Phase 8 recovery channels exist;
+- trusted-device authorization is separate from individual staff sessions;
+- staff sessions are bound to the trusted device that created them, so removing a device ends sessions from that device;
+- signing out ends only the staff session and does not untrust the browser;
+- the Doctor/Assistant role-selection step remains;
+- Phase 0 still uses individual username + password staff login;
+- clearing browser storage, changing browser, reinstalling the browser, or changing computers requires device authorization again;
+- `/api/clinics/enter/` and the shared clinic-password flow are removed;
+- production frontend device requests use `X-Device-Token`;
+- the backend accepts the old `X-Clinic-Token` header name only as a regression-fixture compatibility alias for the same trusted-device token, not as a shared clinic-password credential;
+- migration `accounts.0005_trusted_device_auth` deliberately resets incompatible pre-release clinic/authentication data, removes `Clinic.password_hash`, and introduces trusted-device/pairing data;
+- the GitHub Pages demo keeps the same frontend/browser adapter but bypasses real trusted-device authority rather than pretending to provide production device security.
 
-**Phase 0 base-authentication clarification is complete.**
+The Phase 0 correction was validated in GitHub Actions: frontend tests/builds, Django checks, committed-migration verification, PostgreSQL migration application, and the backend test suite all passed after an expired-pairing transactional cleanup bug was fixed.
 
-Recovery, email/SMS verification, email/SMS new-device authorization, offline codes, passkey policy/management, Assistant reset/replacement, multi-clinic Doctor identity, detailed session/security policy, and the other previously discussed questions remain preserved for **Phase 8** rather than being implemented all at once.
+Recovery, verified email/SMS authorization, offline codes, passkey policy/management, Assistant reset/replacement, multi-clinic Doctor identity, detailed session/security policy, and the other previously discussed decisions remain preserved for **Phase 8**.
 
 See:
 
@@ -215,14 +212,14 @@ OPEN → DONE
 
 ## Current work
 
-**Phases 1–7 remain complete. Current work has returned to Phase 0 only for the base-authentication corrective pass. Clarification is complete; no authentication correction code has been changed yet.**
+**Phase 0 base authentication and Phases 1–7 are complete. Phase 8 has not started.**
 
-Phase 8 is deferred. Its previous answers and unresolved questions remain documented and must not be lost.
+The Phase 0 correction is implemented and validated. Phase 8's previous answers and unresolved questions remain documented and must not be lost.
 
-External GitHub Actions and live Pages outcomes require separate confirmation.
+The public Pages deployment outcome is separate from the repository verification result and may be checked independently when needed.
 
 ## Next action
 
-Phase 0 clarification is complete. Wait for the product owner to explicitly say **continue**, then implement only the approved base-authentication correction in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
+Stop before Phase 8. Wait for the product owner to explicitly say **continue**.
 
-Do not predetermine or pull forward Phase 8 recovery, account-management, multi-clinic, passkey-management, or broader security behavior unless one item is strictly required for the Phase 0 correction and the product owner explicitly approves it.
+When Phase 8 is started, read [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md), preserve its approved answers, and ask only the remaining genuine clarification questions before implementing recovery, account-management, multi-clinic, passkey-management, or broader security behavior.
