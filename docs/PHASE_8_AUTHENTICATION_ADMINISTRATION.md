@@ -4,23 +4,19 @@
 
 **Not started. Decisions and open questions preserved for later.**
 
-The project will first make a small Phase 0 corrective pass to fix the base authentication boundary. Phase 8 no longer owns that entire foundational rewrite.
-
-Phase 8 begins only after the Phase 0 base-authentication correction is implemented, validated, documented, and stopped.
+The project will first complete the smaller Phase 0 base-authentication correction. Phase 8 begins only after that correction is implemented, validated, documented, committed, and stopped.
 
 ## Scope boundary
 
-Phase 0 is responsible only for the minimum trusted-device + individual-staff authentication foundation needed to remove the shared clinic-password boundary safely.
+Phase 0 owns only the minimum trusted-device + individual-staff authentication foundation needed to remove the shared clinic-password boundary safely.
 
-Phase 8 is responsible for the more complicated account lifecycle, recovery, verification, administration, passkey management, multi-clinic identity, and security behavior described below.
+Phase 8 owns the more complicated account lifecycle, recovery, contact verification, administration, passkey management, multi-clinic identity, and broader security behavior described below.
 
 Nothing in this document should be implemented early merely because it is related to authentication.
 
 ## Previously approved Phase 8 decisions
 
-The following answers from the product owner are preserved.
-
-### Recovery channels and verification
+### Email/SMS and account recovery
 
 - Both email and SMS are supported as account recovery channels.
 - For forgotten-password recovery, the staff member chooses email or SMS.
@@ -33,6 +29,17 @@ The following answers from the product owner are preserved.
 - Staff phone numbers must be verified.
 - Changing email, phone number, or password requires verification.
 - Phone number is required on staff accounts.
+
+### New-device authorization upgrade
+
+The Phase 0 correction deliberately authorizes additional clinic devices from an already trusted clinic device so that email/SMS infrastructure does not have to be pulled into the foundation correction.
+
+In Phase 8, preserve the previously approved target behavior:
+
+- Doctor and Assistant may authorize a new clinic device using a verified contact channel;
+- the person authorizing the device chooses either verified email or verified SMS;
+- the exact verification screen/protocol remains to be designed in Phase 8;
+- this Phase 8 mechanism may replace or supplement the Phase 0 trusted-device-to-trusted-device pairing flow only after it is explicitly approved and implemented.
 
 ### Staff profile editing
 
@@ -85,7 +92,7 @@ A separate Assistant disable/re-enable workflow was not approved as necessary fo
 
 - Clinic-level email and phone are no longer intended to be authentication/recovery credentials once individual verified staff contacts provide those functions.
 - The shared clinic password is not part of the target architecture.
-- Whether clinic email/phone remain as ordinary non-authentication profile/contact fields or are removed entirely still needs an explicit decision before schema changes.
+- Whether clinic email/phone remain as ordinary non-authentication profile/contact fields or are removed entirely still needs an explicit decision before Phase 8 schema changes.
 
 ### Doctor identity across clinics
 
@@ -96,14 +103,15 @@ A separate Assistant disable/re-enable workflow was not approved as necessary fo
 
 ### Browser demo
 
-- The GitHub Pages demo must remain the same frontend/codebase through the browser adapter rather than becoming a separate application fork.
+- The GitHub Pages demo remains the same frontend/codebase through the browser adapter rather than becoming a separate application fork.
 - Real email/SMS delivery is unavailable in the browser-only demo.
 - Real trusted-device security is unavailable in the browser-only demo.
-- The final simplified demo entry behavior remains unresolved.
+- Phase 0 uses the minimal adapter behavior: bypass real trusted-device authorization and continue into the existing demo Doctor/Assistant flow.
+- Any later Phase 8 demo representation of account recovery/passkeys must remain simplified and must not pretend that real email/SMS or hardware trust exists.
 
 ## Questions intentionally parked for Phase 8
 
-These questions are kept here and should **not** block the smaller Phase 0 correction unless one becomes strictly necessary for that correction.
+These questions should **not** block the Phase 0 correction unless one becomes strictly necessary there.
 
 ### Account session policy
 
@@ -154,20 +162,22 @@ These questions are kept here and should **not** block the smaller Phase 0 corre
 ### Password and security internals
 
 - password validation requirements;
-- recovery throttling/rate limits;
+- recovery/device-verification throttling and rate limits;
 - generic non-account-enumerating responses;
 - token/code hashing and related implementation protections;
 - security event history, if any.
 
 ### Demo behavior
 
-- exact demo entry flow after production authentication changes;
+- exact Phase 8 demo representation of recovery/passkey/account settings;
 - whether demo password/passkey UI is simplified, simulated, or omitted.
 
 ## Relationship to Phase 0
 
 See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
-Phase 0 now owns the immediate base-authentication correction. Phase 8 keeps these account-management/recovery/security decisions for later.
+Phase 0 owns the immediate base-authentication correction. Its approved temporary foundation keeps username/password staff login, uses already-trusted-device approval for additional devices, and bypasses real trusted-device authorization in the static demo.
 
-Do not implement Phase 8 until Phase 0 correction is complete and the product owner explicitly moves the project forward to Phase 8.
+Phase 8 keeps the account-management/recovery/security decisions above for later, including the eventual verified email/SMS new-device authorization flow.
+
+Do not implement Phase 8 until the Phase 0 correction is complete and the product owner explicitly moves the project forward to Phase 8.
