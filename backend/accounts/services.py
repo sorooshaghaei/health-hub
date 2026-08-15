@@ -101,6 +101,7 @@ def create_device_pairing_request(clinic, user_agent):
 def approve_device_pairing(clinic, code):
     now = timezone.now()
     code_hash = hash_secret(code)
+    expired = False
     with transaction.atomic():
         try:
             pairing = DevicePairingRequest.objects.select_for_update().get(
@@ -111,16 +112,21 @@ def approve_device_pairing(clinic, code):
             raise InvalidDevicePairing("Pairing code is invalid or expired.")
         if pairing.expires_at <= now:
             pairing.delete()
-            raise InvalidDevicePairing("Pairing code is invalid or expired.")
-        if pairing.approved_at is not None:
+            expired = True
+        elif pairing.approved_at is not None:
             raise InvalidDevicePairing("Pairing code has already been approved.")
-        pairing.approved_at = now
-        pairing.save(update_fields=["approved_at"])
-        return pairing
+        else:
+            pairing.approved_at = now
+            pairing.save(update_fields=["approved_at"])
+
+    if expired:
+        raise InvalidDevicePairing("Pairing code is invalid or expired.")
+    return pairing
 
 
 def claim_device_pairing(request_token):
     now = timezone.now()
+    expired = False
     with transaction.atomic():
         try:
             pairing = (
@@ -132,19 +138,23 @@ def claim_device_pairing(request_token):
             raise InvalidDevicePairing("Device pairing request is invalid or expired.")
         if pairing.expires_at <= now:
             pairing.delete()
-            raise InvalidDevicePairing("Device pairing request is invalid or expired.")
-        if pairing.approved_at is None:
+            expired = True
+        elif pairing.approved_at is None:
             return pairing, None, None
+        else:
+            raw_token = secrets.token_urlsafe(32)
+            device = TrustedDevice.objects.create(
+                clinic=pairing.clinic,
+                token_hash=hash_secret(raw_token),
+                browser=pairing.browser,
+                operating_system=pairing.operating_system,
+            )
+            pairing.delete()
+            return None, raw_token, device
 
-        raw_token = secrets.token_urlsafe(32)
-        device = TrustedDevice.objects.create(
-            clinic=pairing.clinic,
-            token_hash=hash_secret(raw_token),
-            browser=pairing.browser,
-            operating_system=pairing.operating_system,
-        )
-        pairing.delete()
-        return None, raw_token, device
+    if expired:
+        raise InvalidDevicePairing("Device pairing request is invalid or expired.")
+    raise InvalidDevicePairing("Device pairing request is invalid or expired.")
 
 
 def issue_staff_session(user, trusted_device, workspace_role=None):
