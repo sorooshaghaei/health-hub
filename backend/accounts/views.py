@@ -65,18 +65,6 @@ def user_agent(request):
     return request.META.get("HTTP_USER_AGENT", "")
 
 
-def set_trusted_device_cookie(response, raw_device_token):
-    response.set_cookie(
-        TRUSTED_DEVICE_COOKIE,
-        raw_device_token,
-        httponly=True,
-        secure=not response.wsgi_request.settings.DEBUG if hasattr(response, "wsgi_request") else False,
-        samesite="Strict",
-        max_age=60 * 60 * 24 * 365 * 5,
-    )
-    return response
-
-
 class HealthView(APIView):
     permission_classes = [AllowAny]
 
@@ -168,7 +156,7 @@ class DevicePairingStatusView(APIView):
                 }
             )
 
-        response = Response(
+        return Response(
             {
                 "status": "approved",
                 "device_token": raw_device_token,
@@ -179,15 +167,6 @@ class DevicePairingStatusView(APIView):
                 **clinic_payload(device.clinic),
             }
         )
-        response.set_cookie(
-            TRUSTED_DEVICE_COOKIE,
-            raw_device_token,
-            httponly=True,
-            secure=request.is_secure(),
-            samesite="Strict",
-            max_age=60 * 60 * 24 * 365 * 5,
-        )
-        return response
 
 
 class StaffRegisterView(APIView):
