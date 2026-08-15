@@ -7,14 +7,14 @@ This file is the handoff entry point for a new chat or development session.
 - Repository: `sorooshaghaei/health-hub`
 - Working branch: `main`
 - Work directly on `main`; do not create branches or pull requests unless explicitly instructed.
-- Implement one approved phase at a time.
+- Implement one approved phase or corrective pass at a time.
 - Ask before choosing an unapproved field, state, screen, action, permission, algorithm, dependency, or workflow.
-- Update documentation, validate, commit, report, and stop after each phase.
+- Update documentation, validate, commit, report, and stop after each phase/corrective pass.
 - Continue only after the product owner explicitly says **continue**.
 
 ## Product baseline
 
-Health Hub is a deliberately simple clinic workflow application for one clinic with one Doctor account and one Assistant account. It uses React/Vite, Django REST Framework, and PostgreSQL. The public Pages build uses the same React frontend with a browser-only adapter and is not medical-data storage.
+Health Hub is a deliberately simple clinic workflow application with Doctor and Assistant roles. It uses React/Vite, Django REST Framework, and PostgreSQL. The public Pages build uses the same React frontend with a browser-only adapter and is not medical-data storage.
 
 ## Account and workspace rule
 
@@ -27,33 +27,36 @@ Account identity and active workspace are separate:
 
 Doctor workspace owns Room ready and otherwise stays clinically focused. It may view and edit every approved Patient field, but it cannot create/delete Patients or administer Appointments. Assistant workspace owns full Patient and Appointment administration, check-in, queue, and Patient-to-room actions. A Doctor account inside Assistant workspace receives exactly the same administrative controls as the Assistant for those workflows.
 
-Phase 6 task authoring permissions are intentionally based on account identity rather than workspace: the Doctor account may create/edit/delete Doctor-to-Assistant tasks even when the Doctor is using Assistant workspace; the Assistant account cannot author tasks.
+Phase 6 task authoring permissions are based on account identity rather than workspace: the Doctor account may create/edit/delete Doctor-to-Assistant tasks even when the Doctor is using Assistant workspace; the Assistant account cannot author tasks.
 
 Phase 7 private sticky access requires account identity to match the active workspace. The Doctor sees the Doctor sticky only in Doctor workspace. The Assistant sees the Assistant sticky only in Assistant workspace. Doctor credentials inside Assistant workspace see neither private sticky.
 
-## Authentication foundation: current implementation versus approved correction
+## Authentication foundation: current implementation and current correction
 
-The current Phase 0 code still has two authentication layers:
+The current code still has two authentication layers:
 
 1. clinic email + shared clinic password, which establishes clinic access;
 2. individual staff username + staff password, which establishes a Doctor or Assistant session.
 
 That is the **current implementation**, not the intended final architecture.
 
-The product owner has approved a Phase 8 correction to the Phase 0 authentication boundary:
+The project is now returning to **Phase 0 for a small base-authentication corrective pass before Phase 8**.
 
-- keep the clinic as the tenant/container for clinic data and staff membership;
+Approved architectural direction for that correction:
+
+- keep the clinic as the tenant/container for clinic data;
 - remove the shared clinic password from normal daily authentication;
-- gate normal clinic access through authorization of trusted clinic devices/browsers;
+- gate clinic access through trusted clinic devices/browsers;
 - keep trusted-device authorization separate from individual staff sessions;
-- signing out Doctor or Assistant ends that staff session without automatically removing the device's clinic authorization;
-- keep Doctor and Assistant as independent accounts with independent credentials and recovery;
-- changing or recovering one staff password must not require the other staff member to learn or change a shared clinic password;
-- knowledge of a staff password alone must not make an arbitrary outside device a trusted clinic device;
-- both email and SMS are approved as recovery channels in principle;
-- recovery is for the affected staff account and must not distribute a newly generated password to the other staff member.
+- signing out Doctor or Assistant ends that staff session without automatically untrusting the device;
+- keep the Doctor/Assistant role-selection step;
+- keep Doctor and Assistant individually authenticated;
+- an untrusted device must not gain clinic/Patient-data access merely because somebody knows a staff credential;
+- remote access from an untrusted device is blocked.
 
-This approved architecture is **not implemented yet**. Phase 8 must resolve the remaining device, recovery, remote-access, administration, session, and demo behavior before any code changes begin.
+The Phase 0 correction is intentionally small. It must resolve only the minimum behavior needed for first-device trust, legitimate additional-device trust, normal staff sign-in behind that boundary, migration of existing clinics/staff, and minimum browser-demo behavior.
+
+Recovery, contact verification, offline codes, passkey policy/management, Assistant reset/replacement, multi-clinic Doctor identity, detailed session/security policy, and the other previously discussed questions remain preserved for **Phase 8** rather than being implemented all at once.
 
 See:
 
@@ -203,16 +206,16 @@ OPEN → DONE
 - [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md)
 - [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
 
-## Current phase
+## Current work
 
-**Phase 7 repository implementation is complete. Phase 8 has not started.**
+**Phases 1–7 remain complete. Current work has returned to Phase 0 only for the base-authentication corrective pass. No authentication correction code has been changed yet.**
 
-The Phase 0 authentication correction is approved at architecture level but belongs to Phase 8 implementation. Do not modify authentication code merely because this documentation now records the target architecture.
+Phase 8 is deferred. Its previous answers and unresolved questions remain documented and must not be lost.
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Before implementing Phase 8, resolve the remaining questions in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
+Before implementing the Phase 0 correction, resolve only the minimum base-authentication questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
-Do not predetermine or infer unanswered device authorization, remote access, recovery, session, account-administration, clinic-administration, or browser-demo behavior. Implement only after the product owner explicitly approves those decisions.
+Do not predetermine or pull forward Phase 8 recovery, account-management, multi-clinic, passkey-management, or broader security behavior unless one item is strictly required for the Phase 0 correction and the product owner explicitly approves it.
