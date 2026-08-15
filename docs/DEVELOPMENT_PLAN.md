@@ -38,7 +38,7 @@ Security/account actions are outside this global Undo rule unless explicitly app
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Foundation | Implemented; reopened only for base authentication correction |
+| 0 | Foundation | Implemented; reopened only for base authentication correction; clarification complete |
 | 1 | Patient records | Implemented; corrected permissions/search/phone layout |
 | 2 | Planned appointments | Implemented; corrected to one Appointment per Patient per date |
 | 3 | Check-in and live waiting queue | Implemented |
@@ -74,22 +74,18 @@ Approved Phase 0 direction and behavior:
 - for this correction, keep existing username + password staff login behind the trusted-device gate;
 - block clinic/Patient-data access from untrusted devices;
 - block remote access from an untrusted device;
-- for a new clinic, create the clinic and Doctor account, then ask whether the current browser should be trusted and remembered; if approved, register it as the first trusted device;
+- for a new clinic, create the clinic and Doctor account and automatically register the current browser as the first trusted device; clearly explain that Health Hub only allows clinic access from trusted devices;
 - do not add email/SMS verification, passkeys, or recovery to this Phase 0 correction;
-- authorize additional clinic devices from an already trusted clinic device; exact pairing UX still requires approval;
+- authorize an additional/untrusted browser by showing a short one-time pairing code on the new browser and entering that code from a signed-in Doctor or Assistant session on an already trusted clinic device;
 - trusted devices stay trusted indefinitely until explicitly revoked;
-- both Doctor and Assistant see a simple trusted-device list and may revoke devices;
+- both Doctor and Assistant see a simple trusted-device list and may revoke devices; device rows show browser + operating system, added date, **Current device** when applicable, and a **Remove** action;
 - clearing browser storage/changing browser/computer requires device authorization again;
 - no compatibility path is required for existing pre-release clinics/accounts; incompatible development data may be reset/discarded rather than migrated through the old clinic password;
 - the GitHub Pages demo uses the same frontend/browser adapter but bypasses real trusted-device authorization and continues into the existing demo Doctor/Assistant flow.
 
 The Phase 0 corrective pass is intentionally limited to this minimum base-authentication work. Do **not** require the full Phase 8 recovery/account-management design before completing it.
 
-Remaining Phase 0 clarification is limited to:
-
-1. behavior if the Doctor answers **No** to trusting the very first browser;
-2. exact pairing/approval mechanism between an untrusted new browser and an already trusted device;
-3. minimal information displayed per trusted device so staff can identify the correct device to revoke.
+**Phase 0 base-authentication clarification is complete.**
 
 See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
@@ -275,6 +271,6 @@ Review complete Doctor and Assistant workflows, remove unfinished UI, confirm no
 
 ## Current work
 
-**Current work is the Phase 0 base-authentication corrective pass. No Phase 0 correction code has been changed yet.**
+**Current work is the Phase 0 base-authentication corrective pass. Clarification is complete; no Phase 0 correction code has been changed yet.**
 
-Next: resolve only the three remaining Phase 0 questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md), then implement that correction, validate it, update documentation, commit, and stop before Phase 8.
+Next: wait for the product owner to explicitly say **continue**, then implement only the approved correction in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md), validate it, update documentation, commit, and stop before Phase 8.
