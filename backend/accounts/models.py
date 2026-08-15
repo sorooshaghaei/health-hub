@@ -1,6 +1,5 @@
 import uuid
 
-from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Q
@@ -12,7 +11,6 @@ class Clinic(models.Model):
     name = models.CharField(max_length=160)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=40)
-    password_hash = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -22,11 +20,47 @@ class Clinic(models.Model):
     def __str__(self):
         return self.name
 
-    def set_password(self, raw_password):
-        self.password_hash = make_password(raw_password)
 
-    def check_password(self, raw_password):
-        return check_password(raw_password, self.password_hash)
+class TrustedDevice(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(
+        Clinic,
+        on_delete=models.CASCADE,
+        related_name="trusted_devices",
+    )
+    token_hash = models.CharField(max_length=64, unique=True)
+    browser = models.CharField(max_length=80)
+    operating_system = models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.browser} on {self.operating_system}"
+
+
+class DevicePairingRequest(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clinic = models.ForeignKey(
+        Clinic,
+        on_delete=models.CASCADE,
+        related_name="device_pairing_requests",
+    )
+    request_token_hash = models.CharField(max_length=64, unique=True)
+    code_hash = models.CharField(max_length=64, unique=True)
+    browser = models.CharField(max_length=80)
+    operating_system = models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def is_expired(self):
+        return self.expires_at <= timezone.now()
 
 
 class StaffUser(AbstractUser):
@@ -65,6 +99,11 @@ class StaffSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         StaffUser,
+        on_delete=models.CASCADE,
+        related_name="staff_sessions",
+    )
+    trusted_device = models.ForeignKey(
+        TrustedDevice,
         on_delete=models.CASCADE,
         related_name="staff_sessions",
     )

@@ -1,14 +1,28 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Clinic, StaffSession, StaffUser
+from .models import Clinic, DevicePairingRequest, StaffSession, StaffUser, TrustedDevice
 
 
 @admin.register(Clinic)
 class ClinicAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "phone", "created_at")
     search_fields = ("name", "email", "phone")
-    readonly_fields = ("password_hash", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(TrustedDevice)
+class TrustedDeviceAdmin(admin.ModelAdmin):
+    list_display = ("clinic", "browser", "operating_system", "created_at")
+    readonly_fields = ("token_hash", "created_at")
+    search_fields = ("clinic__name", "clinic__email", "browser", "operating_system")
+
+
+@admin.register(DevicePairingRequest)
+class DevicePairingRequestAdmin(admin.ModelAdmin):
+    list_display = ("clinic", "browser", "operating_system", "created_at", "expires_at", "approved_at")
+    readonly_fields = ("request_token_hash", "code_hash", "created_at", "approved_at")
+    search_fields = ("clinic__name", "clinic__email", "browser", "operating_system")
 
 
 @admin.register(StaffUser)
@@ -24,6 +38,6 @@ class StaffUserAdmin(UserAdmin):
 
 @admin.register(StaffSession)
 class StaffSessionAdmin(admin.ModelAdmin):
-    list_display = ("user", "created_at", "expires_at", "last_used_at")
+    list_display = ("user", "trusted_device", "created_at", "expires_at", "last_used_at")
     readonly_fields = ("token_hash", "created_at", "last_used_at")
     search_fields = ("user__username", "user__email")

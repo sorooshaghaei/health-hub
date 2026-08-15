@@ -3,17 +3,18 @@ import PatientList from "./PatientList.jsx";
 import PrivateSticky from "./PrivateSticky.jsx";
 import ScheduleWorkspace from "./ScheduleWorkspace.jsx";
 import TaskWorkspace from "./TaskWorkspace.jsx";
+import TrustedDevices from "./TrustedDevices.jsx";
 import UndoStack from "./UndoStack.jsx";
 import { PatientProfileForm } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
 
-export default function PatientWorkspaceView({ user, staffToken, onSignOut, controller: c }) {
+export default function PatientWorkspaceView({ user, staffToken, onSignOut, onCurrentDeviceRemoved, controller: c }) {
   const { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients: canCreate, canManageAppointments: canManage, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits } = c;
   const eyebrow = section === "schedule" ? "Appointments and live queue" : section === "tasks" ? "Shared tasks" : "Patient records";
   const workspace = doctorWorkspace ? "Doctor workspace" : "Assistant workspace";
   const intro = doctorWorkspace ? "Use Room ready, follow the live queue, keep Patient information up to date, and manage tasks for the Assistant." : doctorAccount ? "Manage Patients, appointments, check-in, the queue, consultation handoff, and Assistant tasks through Administrator access." : "Manage Patients, appointments, check-in, the live queue, consultation handoff, and Doctor-created tasks from one workspace.";
   return <div className="workspace">
-    <header className="workspace-header"><Brand compact /><div className="workspace-header__clinic"><span>{user.clinic.name}</span><strong>{workspace}</strong></div><div className="user-menu"><div><strong>{user.display_name}</strong><span>{doctorAccount ? assistantWorkspace ? "Doctor · Administrator access" : "Doctor · Administrator" : "Assistant"}</span></div><button type="button" onClick={onSignOut}>Sign out</button></div></header>
+    <header className="workspace-header"><Brand compact /><div className="workspace-header__clinic"><span>{user.clinic.name}</span><strong>{workspace}</strong></div><div className="user-menu"><div><strong>{user.display_name}</strong><span>{doctorAccount ? assistantWorkspace ? "Doctor · Administrator access" : "Doctor · Administrator" : "Assistant"}</span></div><TrustedDevices staffToken={staffToken} onCurrentDeviceRemoved={onCurrentDeviceRemoved} /><button type="button" onClick={onSignOut}>Sign out</button></div></header>
     <main className="workspace-main">
       <section className="workspace-title"><div><p className="eyebrow">{eyebrow}</p><h1>{workspace}</h1><p>{intro}</p></div><div className="status-pill"><span /> Clinic access active</div></section>
       <nav className="workspace-tabs" aria-label="Workspace sections">

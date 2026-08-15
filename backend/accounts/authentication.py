@@ -23,7 +23,7 @@ class StaffSessionAuthentication(BaseAuthentication):
         token_hash = hashlib.sha256(parts[1].encode("utf-8")).hexdigest()
         try:
             session = StaffSession.objects.select_related(
-                "user", "user__clinic"
+                "user", "user__clinic", "trusted_device"
             ).get(token_hash=token_hash)
         except StaffSession.DoesNotExist:
             raise AuthenticationFailed("Invalid or expired staff session.")
@@ -34,6 +34,10 @@ class StaffSessionAuthentication(BaseAuthentication):
 
         if not session.user.is_active:
             raise AuthenticationFailed("This staff account is inactive.")
+
+        if session.trusted_device.clinic_id != session.user.clinic_id:
+            session.delete()
+            raise AuthenticationFailed("Invalid or expired staff session.")
 
         now = timezone.now()
         if session.last_used_at < now - timedelta(minutes=5):

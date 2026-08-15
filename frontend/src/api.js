@@ -2,7 +2,7 @@ import { demoApiRequest } from "./demoApi.js";
 import { demoTaskApiRequest } from "./demoTasks.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 export class ApiError extends Error {
   constructor(message, fields = null, status = 0) {
@@ -31,7 +31,7 @@ function isTaskDemoPath(path) {
 
 export async function apiRequest(
   path,
-  { method = "GET", data, clinicToken, staffToken } = {},
+  { method = "GET", data, clinicToken, deviceToken, staffToken } = {},
 ) {
   if (DEMO_MODE) {
     try {
@@ -44,7 +44,7 @@ export async function apiRequest(
 
   const headers = { Accept: "application/json" };
   if (data !== undefined) headers["Content-Type"] = "application/json";
-  if (clinicToken) headers["X-Clinic-Token"] = clinicToken;
+  if (deviceToken) headers["X-Device-Token"] = deviceToken;
   if (staffToken) headers.Authorization = `Bearer ${staffToken}`;
 
   let response;

@@ -1,9 +1,11 @@
+import re
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from .models import Clinic, StaffUser
+from .models import Clinic, StaffUser, TrustedDevice
 
 
 class ClinicSummarySerializer(serializers.ModelSerializer):
@@ -13,51 +15,53 @@ class ClinicSummarySerializer(serializers.ModelSerializer):
 
 
 class ClinicCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, trim_whitespace=False)
-    password_confirm = serializers.CharField(write_only=True, trim_whitespace=False)
-
     class Meta:
         model = Clinic
-        fields = ["name", "email", "phone", "password", "password_confirm"]
+        fields = ["name", "email", "phone"]
 
     def validate_email(self, value):
         return value.strip().lower()
 
-    def validate(self, attrs):
-        if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError(
-                {"password_confirm": "Clinic passwords do not match."}
-            )
-        if len(attrs["password"]) < 10:
-            raise serializers.ValidationError(
-                {"password": "Use at least 10 characters for the clinic password."}
-            )
-        return attrs
 
-    def create(self, validated_data):
-        password = validated_data.pop("password")
-        validated_data.pop("password_confirm")
-        clinic = Clinic(**validated_data)
-        clinic.set_password(password)
-        clinic.save()
-        return clinic
+class TrustedDeviceSerializer(serializers.ModelSerializer):
+    current = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TrustedDevice
+        fields = ["id", "browser", "operating_system", "created_at", "current"]
+
+    def get_current(self, obj):
+        return obj.id == self.context.get("current_device_id")
 
 
-class ClinicEnterSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(trim_whitespace=False)
+class DevicePairingStartSerializer(serializers.Serializer):
+    clinic_email = serializers.EmailField()
+
+    def validate_clinic_email(self, value):
+        return value.strip().lower()
 
     def validate(self, attrs):
         try:
-            clinic = Clinic.objects.get(email__iexact=attrs["email"].strip())
+            attrs["clinic"] = Clinic.objects.get(email__iexact=attrs["clinic_email"])
         except Clinic.DoesNotExist:
-            raise serializers.ValidationError("Clinic email or password is incorrect.")
-
-        if not clinic.check_password(attrs["password"]):
-            raise serializers.ValidationError("Clinic email or password is incorrect.")
-
-        attrs["clinic"] = clinic
+            raise serializers.ValidationError(
+                {"clinic_email": "This clinic cannot be paired from the information provided."}
+            )
         return attrs
+
+
+class DevicePairingCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=16)
+
+    def validate_code(self, value):
+        normalized = re.sub(r"\D", "", value)
+        if len(normalized) != 6:
+            raise serializers.ValidationError("Enter the six-digit pairing code.")
+        return normalized
+
+
+class DevicePairingStatusSerializer(serializers.Serializer):
+    request_token = serializers.CharField(max_length=200, trim_whitespace=False)
 
 
 class StaffSerializer(serializers.ModelSerializer):
