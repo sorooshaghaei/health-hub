@@ -53,19 +53,15 @@ Approved Phase 0 behavior:
 - keep existing username + password staff login for this corrective pass;
 - an untrusted device must not gain clinic/Patient-data access merely because somebody knows a staff credential;
 - remote access from an untrusted device is blocked;
-- for a new clinic, create the clinic and Doctor account, then ask whether the current browser should be trusted and remembered; if approved, register it as the first trusted device;
-- additional devices are authorized from an already trusted clinic device for Phase 0; exact pairing UX is still unresolved;
+- for a new clinic, create the clinic and Doctor account and automatically register that browser as the first trusted device so the Doctor cannot accidentally lose access immediately after setup; explain clearly that Health Hub only allows access from trusted devices;
+- an additional/untrusted browser displays a short one-time pairing code; a signed-in Doctor or Assistant enters that code on an already trusted clinic device to approve the new browser;
 - trusted devices remain trusted until explicitly revoked;
-- both Doctor and Assistant see a simple trusted-device list and may revoke devices;
+- both Doctor and Assistant see a simple trusted-device list and may revoke devices; each row shows browser + operating system, added date, and **Current device** when applicable, with a **Remove** action;
 - clearing browser storage, changing browser, reinstalling the browser, or changing computers requires authorization again;
 - there is no requirement to preserve existing pre-release clinics/accounts from the old shared-clinic-password implementation; incompatible development data may be reset/discarded rather than supporting a legacy compatibility flow;
 - the GitHub Pages demo keeps the same frontend/browser adapter, bypasses real trusted-device authorization, and continues into the existing demo Doctor/Assistant flow.
 
-The only Phase 0 questions still open are:
-
-1. what happens if the Doctor says **No** to trusting the very first browser;
-2. the exact new-device ↔ already-trusted-device pairing/approval mechanism;
-3. the minimal device information shown in the trusted-device list.
+**Phase 0 base-authentication clarification is complete.**
 
 Recovery, email/SMS verification, email/SMS new-device authorization, offline codes, passkey policy/management, Assistant reset/replacement, multi-clinic Doctor identity, detailed session/security policy, and the other previously discussed questions remain preserved for **Phase 8** rather than being implemented all at once.
 
@@ -219,7 +215,7 @@ OPEN → DONE
 
 ## Current work
 
-**Phases 1–7 remain complete. Current work has returned to Phase 0 only for the base-authentication corrective pass. No authentication correction code has been changed yet.**
+**Phases 1–7 remain complete. Current work has returned to Phase 0 only for the base-authentication corrective pass. Clarification is complete; no authentication correction code has been changed yet.**
 
 Phase 8 is deferred. Its previous answers and unresolved questions remain documented and must not be lost.
 
@@ -227,6 +223,6 @@ External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Resolve only the three remaining Phase 0 questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
+Phase 0 clarification is complete. Wait for the product owner to explicitly say **continue**, then implement only the approved base-authentication correction in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
 Do not predetermine or pull forward Phase 8 recovery, account-management, multi-clinic, passkey-management, or broader security behavior unless one item is strictly required for the Phase 0 correction and the product owner explicitly approves it.
