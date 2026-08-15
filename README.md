@@ -27,13 +27,11 @@ The project is developed directly on `main`, one approved phase or corrective pa
 
 ## Current work
 
-**Phases 1–7 are complete. Current work has returned to Phase 0 only for a small base-authentication correction.**
+**Phase 0 base authentication and Phases 1–7 are complete. Phase 8 has not started.**
 
-The current code still uses a shared clinic email/password before individual staff login. That shared clinic-password boundary is no longer the intended design. The Phase 0 correction will remove it from normal daily authentication and establish the minimum trusted-clinic-device + individual-staff authentication foundation.
+The original shared clinic-password boundary has been replaced by trusted clinic devices. New clinics automatically trust the first browser, additional browsers pair through a six-digit code approved from an already trusted device, and individual Doctor/Assistant username + password sign-in occurs behind that device boundary. Staff sessions are bound to the trusted device that created them, and removing a device ends those sessions.
 
-The more complicated recovery, account administration, passkey management, multi-clinic identity, and security questions already discussed are preserved for Phase 8 and are intentionally not being implemented all at once.
-
-No Phase 0 authentication correction code has been changed yet.
+The more complicated recovery, verified email/SMS, account administration, passkey management, multi-clinic identity, and broader security questions already discussed are preserved for Phase 8.
 
 ## Access model
 
@@ -49,6 +47,20 @@ Doctor workspace owns the Room ready signal, views Appointment administration re
 Task authoring is based on account identity rather than active workspace: Doctor credentials may create/edit/delete Doctor-to-Assistant tasks from either workspace; Assistant credentials cannot author tasks.
 
 Private sticky access is stricter and matches account ownership to the active workspace. The Doctor sees the Doctor sticky only in Doctor workspace; the Assistant sees the Assistant sticky only in Assistant workspace. Doctor administrator access to Assistant workspace exposes neither account's private sticky.
+
+## Trusted-device authentication
+
+- Clinic creation automatically registers the current browser as the first trusted device.
+- The UI explains that Health Hub permits clinic access only from trusted devices.
+- Additional browsers generate a short-lived six-digit pairing code.
+- A signed-in Doctor or Assistant approves that code from an already trusted device.
+- No clinic or Patient data is exposed on the requesting browser before approval.
+- Both roles can review trusted devices and remove them.
+- Device rows show browser, operating system, added date, and **Current device** when applicable.
+- The last trusted device cannot be removed until another device is paired.
+- Signing out does not untrust the browser.
+- The shared clinic-password entry endpoint has been removed.
+- The static GitHub Pages demo bypasses real trusted-device authority because it has no production backend trust boundary.
 
 ## Implemented workflow
 
@@ -182,7 +194,7 @@ Normal form edits use the regular Edit flow. Security/account actions do not use
 ## Repository structure
 
 ```text
-backend/accounts/                Clinic, staff, sessions, workspace access
+backend/accounts/                Clinic, trusted devices, staff, sessions, workspace access
 backend/patients/                Patient records and deletion Undo
 backend/visits/                  Appointments, queue, room calls, consultation handoff
 backend/tasks/                   Shared Doctor-to-Assistant tasks and comments
@@ -251,13 +263,15 @@ npm run build:demo
 
 ## API surface
 
-The API currently still reflects the pre-correction shared clinic-password architecture. See the source and `docs/PHASE_0_FOUNDATION.md` before making authentication changes.
-
 ```text
 GET    /api/health/
 POST   /api/clinics/
-POST   /api/clinics/enter/
 GET    /api/clinic/context/
+POST   /api/devices/pairing/
+POST   /api/devices/pairing/status/
+GET    /api/devices/
+DELETE /api/devices/<device-id>/
+POST   /api/devices/pairing/approve/
 POST   /api/staff/register/
 POST   /api/staff/login/
 GET    /api/staff/me/
@@ -304,11 +318,13 @@ DELETE /api/task-comments/<comment-id>/
 POST   /api/task-comments/<comment-id>/undo-delete/
 ```
 
+`GET /api/health/`, `POST /api/clinics/`, `POST /api/devices/pairing/`, and `POST /api/devices/pairing/status/` are public bootstrap/pairing endpoints. `GET /api/clinic/context/`, `POST /api/staff/register/`, and `POST /api/staff/login/` require a trusted-device token through `X-Device-Token`. Device list/removal/pairing approval and the remaining staff, Patient, Appointment, and task endpoints require `Authorization: Bearer <session-token>`.
+
 ## Migration behavior
 
-The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables. The attention-dot correction adds a per-staff task-seen timestamp initialized at migration time so existing tasks are treated as already seen. Phase 7 adds one blank-by-default private-note text field to each staff account; it does not alter Patient, Appointment, task, or existing account data. The browser demo performs equivalent local-storage migration and validation for existing demo data.
+The Phase 3 migration fills scheduled times for legacy rows and removes the obsolete `visit_type` field. Phase 4 adds consultation timestamps and one clinic-scoped room-call record. The one-Appointment-per-date migration adds an active uniqueness constraint and deliberately stops if existing active duplicates require manual resolution. Phase 5 adds no database migration. Phase 6 adds new clinic-scoped task and task-comment tables. The attention-dot correction adds a per-staff task-seen timestamp initialized at migration time so existing tasks are treated as already seen. Phase 7 adds one blank-by-default private-note text field to each staff account.
 
-The Phase 0 authentication correction has not been implemented yet, so no authentication migration described in the new Phase 0 plan should be treated as present in the repository.
+Phase 0 migration `accounts.0005_trusted_device_auth` deliberately resets incompatible pre-release clinic/authentication data, removes the shared clinic password hash, creates trusted-device and pairing-request models, and binds staff sessions to trusted devices. This reset was explicitly approved for pre-release development data and is not a production-data migration policy.
 
 ## Production boundary
 
