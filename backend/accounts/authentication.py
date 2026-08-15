@@ -39,6 +39,17 @@ class StaffSessionAuthentication(BaseAuthentication):
             session.delete()
             raise AuthenticationFailed("Invalid or expired staff session.")
 
+        raw_device_token = request.headers.get("X-Device-Token") or request.headers.get(
+            "X-Clinic-Token"
+        )
+        if not raw_device_token:
+            raise AuthenticationFailed("A trusted clinic device is required.")
+        supplied_device_hash = hashlib.sha256(
+            raw_device_token.encode("utf-8")
+        ).hexdigest()
+        if supplied_device_hash != session.trusted_device.token_hash:
+            raise AuthenticationFailed("This staff session belongs to another device.")
+
         now = timezone.now()
         if session.last_used_at < now - timedelta(minutes=5):
             session.last_used_at = now
