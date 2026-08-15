@@ -38,7 +38,7 @@ Security/account actions are outside this global Undo rule unless explicitly app
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Foundation | Implemented; reopened only for base authentication correction; clarification complete |
+| 0 | Foundation | Implemented; trusted-device authentication correction complete |
 | 1 | Patient records | Implemented; corrected permissions/search/phone layout |
 | 2 | Planned appointments | Implemented; corrected to one Appointment per Patient per date |
 | 3 | Check-in and live waiting queue | Implemented |
@@ -51,41 +51,34 @@ Security/account actions are outside this global Undo rule unless explicitly app
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
 
-## Phase 0 — Foundation and base authentication correction
+## Phase 0 — Foundation and base authentication
 
-The implemented foundation includes clinic creation/entry, staff accounts, session-backed workspace selection, Doctor administrator status, PostgreSQL configuration, frontend/backend foundation, browser demo, tests, and repository workflows.
+Phase 0 is complete, including the later corrective pass that replaced the original shared clinic-password boundary.
 
-The original authentication implementation uses two layers:
+Implemented authentication behavior:
 
-1. clinic email + shared clinic password;
-2. individual staff username + staff password.
-
-The shared clinic-password layer is no longer the intended final boundary.
-
-The project is therefore returning to Phase 0 for a **small corrective pass before Phase 8**. This correction does not reopen Phases 1–7 and must not change their product behavior.
-
-Approved Phase 0 direction and behavior:
-
-- keep the clinic as the tenant/container for clinic data;
-- remove the shared clinic password from normal daily authentication;
-- gate normal clinic access through a trusted clinic device/browser;
-- keep trusted-device authorization separate from staff login sessions;
-- keep the Doctor/Assistant role-selection step;
-- for this correction, keep existing username + password staff login behind the trusted-device gate;
-- block clinic/Patient-data access from untrusted devices;
-- block remote access from an untrusted device;
-- for a new clinic, create the clinic and Doctor account and automatically register the current browser as the first trusted device; clearly explain that Health Hub only allows clinic access from trusted devices;
-- do not add email/SMS verification, passkeys, or recovery to this Phase 0 correction;
-- authorize an additional/untrusted browser by showing a short one-time pairing code on the new browser and entering that code from a signed-in Doctor or Assistant session on an already trusted clinic device;
-- trusted devices stay trusted indefinitely until explicitly revoked;
-- both Doctor and Assistant see a simple trusted-device list and may revoke devices; device rows show browser + operating system, added date, **Current device** when applicable, and a **Remove** action;
+- the clinic remains the tenant/container for clinic data;
+- the shared clinic password and `/api/clinics/enter/` flow are removed from normal authentication;
+- normal clinic access is gated by a trusted clinic browser/device;
+- trusted-device authorization is separate from staff login sessions;
+- a new clinic automatically trusts the current browser as its first device and explains that access is limited to trusted devices;
+- additional browsers receive a six-digit, short-lived pairing code that a signed-in Doctor or Assistant approves from an already trusted device;
+- no clinic/Patient data is exposed to the untrusted requesting browser before pairing approval;
+- trusted devices remain trusted until revoked;
+- Doctor and Assistant may both view the device list and revoke devices;
+- device rows show browser + operating system, added date, **Current device** when applicable, and **Remove**;
+- staff sessions are bound to the trusted device that created them, so removing a device ends its sessions;
+- the last remaining trusted device cannot be removed until another device has been paired;
+- signing out ends the staff session without untrusting the browser;
+- the Doctor/Assistant role-selection step remains;
+- staff sign-in remains username + password in the Phase 0 foundation;
 - clearing browser storage/changing browser/computer requires device authorization again;
-- no compatibility path is required for existing pre-release clinics/accounts; incompatible development data may be reset/discarded rather than migrated through the old clinic password;
-- the GitHub Pages demo uses the same frontend/browser adapter but bypasses real trusted-device authorization and continues into the existing demo Doctor/Assistant flow.
+- migration `accounts.0005_trusted_device_auth` resets incompatible pre-release clinic/authentication data, removes `Clinic.password_hash`, and adds trusted-device/pairing data;
+- the GitHub Pages demo keeps the same frontend/browser adapter but bypasses real trusted-device authority rather than simulating it.
 
-The Phase 0 corrective pass is intentionally limited to this minimum base-authentication work. Do **not** require the full Phase 8 recovery/account-management design before completing it.
+Verification after implementation passed frontend tests/builds, Django checks, migration verification/application on PostgreSQL, and the complete backend test suite.
 
-**Phase 0 base-authentication clarification is complete.**
+Email/SMS verification and recovery, verified-contact device authorization, passkeys, account administration, multi-clinic identity, and broader security behavior remain Phase 8 work.
 
 See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
@@ -239,7 +232,7 @@ Implemented according to [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md):
 
 Phase 8 is not implemented.
 
-The previously discussed questions and approved answers are preserved in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md), but Phase 8 is intentionally deferred until after the smaller Phase 0 base-authentication correction.
+Its previously approved answers and unresolved questions are preserved in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
 Phase 8 owns the complicated account/security lifecycle, including:
 
@@ -248,14 +241,14 @@ Phase 8 owns the complicated account/security lifecycle, including:
 - verified email/SMS authorization of new devices;
 - offline Doctor recovery codes;
 - passkey/device-biometric account policy and management;
-- staff session policy;
+- staff session policy beyond the Phase 0 device binding;
 - Doctor administration/reset of Assistant account;
 - replacement-Assistant onboarding and historical-account handling;
 - multi-clinic Doctor identity/membership;
 - password/security internals and hardening decisions;
 - final demo behavior for account/recovery features.
 
-Do not implement Phase 8 while the project is performing the Phase 0 corrective pass.
+Do not implement Phase 8 until the product owner explicitly says **continue** and its remaining questions are resolved.
 
 ## Phase 9 — Sensitive attachment architecture
 
@@ -271,6 +264,6 @@ Review complete Doctor and Assistant workflows, remove unfinished UI, confirm no
 
 ## Current work
 
-**Current work is the Phase 0 base-authentication corrective pass. Clarification is complete; no Phase 0 correction code has been changed yet.**
+**Phase 0 and Phases 1–7 are complete. Phase 8 has not started.**
 
-Next: wait for the product owner to explicitly say **continue**, then implement only the approved correction in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md), validate it, update documentation, commit, and stop before Phase 8.
+Stop here. The next implementation work begins only after the product owner explicitly says **continue** and Phase 8's remaining clarification questions are resolved.
