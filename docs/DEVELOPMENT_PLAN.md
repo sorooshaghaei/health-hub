@@ -4,7 +4,7 @@
 
 Health Hub is developed directly on `main`, one approved phase at a time.
 
-For each phase:
+For each phase or explicitly approved corrective pass:
 
 1. read `PROJECT_CONTEXT.md` and the current specifications;
 2. resolve genuinely unapproved product behavior;
@@ -18,9 +18,7 @@ Do not create branches, pull requests, speculative features, duplicate workflows
 
 ## Product baseline
 
-- one clinic;
-- one Doctor account;
-- one Assistant account;
+- one clinic workflow with Doctor and Assistant roles;
 - Doctor is clinic administrator;
 - Doctor credentials may open Assistant workspace with full administrative access;
 - Doctor workspace remains clinically focused: it may edit Patient information but not create/delete Patients or administer Appointments;
@@ -34,13 +32,13 @@ Do not create branches, pull requests, speculative features, duplicate workflows
 
 Discrete operational and destructive actions provide a five-second server-enforced Undo. Normal form edits remain editable through the regular Edit flow.
 
-Security/account actions are not automatically included in this rule; Phase 8 must explicitly decide their behavior.
+Security/account actions are outside this global Undo rule unless explicitly approved otherwise.
 
 ## Phase status
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Foundation | Implemented; shared clinic-password architecture correction approved for Phase 8 |
+| 0 | Foundation | Implemented; reopened only for base authentication correction |
 | 1 | Patient records | Implemented; corrected permissions/search/phone layout |
 | 2 | Planned appointments | Implemented; corrected to one Appointment per Patient per date |
 | 3 | Check-in and live waiting queue | Implemented |
@@ -48,31 +46,40 @@ Security/account actions are not automatically included in this rule; Phase 8 mu
 | 5 | Completed consultation behavior | Implemented |
 | 6 | Shared tasks | Implemented; attention-dot and New Task modal UX correction included |
 | 7 | Private notes | Implemented as one private sticky scratchpad per account/workspace |
-| 8 | Authentication recovery and clinic administration | Not started; clarification in progress |
+| 8 | Account recovery, administration, and security | Not started; prior decisions/questions preserved |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
 
-## Phase 0 — Foundation
+## Phase 0 — Foundation and base authentication correction
 
-Implemented foundation includes clinic creation/entry, staff accounts, session-backed workspace selection, Doctor administrator status, PostgreSQL configuration, frontend/backend foundation, browser demo, tests, and repository workflows.
+The implemented foundation includes clinic creation/entry, staff accounts, session-backed workspace selection, Doctor administrator status, PostgreSQL configuration, frontend/backend foundation, browser demo, tests, and repository workflows.
 
-The original Phase 0 authentication implementation uses two layers:
+The original authentication implementation uses two layers:
 
 1. clinic email + shared clinic password;
 2. individual staff username + staff password.
 
-That shared clinic-password boundary is no longer the intended final design. The approved correction, to be implemented in Phase 8, is:
+The shared clinic-password layer is no longer the intended final boundary.
 
-- keep the clinic as the tenant/container;
+The project is therefore returning to Phase 0 for a **small corrective pass before Phase 8**. This correction does not reopen Phases 1–7 and must not change their product behavior.
+
+Approved architectural direction:
+
+- keep the clinic as the tenant/container for clinic data;
 - remove the shared clinic password from normal daily authentication;
-- authorize clinic devices/browsers as trusted clinic devices;
-- keep trusted-device authorization separate from individual staff sessions;
-- keep Doctor and Assistant as independent accounts with independent credentials and recovery;
-- ensure an arbitrary outside device does not gain patient-data access merely because a staff password is known;
-- use email and SMS as approved recovery channels in principle, with exact recovery behavior still to be confirmed.
+- gate normal clinic access through a trusted clinic device/browser;
+- keep trusted-device authorization separate from staff login sessions;
+- keep the Doctor/Assistant role-selection step;
+- keep Doctor and Assistant individually authenticated;
+- block clinic/Patient-data access from untrusted devices;
+- block remote access from an untrusted device.
 
-The current repository still implements the shared clinic password. Phase 0 must therefore be documented as implemented **with a pending authentication correction**, not as though trusted devices already exist.
+The Phase 0 corrective pass is intentionally limited to the minimum base-authentication work needed to make that architecture functional and migrate the existing implementation safely.
+
+Before implementation, clarify only the base-authentication questions that are actually required for this correction: first-device trust, minimum additional-device authorization, normal staff sign-in behind the trusted-device boundary, migration of existing clinics/staff, and minimum browser-demo entry behavior.
+
+Do **not** require the full Phase 8 recovery/account-management design before completing this corrective pass.
 
 See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
@@ -222,45 +229,26 @@ Implemented according to [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md):
 - no Patient links, reminders, attachments, search, notifications, color choices, or routine save-status indicator;
 - browser demo and automated tests mirror backend persistence and authorization.
 
-## Phase 8 — Authentication recovery and clinic administration
+## Phase 8 — Account recovery, administration, and security
 
-Phase 8 is not implemented. Clarification is in progress.
+Phase 8 is not implemented.
 
-Its first responsibility is to correct the Phase 0 authentication boundary according to the approved direction:
+The previously discussed questions and approved answers are preserved in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md), but Phase 8 is intentionally deferred until after the smaller Phase 0 base-authentication correction.
 
-- remove the shared clinic password from normal daily authentication;
-- use trusted clinic-device/browser authorization as the clinic access boundary;
-- keep trusted-device authorization separate from staff login sessions;
-- preserve independent Doctor and Assistant accounts;
-- make Doctor and Assistant recovery independent;
-- support both email and SMS as recovery channels in principle;
-- never solve one staff member's forgotten password by resetting/distributing a clinic-wide shared password.
+Phase 8 owns the complicated account/security lifecycle, including:
 
-The following remain explicitly unresolved and must be answered before implementation:
+- forgotten-password recovery;
+- email/SMS verification and contact changes;
+- offline Doctor recovery codes;
+- passkey/device-biometric account policy and management;
+- staff session policy;
+- Doctor administration/reset of Assistant account;
+- replacement-Assistant onboarding and historical-account handling;
+- multi-clinic Doctor identity/membership;
+- password/security internals and hardening decisions;
+- final demo behavior for account/recovery features.
 
-- first-device/bootstrap flow;
-- adding and revoking trusted devices;
-- device authorization lifetime and persistence;
-- exact email/SMS device-verification flow;
-- remote access policy for Doctor and Assistant;
-- staff login identifiers and whether passkeys belong in Phase 8;
-- staff session lifetime/remember-session behavior;
-- recovery link/code format, expiry, invalidation, throttling, and reset session effects;
-- inaccessible-Doctor emergency recovery;
-- self-service staff profile editing;
-- Doctor controls over Assistant account;
-- Assistant disable/re-enable and replacement/archive behavior;
-- treatment of former Assistant private sticky;
-- clinic profile fields and administrative contact channels;
-- clinic deletion/ownership/Doctor replacement scope;
-- security-action Undo behavior;
-- password validation rules;
-- browser-demo representation of trusted devices and recovery;
-- any other unapproved screen, field, permission, dependency, or workflow.
-
-See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
-
-Do not implement Phase 8 until these decisions are approved.
+Do not implement Phase 8 while the project is performing the Phase 0 corrective pass.
 
 ## Phase 9 — Sensitive attachment architecture
 
@@ -273,3 +261,9 @@ Review validation, authorization, constraints, race conditions, error states, re
 ## Phase 11 — First stable release
 
 Review complete Doctor and Assistant workflows, remove unfinished UI, confirm no unapproved behavior, verify browser-demo parity, finalize deployment documentation, and release only after product-owner approval.
+
+## Current work
+
+**Current work is the Phase 0 base-authentication corrective pass. No Phase 0 correction code has been changed yet.**
+
+Next: resolve only the small set of Phase 0 authentication questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md), then implement that correction, validate it, update documentation, commit, and stop before Phase 8.
