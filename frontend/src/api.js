@@ -2,6 +2,7 @@ import { demoApiRequest } from "./demoApi.js";
 import { demoTaskApiRequest } from "./demoTasks.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const DEVICE_TOKEN_KEY = "health-hub.device-token";
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 export class ApiError extends Error {
@@ -44,7 +45,13 @@ export async function apiRequest(
 
   const headers = { Accept: "application/json" };
   if (data !== undefined) headers["Content-Type"] = "application/json";
-  if (deviceToken) headers["X-Device-Token"] = deviceToken;
+
+  const storedDeviceToken =
+    staffToken && typeof globalThis.localStorage !== "undefined"
+      ? globalThis.localStorage.getItem(DEVICE_TOKEN_KEY)
+      : null;
+  const activeDeviceToken = deviceToken ?? storedDeviceToken;
+  if (activeDeviceToken) headers["X-Device-Token"] = activeDeviceToken;
   if (staffToken) headers.Authorization = `Bearer ${staffToken}`;
 
   let response;
