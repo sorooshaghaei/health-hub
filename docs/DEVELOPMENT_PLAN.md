@@ -64,22 +64,32 @@ The shared clinic-password layer is no longer the intended final boundary.
 
 The project is therefore returning to Phase 0 for a **small corrective pass before Phase 8**. This correction does not reopen Phases 1–7 and must not change their product behavior.
 
-Approved architectural direction:
+Approved Phase 0 direction and behavior:
 
 - keep the clinic as the tenant/container for clinic data;
 - remove the shared clinic password from normal daily authentication;
 - gate normal clinic access through a trusted clinic device/browser;
 - keep trusted-device authorization separate from staff login sessions;
 - keep the Doctor/Assistant role-selection step;
-- keep Doctor and Assistant individually authenticated;
+- for this correction, keep existing username + password staff login behind the trusted-device gate;
 - block clinic/Patient-data access from untrusted devices;
-- block remote access from an untrusted device.
+- block remote access from an untrusted device;
+- for a new clinic, create the clinic and Doctor account, then ask whether the current browser should be trusted and remembered; if approved, register it as the first trusted device;
+- do not add email/SMS verification, passkeys, or recovery to this Phase 0 correction;
+- authorize additional clinic devices from an already trusted clinic device; exact pairing UX still requires approval;
+- trusted devices stay trusted indefinitely until explicitly revoked;
+- both Doctor and Assistant see a simple trusted-device list and may revoke devices;
+- clearing browser storage/changing browser/computer requires device authorization again;
+- no compatibility path is required for existing pre-release clinics/accounts; incompatible development data may be reset/discarded rather than migrated through the old clinic password;
+- the GitHub Pages demo uses the same frontend/browser adapter but bypasses real trusted-device authorization and continues into the existing demo Doctor/Assistant flow.
 
-The Phase 0 corrective pass is intentionally limited to the minimum base-authentication work needed to make that architecture functional and migrate the existing implementation safely.
+The Phase 0 corrective pass is intentionally limited to this minimum base-authentication work. Do **not** require the full Phase 8 recovery/account-management design before completing it.
 
-Before implementation, clarify only the base-authentication questions that are actually required for this correction: first-device trust, minimum additional-device authorization, normal staff sign-in behind the trusted-device boundary, migration of existing clinics/staff, and minimum browser-demo entry behavior.
+Remaining Phase 0 clarification is limited to:
 
-Do **not** require the full Phase 8 recovery/account-management design before completing this corrective pass.
+1. behavior if the Doctor answers **No** to trusting the very first browser;
+2. exact pairing/approval mechanism between an untrusted new browser and an already trusted device;
+3. minimal information displayed per trusted device so staff can identify the correct device to revoke.
 
 See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
@@ -239,6 +249,7 @@ Phase 8 owns the complicated account/security lifecycle, including:
 
 - forgotten-password recovery;
 - email/SMS verification and contact changes;
+- verified email/SMS authorization of new devices;
 - offline Doctor recovery codes;
 - passkey/device-biometric account policy and management;
 - staff session policy;
@@ -266,4 +277,4 @@ Review complete Doctor and Assistant workflows, remove unfinished UI, confirm no
 
 **Current work is the Phase 0 base-authentication corrective pass. No Phase 0 correction code has been changed yet.**
 
-Next: resolve only the small set of Phase 0 authentication questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md), then implement that correction, validate it, update documentation, commit, and stop before Phase 8.
+Next: resolve only the three remaining Phase 0 questions in [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md), then implement that correction, validate it, update documentation, commit, and stop before Phase 8.
