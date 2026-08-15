@@ -31,6 +31,35 @@ Phase 6 task authoring permissions are intentionally based on account identity r
 
 Phase 7 private sticky access requires account identity to match the active workspace. The Doctor sees the Doctor sticky only in Doctor workspace. The Assistant sees the Assistant sticky only in Assistant workspace. Doctor credentials inside Assistant workspace see neither private sticky.
 
+## Authentication foundation: current implementation versus approved correction
+
+The current Phase 0 code still has two authentication layers:
+
+1. clinic email + shared clinic password, which establishes clinic access;
+2. individual staff username + staff password, which establishes a Doctor or Assistant session.
+
+That is the **current implementation**, not the intended final architecture.
+
+The product owner has approved a Phase 8 correction to the Phase 0 authentication boundary:
+
+- keep the clinic as the tenant/container for clinic data and staff membership;
+- remove the shared clinic password from normal daily authentication;
+- gate normal clinic access through authorization of trusted clinic devices/browsers;
+- keep trusted-device authorization separate from individual staff sessions;
+- signing out Doctor or Assistant ends that staff session without automatically removing the device's clinic authorization;
+- keep Doctor and Assistant as independent accounts with independent credentials and recovery;
+- changing or recovering one staff password must not require the other staff member to learn or change a shared clinic password;
+- knowledge of a staff password alone must not make an arbitrary outside device a trusted clinic device;
+- both email and SMS are approved as recovery channels in principle;
+- recovery is for the affected staff account and must not distribute a newly generated password to the other staff member.
+
+This approved architecture is **not implemented yet**. Phase 8 must resolve the remaining device, recovery, remote-access, administration, session, and demo behavior before any code changes begin.
+
+See:
+
+- [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md)
+- [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
+
 ## Implemented workflow
 
 ### Patients
@@ -162,8 +191,9 @@ OPEN → DONE
 - no Patient links, reminders, attachments, search, notifications, colors, or other note system;
 - browser-demo behavior mirrors backend persistence and workspace privacy.
 
-See:
+## Phase specifications
 
+- [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md)
 - [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md)
 - [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md)
 - [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md)
@@ -171,15 +201,18 @@ See:
 - [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md)
 - [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md)
 - [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md)
+- [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
 
 ## Current phase
 
-**Phase 7 repository implementation is complete. Stop until the product owner explicitly says continue.**
+**Phase 7 repository implementation is complete. Phase 8 has not started.**
+
+The Phase 0 authentication correction is approved at architecture level but belongs to Phase 8 implementation. Do not modify authentication code merely because this documentation now records the target architecture.
 
 External GitHub Actions and live Pages outcomes require separate confirmation.
 
 ## Next action
 
-Do not begin Phase 8 automatically.
+Before implementing Phase 8, resolve the remaining questions in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
-When the product owner says **continue**, first resolve the Phase 8 password-recovery and clinic-administration decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
+Do not predetermine or infer unanswered device authorization, remote access, recovery, session, account-administration, clinic-administration, or browser-demo behavior. Implement only after the product owner explicitly approves those decisions.

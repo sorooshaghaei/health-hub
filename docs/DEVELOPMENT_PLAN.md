@@ -23,7 +23,7 @@ Do not create branches, pull requests, speculative features, duplicate workflows
 - one Assistant account;
 - Doctor is clinic administrator;
 - Doctor credentials may open Assistant workspace with full administrative access;
-- Doctor workspace remains focused: it may edit Patient information but not create/delete Patients or administer Appointments;
+- Doctor workspace remains clinically focused: it may edit Patient information but not create/delete Patients or administer Appointments;
 - React/Vite frontend;
 - Django REST Framework backend;
 - PostgreSQL primary database;
@@ -34,11 +34,13 @@ Do not create branches, pull requests, speculative features, duplicate workflows
 
 Discrete operational and destructive actions provide a five-second server-enforced Undo. Normal form edits remain editable through the regular Edit flow.
 
+Security/account actions are not automatically included in this rule; Phase 8 must explicitly decide their behavior.
+
 ## Phase status
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| 0 | Foundation verification | Implemented |
+| 0 | Foundation | Implemented; shared clinic-password architecture correction approved for Phase 8 |
 | 1 | Patient records | Implemented; corrected permissions/search/phone layout |
 | 2 | Planned appointments | Implemented; corrected to one Appointment per Patient per date |
 | 3 | Check-in and live waiting queue | Implemented |
@@ -46,32 +48,52 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | 5 | Completed consultation behavior | Implemented |
 | 6 | Shared tasks | Implemented; attention-dot and New Task modal UX correction included |
 | 7 | Private notes | Implemented as one private sticky scratchpad per account/workspace |
-| 8 | Password recovery and clinic administration | Not started |
+| 8 | Authentication recovery and clinic administration | Not started; clarification in progress |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
 
 ## Phase 0 — Foundation
 
-Implemented clinic creation and entry, individual accounts, session-backed workspace selection, Doctor administrator status, PostgreSQL configuration, authentication tests, frontend builds, GitHub workflows, and design documentation.
+Implemented foundation includes clinic creation/entry, staff accounts, session-backed workspace selection, Doctor administrator status, PostgreSQL configuration, frontend/backend foundation, browser demo, tests, and repository workflows.
+
+The original Phase 0 authentication implementation uses two layers:
+
+1. clinic email + shared clinic password;
+2. individual staff username + staff password.
+
+That shared clinic-password boundary is no longer the intended final design. The approved correction, to be implemented in Phase 8, is:
+
+- keep the clinic as the tenant/container;
+- remove the shared clinic password from normal daily authentication;
+- authorize clinic devices/browsers as trusted clinic devices;
+- keep trusted-device authorization separate from individual staff sessions;
+- keep Doctor and Assistant as independent accounts with independent credentials and recovery;
+- ensure an arbitrary outside device does not gain patient-data access merely because a staff password is known;
+- use email and SMS as approved recovery channels in principle, with exact recovery behavior still to be confirmed.
+
+The current repository still implements the shared clinic password. Phase 0 must therefore be documented as implemented **with a pending authentication correction**, not as though trusted devices already exist.
+
+See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
 ## Phase 1 — Patient records
 
 Implemented according to [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md):
 
 - reusable Patient profiles;
-- approved fields and normalization;
-- automatic search while typing;
-- one duplicate warning;
+- full name, `Man`/`Woman`, country/calling code, phone, optional date of birth, optional shared Patient note;
+- Iran `+98` default;
+- compact flag-and-country selector with selected calling code beside national number, stacking cleanly on mobile;
+- one combined phone display;
+- automatic search while typing by name, phone, or date of birth;
 - Doctor and Assistant may edit all approved Patient fields;
 - Patient creation/deletion remains Assistant-workspace administration;
-- Doctor administrator receives full Assistant-workspace controls when entering that workspace;
-- compact flag-and-country selector with the selected calling code beside a large national-number field, using a stacked two-part mobile layout;
-- one combined phone display; no separate Country code or National number cards;
+- Doctor administrator receives full Assistant-workspace controls there;
+- one Possible duplicate patient warning;
+- internal soft deletion with five-second Undo;
+- current/future Appointments block Patient deletion;
 - Role boundary and Individual access cards removed;
-- separate Leave clinic card and browser-access clearing action removed; the top Sign out control remains;
-- soft deletion with five-second Undo;
-- current/future Appointment deletion block.
+- separate Leave clinic action removed; top Sign out remains.
 
 ## Phase 2 — Planned appointments
 
@@ -80,59 +102,59 @@ Implemented according to [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md):
 - Patient, date, scheduled time, optional reason;
 - one Appointment type for every clinic attendance;
 - one active Appointment maximum per Patient per clinic date;
-- duplicate create/edit returns the existing Appointment for opening instead of offering an override;
+- duplicate create/edit returns the existing Appointment for opening rather than offering override;
 - a deleted Appointment reserves its Patient/date during the five-second Undo period;
-- active uniqueness is protected by a database constraint and mirrored by the browser demo;
-- existing active duplicates are never silently deleted or merged; migration stops for manual resolution;
+- database uniqueness and browser-demo validation enforce the same rule;
+- migration never silently merges/deletes duplicates and stops for manual resolution when required;
 - same-day ad-hoc Appointment defaults to current time in the frontend;
-- Patient-first Appointment form with existing-Patient suggestions after two name characters and seamless inline new-Patient creation;
+- Patient-first Appointment create/edit form with existing-Patient suggestions and seamless inline new-Patient creation;
 - Patient Appointment history;
 - Doctor list visibility and Assistant-workspace management;
-- Appointment deletion is available to Assistant workspace, including Doctor administrator access there, but not Doctor workspace;
-- legacy Visit data migration to the Appointment-only model.
+- Appointment create/edit/delete controls exist in Assistant workspace, including Doctor administrator access there, but not Doctor workspace;
+- legacy Visit data migrated to the Appointment-only model.
 
 ## Phase 3 — Check-in and live waiting queue
 
-Implemented according to [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md):
+Implemented according to [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md).
 
 ```text
 PLANNED → CHECKED_IN
 ```
 
-- only today's Appointments can be checked in;
-- check-in time records the Assistant's check-in action;
+- only today's Appointments can check in;
+- check-in timestamp records the actual check-in action;
 - live queue contains today's checked-in Patients only;
 - queue order is persisted check-in order, not scheduled time;
 - deterministic sequence resolves equal timestamps;
 - Assistant performs check-in and destructive actions;
 - Doctor views the live queue;
-- Assistant queue and Appointment list show phone; Doctor queue omits it;
+- Assistant queue and Appointment list show phone; Doctor queue omits phone;
 - no early/late, unavailable, Left, Cancelled, or no-show state;
-- checked-in Patient and date are locked while time and reason remain editable;
-- Check in, Appointment deletion, and Patient deletion have five-second Undo;
-- queue refresh uses three-second authenticated polling.
+- checked-in Patient and date are locked while scheduled time and reason remain editable;
+- Check in, Appointment deletion, and Patient deletion use server-enforced five-second Undo;
+- live operational state refreshes every three seconds.
 
 ## Phase 4 — Doctor room call and consultation handoff
 
-Implemented according to [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md):
+Implemented according to [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md).
 
 ```text
 CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
 - Doctor taps **Room ready** as a one-time call to the Assistant;
-- the current `WITH_DOCTOR` Patient, if any, becomes `DOCTOR_FINISHED`;
-- the Assistant receives the call only after the Doctor's five-second Undo period;
-- one pending room call persists even when the waiting queue is empty;
-- the first waiting Patient is suggested, but the Assistant may choose any checked-in Patient;
+- any current `WITH_DOCTOR` Patient becomes `DOCTOR_FINISHED`;
+- Assistant receives the call only after the Doctor's five-second Undo period;
+- one pending room call persists even when the queue is empty;
+- first waiting Patient is suggested, but Assistant may choose any checked-in Patient;
 - Assistant taps **With doctor** to consume the pending call;
 - original check-in sequence remains unchanged and displayed positions recalculate;
 - Assistant has five-second Undo for **With doctor**, restoring the Patient and pending call;
 - Doctor consultation card shows scheduled time, check-in time, reason, shared Patient note, and Patient-profile access;
-- opening or closing the consultation overlay never changes workflow state;
-- there is no Doctor Finished, Pause, Return to queue, or automatic-next action;
-- server-side clinic locks protect the workflow across separate Doctor and Assistant computers;
-- browser-demo behavior and automated tests mirror the backend.
+- opening or closing consultation UI never changes workflow state;
+- no Doctor Finished, Pause, Return to queue, or automatic-next action;
+- clinic-scoped server transactions protect separate Doctor and Assistant computers;
+- browser demo and automated tests mirror backend behavior.
 
 ## Phase 5 — Completed consultation behavior
 
@@ -142,17 +164,17 @@ Implemented according to [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md).
 PLANNED → CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
-`DOCTOR_FINISHED` is the final Appointment state. It is displayed to users as **Completed**.
+`DOCTOR_FINISHED` is final and displayed to users as **Completed**.
 
-- there is no `CHECKED_OUT` state;
-- there is no Assistant Checkout action or checkout queue;
-- there is no checkout form or required checkout data;
-- there is no `checked_out_at` field;
+- no `CHECKED_OUT` state;
+- no Assistant Checkout action or checkout queue;
+- no checkout form or required checkout data;
+- no `checked_out_at` field;
 - `doctor_finished_at` remains the completion timestamp;
-- the existing five-second **Undo Room ready** is the only reversal of completion and restores the Appointment to `WITH_DOCTOR`;
-- completed Appointments remain visible in the daily Appointment list and Patient history;
+- existing five-second **Undo Room ready** is the only reversal of completion and restores to `WITH_DOCTOR`;
+- completed Appointments remain visible in daily Appointment list and Patient history;
 - existing post-check-in editing and post-consultation deletion rules remain unchanged;
-- no new notification, endpoint, migration, or browser-demo state is added.
+- no new notification, endpoint, migration, or browser-demo state was added for Phase 5.
 
 ## Phase 6 — Shared tasks
 
@@ -162,28 +184,27 @@ Implemented according to [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md).
 OPEN → DONE
 ```
 
-- only the Doctor account creates tasks for the Assistant;
-- there is no assignment/self-assignment system and no task for the Doctor workflow;
-- task fields are title, description, optional date-only due date, and optional single Patient association;
-- clicking **New task** opens a compact modal instead of placing the create form above Open tasks;
+- only Doctor creates tasks and every task is implicitly for Assistant;
+- no assignment/self-assignment system and no task-for-Doctor workflow;
+- task fields: title, description, optional date-only due date, optional single Patient association;
+- **New task** opens a compact modal rather than moving the Open list;
 - both workspaces see the same clinic-scoped task data;
-- Open tasks are oldest first;
-- Done tasks leave the normal Open view and remain in History;
-- the Assistant is the normal actor for Done, while either staff account may mark Done;
-- Done has a server-enforced five-second Undo back to Open; there is no permanent Reopen action;
-- the Doctor who created the task may edit it;
-- only the Doctor may delete Open or Done tasks; deletion has five-second Undo;
-- Doctor and Assistant may comment;
-- each user may edit/delete only their own comments; edited comments show **Edited**;
-- comment deletion has five-second Undo;
-- linked Patient names open the Patient profile, while tasks stay out of Patient profiles;
-- there are no task attachments;
-- a new Doctor-created task produces a small red Tasks-tab attention dot only for the Assistant account;
-- an Assistant-completed task produces a small red Tasks-tab attention dot for the Doctor account;
-- opening Tasks clears the current account's attention dot, and current activity stays seen while Tasks remains open;
-- tasks that existed before the attention feature was deployed are initialized as already seen;
-- the attention dot is not a notification system: no task sound, browser/OS push, popup alert, email, badge count, comment alert, or due-date alert is added;
-- browser-demo behavior and automated tests mirror the backend.
+- Open tasks sort oldest first;
+- Done tasks leave Open and remain in History;
+- Assistant normally performs Done; Doctor may also mark Done;
+- Done has five-second Undo back to Open and no permanent Reopen after expiry;
+- Doctor creator may edit tasks;
+- only Doctor may delete tasks, including completed tasks, with five-second Undo;
+- Doctor and Assistant may comment, each editing/deleting only their own comments;
+- edited comments show **Edited**; comment deletion has five-second Undo;
+- optional Patient name opens Patient profile, but tasks do not appear in Patient profiles;
+- no task attachments;
+- new Doctor-created task gives Assistant a small red Tasks-tab attention dot;
+- Assistant-completed task gives Doctor a small red Tasks-tab attention dot;
+- opening Tasks clears current account's dot and active Tasks view stays seen;
+- pre-existing tasks were initialized as already seen;
+- attention dot is not a notification system: no sound, push, popup, email, badge count, comment alert, or due-date alert;
+- browser demo mirrors backend behavior.
 
 ## Phase 7 — Private notes
 
@@ -191,18 +212,55 @@ Implemented according to [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md):
 
 - one private persistent scratchpad per staff account rather than a notes collection;
 - plain multiline text with no title, ordering, formatting, history, or Edited label;
-- autosave while typing and blank-content persistence when all text is erased;
-- fixed viewport placement with a movable minimized strip and no Close action;
+- autosave while typing and blank-content persistence when erased;
+- fixed viewport placement with movable minimized strip and no Close action;
 - draggable/resizable expanded desktop sticky;
 - movable minimized mobile strip and full-screen mobile editor;
-- Doctor note only in Doctor workspace and Assistant note only for the Assistant account in Assistant workspace;
-- no sticky at all when Doctor credentials open Assistant workspace as administrator;
+- Doctor sticky only in Doctor workspace;
+- Assistant sticky only for Assistant account in Assistant workspace;
+- Doctor administrator access to Assistant workspace shows neither private sticky;
 - no Patient links, reminders, attachments, search, notifications, color choices, or routine save-status indicator;
-- browser-demo behavior and automated tests mirror backend persistence and authorization.
+- browser demo and automated tests mirror backend persistence and authorization.
 
-## Phase 8 — Password recovery and clinic administration
+## Phase 8 — Authentication recovery and clinic administration
 
-Confirm clinic recovery, staff recovery, Doctor controls over Assistant account, password changes, account editing/disabling, inaccessible-Doctor recovery, and approved email/SMS infrastructure.
+Phase 8 is not implemented. Clarification is in progress.
+
+Its first responsibility is to correct the Phase 0 authentication boundary according to the approved direction:
+
+- remove the shared clinic password from normal daily authentication;
+- use trusted clinic-device/browser authorization as the clinic access boundary;
+- keep trusted-device authorization separate from staff login sessions;
+- preserve independent Doctor and Assistant accounts;
+- make Doctor and Assistant recovery independent;
+- support both email and SMS as recovery channels in principle;
+- never solve one staff member's forgotten password by resetting/distributing a clinic-wide shared password.
+
+The following remain explicitly unresolved and must be answered before implementation:
+
+- first-device/bootstrap flow;
+- adding and revoking trusted devices;
+- device authorization lifetime and persistence;
+- exact email/SMS device-verification flow;
+- remote access policy for Doctor and Assistant;
+- staff login identifiers and whether passkeys belong in Phase 8;
+- staff session lifetime/remember-session behavior;
+- recovery link/code format, expiry, invalidation, throttling, and reset session effects;
+- inaccessible-Doctor emergency recovery;
+- self-service staff profile editing;
+- Doctor controls over Assistant account;
+- Assistant disable/re-enable and replacement/archive behavior;
+- treatment of former Assistant private sticky;
+- clinic profile fields and administrative contact channels;
+- clinic deletion/ownership/Doctor replacement scope;
+- security-action Undo behavior;
+- password validation rules;
+- browser-demo representation of trusted devices and recovery;
+- any other unapproved screen, field, permission, dependency, or workflow.
+
+See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
+
+Do not implement Phase 8 until these decisions are approved.
 
 ## Phase 9 — Sensitive attachment architecture
 
