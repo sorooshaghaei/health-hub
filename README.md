@@ -27,7 +27,7 @@ The project is developed directly on `main`, one approved phase at a time. Imple
 
 **Phase 7 — Private sticky: repository implementation complete.**
 
-Each staff account has one private, persistent plain-text scratchpad in its own workspace. It autosaves to the server, stays fixed to the viewport, minimizes to a movable strip, and opens as a draggable/resizable desktop sticky or full-screen mobile editor. Doctor administrator access to Assistant workspace shows no private sticky. Phase 8 has not started.
+Each staff account has one private, persistent plain-text scratchpad in its own workspace. It autosaves to the server, stays fixed to the viewport, minimizes to a movable strip, and opens as a draggable/resizable desktop sticky or full-screen mobile editor. Doctor administrator access to Assistant workspace shows no private sticky. The next phase is **Phase 8 — Password recovery and clinic administration**; it has not started.
 
 ## Access model
 

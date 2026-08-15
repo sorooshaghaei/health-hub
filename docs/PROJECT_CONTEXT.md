@@ -182,4 +182,4 @@ External GitHub Actions and live Pages outcomes require separate confirmation.
 
 Do not begin Phase 8 automatically.
 
-When the product owner says **continue**, first resolve the Phase 8 daily operational-estimate decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).
+When the product owner says **continue**, first resolve the Phase 8 password-recovery and clinic-administration decisions in [`DEVELOPMENT_PLAN.md`](DEVELOPMENT_PLAN.md).

@@ -46,11 +46,10 @@ Discrete operational and destructive actions provide a five-second server-enforc
 | 5 | Completed consultation behavior | Implemented |
 | 6 | Shared tasks | Implemented; attention-dot and New Task modal UX correction included |
 | 7 | Private notes | Implemented as one private sticky scratchpad per account/workspace |
-| 8 | Daily operational estimate | Not started |
-| 9 | Password recovery and clinic administration | Not started |
-| 10 | Sensitive attachment architecture | Not started |
-| 11 | Production hardening | Not started |
-| 12 | First stable release | Not started |
+| 8 | Password recovery and clinic administration | Not started |
+| 9 | Sensitive attachment architecture | Not started |
+| 10 | Production hardening | Not started |
+| 11 | First stable release | Not started |
 
 ## Phase 0 — Foundation
 
@@ -201,22 +200,18 @@ Implemented according to [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md):
 - no Patient links, reminders, attachments, search, notifications, color choices, or routine save-status indicator;
 - browser-demo behavior and automated tests mirror backend persistence and authorization.
 
-## Phase 8 — Daily operational estimate
-
-Begin only after consultation timing data exists. Approve formula, minimum data, historical window, outliers, placement, wording, and role visibility. No machine-learning model is assumed.
-
-## Phase 9 — Password recovery and clinic administration
+## Phase 8 — Password recovery and clinic administration
 
 Confirm clinic recovery, staff recovery, Doctor controls over Assistant account, password changes, account editing/disabling, inaccessible-Doctor recovery, and approved email/SMS infrastructure.
 
-## Phase 10 — Sensitive attachment architecture
+## Phase 9 — Sensitive attachment architecture
 
 Approve storage, access controls, encryption, limits, file types, scanning, retention, deletion, backups, audit logging, Patient-information rules, and applicable requirements before implementation.
 
-## Phase 11 — Production hardening
+## Phase 10 — Production hardening
 
 Review validation, authorization, constraints, race conditions, error states, responsive layout, accessibility, security headers, secrets, backups, deployment, logging, privacy, and retention.
 
-## Phase 12 — First stable release
+## Phase 11 — First stable release
 
 Review complete Doctor and Assistant workflows, remove unfinished UI, confirm no unapproved behavior, verify browser-demo parity, finalize deployment documentation, and release only after product-owner approval.
