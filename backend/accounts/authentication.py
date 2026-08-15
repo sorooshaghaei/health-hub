@@ -7,6 +7,8 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from .models import StaffSession
 
+TRUSTED_DEVICE_COOKIE = "health_hub_device"
+
 
 class StaffSessionAuthentication(BaseAuthentication):
     keyword = "Bearer"
@@ -39,8 +41,10 @@ class StaffSessionAuthentication(BaseAuthentication):
             session.delete()
             raise AuthenticationFailed("Invalid or expired staff session.")
 
-        raw_device_token = request.headers.get("X-Device-Token") or request.headers.get(
-            "X-Clinic-Token"
+        raw_device_token = (
+            request.headers.get("X-Device-Token")
+            or request.headers.get("X-Clinic-Token")
+            or request.COOKIES.get(TRUSTED_DEVICE_COOKIE)
         )
         if not raw_device_token:
             raise AuthenticationFailed("A trusted clinic device is required.")
