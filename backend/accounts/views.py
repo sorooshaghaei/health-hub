@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .authentication import TRUSTED_DEVICE_COOKIE
 from .models import StaffUser, TrustedDevice
 from .permissions import active_workspace_role
 from .serializers import (
@@ -32,7 +33,11 @@ from .services import (
 
 
 def trusted_device_from_request(request):
-    raw_token = request.headers.get("X-Device-Token") or request.headers.get("X-Clinic-Token")
+    raw_token = (
+        request.headers.get("X-Device-Token")
+        or request.headers.get("X-Clinic-Token")
+        or request.COOKIES.get(TRUSTED_DEVICE_COOKIE)
+    )
     try:
         return resolve_trusted_device_token(raw_token)
     except InvalidTrustedDevice as exc:
@@ -60,6 +65,18 @@ def user_agent(request):
     return request.META.get("HTTP_USER_AGENT", "")
 
 
+def set_trusted_device_cookie(response, raw_device_token):
+    response.set_cookie(
+        TRUSTED_DEVICE_COOKIE,
+        raw_device_token,
+        httponly=True,
+        secure=not response.wsgi_request.settings.DEBUG if hasattr(response, "wsgi_request") else False,
+        samesite="Strict",
+        max_age=60 * 60 * 24 * 365 * 5,
+    )
+    return response
+
+
 class HealthView(APIView):
     permission_classes = [AllowAny]
 
@@ -75,7 +92,7 @@ class ClinicCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         clinic = serializer.save()
         raw_device_token, device = issue_trusted_device(clinic, user_agent(request))
-        return Response(
+        response = Response(
             {
                 **clinic_payload(clinic),
                 "device_token": raw_device_token,
@@ -87,6 +104,15 @@ class ClinicCreateView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+        response.set_cookie(
+            TRUSTED_DEVICE_COOKIE,
+            raw_device_token,
+            httponly=True,
+            secure=request.is_secure(),
+            samesite="Strict",
+            max_age=60 * 60 * 24 * 365 * 5,
+        )
+        return response
 
 
 class ClinicContextView(APIView):
@@ -142,7 +168,7 @@ class DevicePairingStatusView(APIView):
                 }
             )
 
-        return Response(
+        response = Response(
             {
                 "status": "approved",
                 "device_token": raw_device_token,
@@ -153,6 +179,15 @@ class DevicePairingStatusView(APIView):
                 **clinic_payload(device.clinic),
             }
         )
+        response.set_cookie(
+            TRUSTED_DEVICE_COOKIE,
+            raw_device_token,
+            httponly=True,
+            secure=request.is_secure(),
+            samesite="Strict",
+            max_age=60 * 60 * 24 * 365 * 5,
+        )
+        return response
 
 
 class StaffRegisterView(APIView):
