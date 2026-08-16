@@ -33,7 +33,7 @@ from .services import (
 
 
 def trusted_device_from_request(request):
-    raw_token = request.headers.get("X-Device-Token") or request.headers.get("X-Clinic-Token")
+    raw_token = request.headers.get("X-Device-Token")
     try:
         return resolve_trusted_device_token(raw_token)
     except InvalidTrustedDevice as exc:
@@ -80,7 +80,6 @@ class ClinicCreateView(APIView):
             {
                 **clinic_payload(clinic),
                 "device_token": raw_device_token,
-                "clinic_access_token": raw_device_token,
                 "trusted_device": TrustedDeviceSerializer(
                     device,
                     context={"current_device_id": device.id},
