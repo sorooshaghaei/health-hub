@@ -53,12 +53,11 @@ The current Phase 0 authentication foundation is:
 - Phase 0 still uses individual username + password staff login;
 - clearing browser storage, changing browser, reinstalling the browser, or changing computers requires device authorization again;
 - `/api/clinics/enter/` and the shared clinic-password flow are removed;
-- production frontend device requests use `X-Device-Token`;
-- the backend accepts the old `X-Clinic-Token` header name only as a regression-fixture compatibility alias for the same trusted-device token, not as a shared clinic-password credential;
+- production frontend device requests use `X-Device-Token`; the obsolete `X-Clinic-Token` and `clinic_access_token` aliases have been removed from active code and tests;
 - migration `accounts.0005_trusted_device_auth` deliberately resets incompatible pre-release clinic/authentication data, removes `Clinic.password_hash`, and introduces trusted-device/pairing data;
-- the GitHub Pages demo keeps the same frontend/browser adapter but bypasses real trusted-device authority rather than pretending to provide production device security.
+- the GitHub Pages demo keeps the same frontend/browser adapter but bypasses real trusted-device authority and contains no clinic password or clinic-access credential.
 
-The Phase 0 correction was validated in GitHub Actions: frontend tests/builds, Django checks, committed-migration verification, PostgreSQL migration application, and the backend test suite all passed after an expired-pairing transactional cleanup bug was fixed.
+The Phase 0 correction and cleanup were validated in GitHub Actions: frontend tests/builds, Django checks, committed-migration verification, PostgreSQL migration application, the full backend test suite, and the final Pages deployment all passed. Historical Django migrations remain intact, while intentional regression validation still confirms that the removed clinic-entry route is absent and obsolete `visit_type` payloads are rejected.
 
 Recovery, verified email/SMS authorization, offline codes, passkey policy/management, Assistant reset/replacement, multi-clinic Doctor identity, detailed session/security policy, and the other previously discussed decisions remain preserved for **Phase 8**.
 
@@ -212,9 +211,9 @@ OPEN → DONE
 
 ## Current work
 
-**Phase 0 base authentication and Phases 1–7 are complete. Phase 8 has not started.**
+**Phase 0 base authentication and its cleanup, plus Phases 1–7, are complete. Phase 8 has not started.**
 
-The Phase 0 correction is implemented and validated. Phase 8's previous answers and unresolved questions remain documented and must not be lost.
+The Phase 0 correction and obsolete-auth cleanup are implemented and validated. Phase 8's previous answers and unresolved questions remain documented and must not be lost.
 
 The public Pages deployment outcome is separate from the repository verification result and may be checked independently when needed.
 
