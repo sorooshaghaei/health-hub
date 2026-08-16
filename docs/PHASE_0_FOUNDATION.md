@@ -118,7 +118,7 @@ Intentional historical/compatibility behavior is not treated as dead code: Djang
 
 ## Validation
 
-The corrective implementation was validated through the repository verification workflow after the pairing cleanup and device-proof boundaries were corrected:
+The corrective implementation and subsequent obsolete-auth cleanup were validated through the repository verification workflow:
 
 - frontend browser-demo tests passed;
 - production frontend build passed;
@@ -127,9 +127,8 @@ The corrective implementation was validated through the repository verification 
 - committed-migration check passed;
 - migrations applied successfully to PostgreSQL;
 - all backend tests passed against PostgreSQL;
-- an explicit regression test confirms that a copied bearer session is rejected without its matching trusted-device proof and succeeds with the correct device token.
-
-The post-correction obsolete-auth cleanup must pass the same repository verification workflow before the cleanup is considered complete.
+- an explicit regression test confirms that a copied bearer session is rejected without its matching trusted-device proof and succeeds with the correct device token;
+- the final GitHub Pages deployment after the cleanup succeeded.
 
 ## Explicitly deferred to Phase 8
 
@@ -152,6 +151,6 @@ The following approved ideas and unanswered questions remain in [`PHASE_8_AUTHEN
 
 ## Phase relationship
 
-**Phase 0 is complete after the cleanup verification passes. Stop here before Phase 8.**
+**Phase 0 is complete, including the cleanup pass. Stop here before Phase 8.**
 
 Phase 8 remains not started until the product owner explicitly says **continue**. Its previously approved decisions and unresolved questions must be preserved rather than re-inferred.
