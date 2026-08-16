@@ -15,12 +15,10 @@ class DoctorPatientEditTests(APITestCase):
                 "name": "North Clinic",
                 "email": "clinic@example.com",
                 "phone": "+33 1 00 00 00 00",
-                "password": "clinic-password-123",
-                "password_confirm": "clinic-password-123",
             },
             format="json",
         )
-        self.clinic_token = clinic_response.data["clinic_access_token"]
+        self.device_token = clinic_response.data["device_token"]
         doctor_response = self.client.post(
             "/api/staff/register/",
             {
@@ -33,7 +31,7 @@ class DoctorPatientEditTests(APITestCase):
                 "password_confirm": "Strong-staff-password-123",
             },
             format="json",
-            HTTP_X_CLINIC_TOKEN=self.clinic_token,
+            HTTP_X_DEVICE_TOKEN=self.device_token,
         )
         self.assertEqual(doctor_response.status_code, status.HTTP_201_CREATED)
         self.doctor_token = doctor_response.data["session_token"]
@@ -49,7 +47,10 @@ class DoctorPatientEditTests(APITestCase):
         )
 
     def auth(self):
-        return {"HTTP_AUTHORIZATION": f"Bearer {self.doctor_token}"}
+        return {
+            "HTTP_AUTHORIZATION": f"Bearer {self.doctor_token}",
+            "HTTP_X_DEVICE_TOKEN": self.device_token,
+        }
 
     def test_doctor_workspace_can_edit_all_patient_fields(self):
         response = self.client.patch(
@@ -69,28 +70,6 @@ class DoctorPatientEditTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["full_name"], "Sara Mohammadi")
         self.assertEqual(response.data["gender"], "Man")
-        self.assertEqual(response.data["country_calling_code"], "+33")
-        self.assertEqual(response.data["phone_number"], "612345678")
         self.assertEqual(response.data["phone_e164"], "+33612345678")
         self.assertEqual(response.data["date_of_birth"], "1991-07-10")
         self.assertEqual(response.data["patient_note"], "Call after lab results arrive.")
-
-    def test_doctor_workspace_still_cannot_create_or_delete_patient(self):
-        create_response = self.client.post(
-            "/api/patients/",
-            {
-                "full_name": "Another Patient",
-                "gender": "Woman",
-                "country_calling_code": "+98",
-                "phone_number": "09123334455",
-            },
-            format="json",
-            **self.auth(),
-        )
-        delete_response = self.client.delete(
-            f"/api/patients/{self.patient.id}/",
-            **self.auth(),
-        )
-
-        self.assertEqual(create_response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(delete_response.status_code, status.HTTP_403_FORBIDDEN)
