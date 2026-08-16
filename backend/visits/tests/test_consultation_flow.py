@@ -17,12 +17,10 @@ class ConsultationFlowApiTests(APITestCase):
                 "name": "North Clinic",
                 "email": "clinic@example.com",
                 "phone": "+33 1 00 00 00 00",
-                "password": "clinic-password-123",
-                "password_confirm": "clinic-password-123",
             },
             format="json",
         )
-        self.clinic_token = clinic_response.data["clinic_access_token"]
+        self.device_token = clinic_response.data["device_token"]
         self.assistant_token = self.register_staff(
             "assistant", "assistant.one", "assistant@example.com"
         )
@@ -43,13 +41,16 @@ class ConsultationFlowApiTests(APITestCase):
                 "password_confirm": "Strong-staff-password-123",
             },
             format="json",
-            HTTP_X_CLINIC_TOKEN=self.clinic_token,
+            HTTP_X_DEVICE_TOKEN=self.device_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data["session_token"]
 
     def auth(self, token):
-        return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
+        return {
+            "HTTP_AUTHORIZATION": f"Bearer {token}",
+            "HTTP_X_DEVICE_TOKEN": self.device_token,
+        }
 
     def create_waiting_appointment(self, name, phone, scheduled_time):
         patient = self.client.post(
