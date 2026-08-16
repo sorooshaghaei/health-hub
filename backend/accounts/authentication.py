@@ -43,7 +43,6 @@ class StaffSessionAuthentication(BaseAuthentication):
 
         raw_device_token = (
             request.headers.get("X-Device-Token")
-            or request.headers.get("X-Clinic-Token")
             or request.COOKIES.get(TRUSTED_DEVICE_COOKIE)
         )
         if not raw_device_token:
