@@ -59,6 +59,7 @@ Private sticky access is stricter and matches account ownership to the active wo
 - Device rows show browser, operating system, added date, and **Current device** when applicable.
 - The last trusted device cannot be removed until another device is paired.
 - Signing out does not untrust the browser.
+- Staff bearer sessions require matching trusted-device proof on authenticated production API requests; copying a bearer token alone is insufficient.
 - The shared clinic-password entry endpoint has been removed.
 - The static GitHub Pages demo bypasses real trusted-device authority because it has no production backend trust boundary.
 
@@ -318,7 +319,7 @@ DELETE /api/task-comments/<comment-id>/
 POST   /api/task-comments/<comment-id>/undo-delete/
 ```
 
-`GET /api/health/`, `POST /api/clinics/`, `POST /api/devices/pairing/`, and `POST /api/devices/pairing/status/` are public bootstrap/pairing endpoints. `GET /api/clinic/context/`, `POST /api/staff/register/`, and `POST /api/staff/login/` require a trusted-device token through `X-Device-Token`. Device list/removal/pairing approval and the remaining staff, Patient, Appointment, and task endpoints require `Authorization: Bearer <session-token>`.
+`GET /api/health/`, `POST /api/clinics/`, `POST /api/devices/pairing/`, and `POST /api/devices/pairing/status/` are public bootstrap/pairing endpoints. `GET /api/clinic/context/`, `POST /api/staff/register/`, and `POST /api/staff/login/` require a trusted-device token through `X-Device-Token`. Device list/removal/pairing approval and the remaining staff, Patient, Appointment, and task endpoints require both `Authorization: Bearer <session-token>` and matching trusted-device proof; the production frontend sends the matching `X-Device-Token` on those requests.
 
 ## Migration behavior
 
