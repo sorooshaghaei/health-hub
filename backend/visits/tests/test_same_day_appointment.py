@@ -20,12 +20,10 @@ class SameDayAppointmentApiTests(APITestCase):
                 "name": "North Clinic",
                 "email": "clinic@example.com",
                 "phone": "+33 1 00 00 00 00",
-                "password": "clinic-password-123",
-                "password_confirm": "clinic-password-123",
             },
             format="json",
         )
-        self.clinic_token = clinic_response.data["clinic_access_token"]
+        self.device_token = clinic_response.data["device_token"]
         self.assistant_token = self.register_assistant()
         self.patient = self.create_patient()
 
@@ -42,13 +40,16 @@ class SameDayAppointmentApiTests(APITestCase):
                 "password_confirm": "Strong-staff-password-123",
             },
             format="json",
-            HTTP_X_CLINIC_TOKEN=self.clinic_token,
+            HTTP_X_DEVICE_TOKEN=self.device_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data["session_token"]
 
     def auth(self):
-        return {"HTTP_AUTHORIZATION": f"Bearer {self.assistant_token}"}
+        return {
+            "HTTP_AUTHORIZATION": f"Bearer {self.assistant_token}",
+            "HTTP_X_DEVICE_TOKEN": self.device_token,
+        }
 
     def create_patient(self):
         response = self.client.post(
