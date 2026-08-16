@@ -33,11 +33,7 @@ from .services import (
 
 
 def trusted_device_from_request(request):
-    raw_token = (
-        request.headers.get("X-Device-Token")
-        or request.headers.get("X-Clinic-Token")
-        or request.COOKIES.get(TRUSTED_DEVICE_COOKIE)
-    )
+    raw_token = request.headers.get("X-Device-Token") or request.headers.get("X-Clinic-Token")
     try:
         return resolve_trusted_device_token(raw_token)
     except InvalidTrustedDevice as exc:
