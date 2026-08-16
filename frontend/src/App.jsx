@@ -6,15 +6,12 @@ import { Brand, ErrorMessage, Field } from "./ui.jsx";
 import "./deviceAccess.css";
 
 const DEVICE_TOKEN_KEY = "health-hub.device-token";
-const DEMO_CLINIC_TOKEN_KEY = "health-hub.demo-clinic-token";
 const STAFF_TOKEN_KEY = "health-hub.staff-token";
 const DEMO_STORE_KEY = "health-hub.demo-store.v1";
 const DEMO_CLINIC = {
   name: "Health Hub Demo",
   email: "demo@health-hub.local",
   phone: "+33 1 00 00 00 00",
-  password: "health-hub-demo-only",
-  password_confirm: "health-hub-demo-only",
 };
 
 const EMPTY_CLINIC = {
@@ -291,7 +288,6 @@ function LoadingScreen() {
 export default function App() {
   const [screen, setScreen] = useState("loading");
   const [deviceToken, setDeviceToken] = useState(null);
-  const [demoClinicToken, setDemoClinicToken] = useState(null);
   const [staffToken, setStaffToken] = useState(null);
   const [clinicContext, setClinicContext] = useState(null);
   const [staffUser, setStaffUser] = useState(null);
@@ -303,17 +299,15 @@ export default function App() {
   useEffect(() => {
     async function restore() {
       const storedStaffToken = localStorage.getItem(STAFF_TOKEN_KEY);
-      const storedDemoClinicToken = DEMO_MODE ? localStorage.getItem(DEMO_CLINIC_TOKEN_KEY) : null;
       const storedDeviceToken = DEMO_MODE ? null : localStorage.getItem(DEVICE_TOKEN_KEY);
-      const hasClinicAccess = DEMO_MODE ? Boolean(storedDemoClinicToken) : Boolean(storedDeviceToken);
+      const hasClinicAccess = DEMO_MODE || Boolean(storedDeviceToken);
 
       if (storedStaffToken && hasClinicAccess) {
         try {
           const payload = await apiRequest("/api/staff/me/", { staffToken: storedStaffToken });
           setStaffToken(storedStaffToken);
           setStaffUser(payload.user);
-          if (DEMO_MODE) setDemoClinicToken(storedDemoClinicToken);
-          else setDeviceToken(storedDeviceToken);
+          if (!DEMO_MODE) setDeviceToken(storedDeviceToken);
           setScreen("workspace");
           return;
         } catch {
@@ -323,15 +317,14 @@ export default function App() {
         localStorage.removeItem(STAFF_TOKEN_KEY);
       }
 
-      if (DEMO_MODE && storedDemoClinicToken) {
+      if (DEMO_MODE && localStorage.getItem(DEMO_STORE_KEY)) {
         try {
-          const payload = await apiRequest("/api/clinic/context/", { clinicToken: storedDemoClinicToken });
-          setDemoClinicToken(storedDemoClinicToken);
+          const payload = await apiRequest("/api/clinic/context/");
           setClinicContext(payload);
           setScreen("roles");
           return;
         } catch {
-          localStorage.removeItem(DEMO_CLINIC_TOKEN_KEY);
+          localStorage.removeItem(DEMO_STORE_KEY);
         }
       }
 
@@ -409,14 +402,11 @@ export default function App() {
   async function openDemo() {
     let payload;
     try {
-      payload = await apiRequest("/api/clinics/", { method: "POST", data: DEMO_CLINIC });
-    } catch (requestError) {
-      if (!(requestError instanceof ApiError) || requestError.status !== 409) throw requestError;
+      payload = await apiRequest("/api/clinic/context/");
+    } catch {
       localStorage.removeItem(DEMO_STORE_KEY);
       payload = await apiRequest("/api/clinics/", { method: "POST", data: DEMO_CLINIC });
     }
-    localStorage.setItem(DEMO_CLINIC_TOKEN_KEY, payload.clinic_access_token);
-    setDemoClinicToken(payload.clinic_access_token);
     setClinicContext({ clinic: payload.clinic, roles: payload.roles });
     setScreen("roles");
   }
@@ -432,7 +422,6 @@ export default function App() {
       method: "POST",
       data: form,
       deviceToken: DEMO_MODE ? undefined : deviceToken,
-      clinicToken: DEMO_MODE ? demoClinicToken : undefined,
     });
     localStorage.setItem(STAFF_TOKEN_KEY, payload.session_token);
     setStaffToken(payload.session_token);
@@ -461,13 +450,13 @@ export default function App() {
     setStaffUser(null);
 
     try {
-      if (DEMO_MODE && demoClinicToken) {
-        const payload = await apiRequest("/api/clinic/context/", { clinicToken: demoClinicToken });
+      if (DEMO_MODE) {
+        const payload = await apiRequest("/api/clinic/context/");
         setClinicContext(payload);
         setScreen("roles");
         return;
       }
-      if (!DEMO_MODE && deviceToken) {
+      if (deviceToken) {
         const payload = await apiRequest("/api/clinic/context/", { deviceToken });
         setClinicContext(payload);
         setScreen("roles");
@@ -482,10 +471,8 @@ export default function App() {
   function resetLocalAccess() {
     localStorage.removeItem(STAFF_TOKEN_KEY);
     localStorage.removeItem(DEVICE_TOKEN_KEY);
-    localStorage.removeItem(DEMO_CLINIC_TOKEN_KEY);
     setStaffToken(null);
     setDeviceToken(null);
-    setDemoClinicToken(null);
     setStaffUser(null);
     setClinicContext(null);
     setSelectedRole(null);
