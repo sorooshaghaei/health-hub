@@ -11,8 +11,6 @@ class PrivateNoteApiTests(APITestCase):
         "name": "North Clinic",
         "email": "clinic@example.com",
         "phone": "+33 1 00 00 00 00",
-        "password": "clinic-password-123",
-        "password_confirm": "clinic-password-123",
     }
     staff_password = "Strong-staff-password-123"
 
@@ -20,7 +18,7 @@ class PrivateNoteApiTests(APITestCase):
         clinic = self.client.post(
             "/api/clinics/", self.clinic_data, format="json"
         ).data
-        self.clinic_token = clinic["clinic_access_token"]
+        self.device_token = clinic["device_token"]
         self.doctor = self.register("doctor", "doctor.one", "doctor@example.com")
         self.assistant = self.register(
             "assistant", "assistant.one", "assistant@example.com"
@@ -40,7 +38,7 @@ class PrivateNoteApiTests(APITestCase):
                 "password_confirm": self.staff_password,
             },
             format="json",
-            HTTP_X_CLINIC_TOKEN=self.clinic_token,
+            HTTP_X_DEVICE_TOKEN=self.device_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data
@@ -54,13 +52,16 @@ class PrivateNoteApiTests(APITestCase):
                 "password": self.staff_password,
             },
             format="json",
-            HTTP_X_CLINIC_TOKEN=self.clinic_token,
+            HTTP_X_DEVICE_TOKEN=self.device_token,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response.data
 
     def authorization(self, payload):
-        return {"HTTP_AUTHORIZATION": f"Bearer {payload['session_token']}"}
+        return {
+            "HTTP_AUTHORIZATION": f"Bearer {payload['session_token']}",
+            "HTTP_X_DEVICE_TOKEN": self.device_token,
+        }
 
     def test_each_staff_account_keeps_one_independent_plain_text_note(self):
         doctor_text = "Call Suzi\nVisit the coffee shop\nMy husband called"
