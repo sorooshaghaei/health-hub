@@ -2,9 +2,9 @@
 
 ## Status
 
-**Implemented, including the base-authentication corrective pass.**
+**Implemented, including the base-authentication corrective pass and subsequent obsolete-auth cleanup.**
 
-Phase 0 originally established the application foundation. After Phases 1–7, its shared clinic-password layer was reopened and corrected before Phase 8. That corrective pass is now implemented and validated.
+Phase 0 originally established the application foundation. After Phases 1–7, its shared clinic-password layer was reopened and corrected before Phase 8. That corrective pass and its cleanup are now implemented and validated.
 
 This was not a rollback of Phases 1–7. Patient, Appointment, queue, consultation, task, and private-sticky behavior remain implemented.
 
@@ -86,7 +86,7 @@ Verified email/SMS authorization of new devices remains a Phase 8 enhancement.
 - The automatically trusted first browser also receives an HttpOnly `SameSite=Strict` device cookie as a secondary browser credential for staff-session proof; clinic bootstrap/context, registration, and login still require an explicit trusted-device token.
 - Trusted-device secrets are stored as hashes rather than plaintext database values.
 - Staff bearer sessions are linked to the trusted device that created them and cannot be replayed successfully without matching device proof.
-- The backend currently accepts the old `X-Clinic-Token` header name as a compatibility alias for the same trusted-device token so existing Phase 1–7 regression fixtures can exercise the corrected boundary; it no longer represents a clinic password or a separate clinic-password credential.
+- The obsolete `X-Clinic-Token` header alias and `clinic_access_token` response alias have been removed from active backend code and regression fixtures. `X-Device-Token` is the only explicit trusted-device header.
 
 ## Existing development data
 
@@ -94,11 +94,27 @@ Migration `accounts.0005_trusted_device_auth` deliberately resets incompatible p
 
 This was explicitly approved because existing clinics/accounts were development data and did not require a compatibility migration. This is **not** a general permission to discard future production data.
 
+Historical migrations remain unchanged when they describe fields that existed at the time of those migrations. They are database history, not active authentication behavior.
+
 ## Browser demo
 
 The GitHub Pages demo remains the same React frontend through the browser adapter.
 
-Because the static demo has no backend trusted-device authority, it bypasses real trusted-device authorization and continues into the demo Doctor/Assistant flow. It does not simulate real email/SMS delivery or hardware/device trust and is not a medical-data backend.
+Because the static demo has no backend trusted-device authority, it bypasses real trusted-device authorization and continues into the demo Doctor/Assistant flow. The demo has no clinic password, clinic access token, or simulated trusted-device credential. Individual demo staff username/password behavior remains only to exercise the Doctor/Assistant interface locally. It does not simulate real email/SMS delivery or hardware/device trust and is not a medical-data backend.
+
+## Cleanup pass
+
+After the Phase 0 correction, a focused cleanup removed obsolete authentication remnants from active code and tests:
+
+- removed `X-Clinic-Token` compatibility handling;
+- removed `clinic_access_token` response/test plumbing;
+- removed clinic-password and `/api/clinics/enter/` implementation from the browser demo;
+- removed demo-only clinic-token state from the React application;
+- converted older Phase 1–7 backend fixtures to `device_token` / `X-Device-Token`;
+- converted demo regression fixtures to the credential-free demo clinic boundary;
+- removed the unused `CLINIC_ACCESS_TOKEN_MAX_AGE` environment setting and documented `DEVICE_PAIRING_MAX_AGE` instead.
+
+Intentional historical/compatibility behavior is not treated as dead code: Django migration history remains intact, the auth suite retains a regression assertion that `/api/clinics/enter/` is absent, and Appointment validation still rejects obsolete `visit_type` payloads explicitly.
 
 ## Validation
 
@@ -112,6 +128,8 @@ The corrective implementation was validated through the repository verification 
 - migrations applied successfully to PostgreSQL;
 - all backend tests passed against PostgreSQL;
 - an explicit regression test confirms that a copied bearer session is rejected without its matching trusted-device proof and succeeds with the correct device token.
+
+The post-correction obsolete-auth cleanup must pass the same repository verification workflow before the cleanup is considered complete.
 
 ## Explicitly deferred to Phase 8
 
@@ -134,6 +152,6 @@ The following approved ideas and unanswered questions remain in [`PHASE_8_AUTHEN
 
 ## Phase relationship
 
-**Phase 0 is complete. Stop here before Phase 8.**
+**Phase 0 is complete after the cleanup verification passes. Stop here before Phase 8.**
 
 Phase 8 remains not started until the product owner explicitly says **continue**. Its previously approved decisions and unresolved questions must be preserved rather than re-inferred.
