@@ -24,8 +24,6 @@ const clinicData = {
   name: "North Clinic",
   email: "CLINIC@example.com",
   phone: "+33 1 00 00 00 00",
-  password: "clinic-password-123",
-  password_confirm: "clinic-password-123",
 };
 
 function staffData(role) {
@@ -63,17 +61,14 @@ async function authenticatedDemo() {
   });
   const assistant = await demoApiRequest("/api/staff/register/", {
     method: "POST",
-    clinicToken: clinic.clinic_access_token,
     data: staffData("assistant"),
   });
   const doctor = await demoApiRequest("/api/staff/register/", {
     method: "POST",
-    clinicToken: clinic.clinic_access_token,
     data: staffData("doctor"),
   });
   const doctorAsAssistant = await demoApiRequest("/api/staff/login/", {
     method: "POST",
-    clinicToken: clinic.clinic_access_token,
     data: {
       role: "assistant",
       username: "doctor.one",
