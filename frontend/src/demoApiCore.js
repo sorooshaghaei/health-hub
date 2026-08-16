@@ -17,7 +17,6 @@ import {
   randomToken,
   requireAssistantWorkspace,
   requireDoctorWorkspace,
-  resolveClinic,
   resolveSession,
   rolePayload,
   saveStore,
@@ -519,18 +518,11 @@ function undoWithDoctor(store, session, visitId) {
   return publicVisit(store, visit);
 }
 
-async function createClinic(data) {
+function createClinic(data) {
   const name = clean(data.name);
   const email = normalizeEmail(data.email);
   const phone = clean(data.phone);
-  const password = data.password ?? "";
   if (!name || !email || !phone) fail({ detail: "Complete all clinic fields." });
-  if (password !== data.password_confirm) {
-    fail({ password_confirm: ["Clinic passwords do not match."] });
-  }
-  if (password.length < 10) {
-    fail({ password: ["Use at least 10 characters for the clinic password."] });
-  }
 
   const store = loadStore();
   if (store.clinic) {
@@ -544,38 +536,19 @@ async function createClinic(data) {
     name,
     email,
     phone,
-    password_hash: await hashSecret(password),
   };
   store.clinic = clinic;
   saveStore(store);
   return {
     clinic: publicClinic(clinic),
     roles: rolePayload(store),
-    clinic_access_token: `demo-clinic:${clinic.id}`,
   };
 }
 
-async function enterClinic(data) {
+async function registerStaff(data) {
   const store = loadStore();
-  const email = normalizeEmail(data.email);
-  const passwordHash = await hashSecret(data.password ?? "");
-  if (
-    !store.clinic
-      || store.clinic.email !== email
-      || store.clinic.password_hash !== passwordHash
-  ) {
-    fail({ non_field_errors: ["Clinic email or password is incorrect."] });
-  }
-  return {
-    clinic: publicClinic(store.clinic),
-    roles: rolePayload(store),
-    clinic_access_token: `demo-clinic:${store.clinic.id}`,
-  };
-}
-
-async function registerStaff(data, clinicToken) {
-  const store = loadStore();
-  const clinic = resolveClinic(store, clinicToken);
+  const clinic = store.clinic;
+  if (!clinic) fail({ detail: "Open the browser demo first." }, 409);
   const role = data.role;
   const username = clean(data.username);
   const email = normalizeEmail(data.email);
@@ -626,9 +599,10 @@ async function registerStaff(data, clinicToken) {
   };
 }
 
-async function loginStaff(data, clinicToken) {
+async function loginStaff(data) {
   const store = loadStore();
-  const clinic = resolveClinic(store, clinicToken);
+  const clinic = store.clinic;
+  if (!clinic) fail({ detail: "Open the browser demo first." }, 409);
   const username = clean(data.username).toLowerCase();
   const passwordHash = await hashSecret(data.password ?? "");
   const workspaceRole = data.role;
@@ -656,7 +630,6 @@ export {
   createClinic,
   createPatient,
   createVisit,
-  enterClinic,
   fail,
   listPatients,
   listVisits,
@@ -672,7 +645,6 @@ export {
   registerStaff,
   requireAssistantWorkspace,
   requireDoctorWorkspace,
-  resolveClinic,
   resolveSession,
   rolePayload,
   roomState,
