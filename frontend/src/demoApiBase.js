@@ -209,13 +209,6 @@ function rolePayload(store) {
   };
 }
 
-function resolveClinic(store, clinicToken) {
-  if (!store.clinic || clinicToken !== `demo-clinic:${store.clinic.id}`) {
-    fail({ detail: "Clinic access is invalid or expired." }, 403);
-  }
-  return store.clinic;
-}
-
 function resolveSession(store, staffToken) {
   const session = store.sessions[staffToken];
   const user = store.staff.find((candidate) => candidate.id === session?.user_id);
@@ -402,7 +395,6 @@ export {
   publicUser,
   publicPatient,
   rolePayload,
-  resolveClinic,
   resolveSession,
   requireAssistantWorkspace,
   requireDoctorWorkspace,
