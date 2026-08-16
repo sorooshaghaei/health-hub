@@ -32,12 +32,12 @@ function isTaskDemoPath(path) {
 
 export async function apiRequest(
   path,
-  { method = "GET", data, clinicToken, deviceToken, staffToken } = {},
+  { method = "GET", data, deviceToken, staffToken } = {},
 ) {
   if (DEMO_MODE) {
     try {
       const demoRequest = isTaskDemoPath(path) ? demoTaskApiRequest : demoApiRequest;
-      return await demoRequest(path, { method, data, clinicToken, staffToken });
+      return await demoRequest(path, { method, data, staffToken });
     } catch (error) {
       throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0);
     }
