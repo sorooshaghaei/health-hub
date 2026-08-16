@@ -28,19 +28,16 @@ function shiftedDate(days) {
 }
 
 async function authenticatedAssistant() {
-  const clinic = await demoApiRequest("/api/clinics/", {
+  await demoApiRequest("/api/clinics/", {
     method: "POST",
     data: {
       name: "North Clinic",
       email: "clinic@example.com",
       phone: "+33 1 00 00 00 00",
-      password: "clinic-password-123",
-      password_confirm: "clinic-password-123",
     },
   });
   return demoApiRequest("/api/staff/register/", {
     method: "POST",
-    clinicToken: clinic.clinic_access_token,
     data: {
       role: "assistant",
       username: "assistant.one",
