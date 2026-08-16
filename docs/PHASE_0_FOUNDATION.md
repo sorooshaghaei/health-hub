@@ -32,9 +32,12 @@ The implemented boundary is:
 1. a browser must be trusted for the clinic;
 2. on that trusted browser, Doctor or Assistant chooses the workspace role;
 3. staff authenticates with the existing individual username + password flow;
-4. the resulting staff session is bound to the trusted device that created it.
+4. the resulting staff session is bound to the trusted device that created it;
+5. authenticated staff API requests must prove both the staff bearer session and possession of the matching trusted-device credential.
 
 The clinic remains the tenant/container for clinic data. Trusted-device authorization and individual staff sessions are separate. Signing a staff member out ends the staff session without untrusting the browser.
+
+A copied bearer token by itself is not enough to use clinic APIs from another browser. The backend rejects a staff session when the matching trusted-device proof is absent or belongs to another device.
 
 An untrusted browser cannot use staff credentials to open normal clinic or Patient data. The removed `/api/clinics/enter/` shared-password route is not part of the implemented API.
 
@@ -79,8 +82,10 @@ Verified email/SMS authorization of new devices remains a Phase 8 enhancement.
 ## Tokens and API boundary
 
 - Production frontend trusted-device requests use `X-Device-Token`.
+- Production staff API requests send both `Authorization: Bearer <session-token>` and the matching trusted-device proof.
+- The automatically trusted first browser also receives an HttpOnly `SameSite=Strict` device cookie as a secondary browser credential for staff-session proof; clinic bootstrap/context, registration, and login still require an explicit trusted-device token.
 - Trusted-device secrets are stored as hashes rather than plaintext database values.
-- Staff bearer sessions remain the authenticated API mechanism after staff sign-in and are linked to the trusted device that created them.
+- Staff bearer sessions are linked to the trusted device that created them and cannot be replayed successfully without matching device proof.
 - The backend currently accepts the old `X-Clinic-Token` header name as a compatibility alias for the same trusted-device token so existing Phase 1–7 regression fixtures can exercise the corrected boundary; it no longer represents a clinic password or a separate clinic-password credential.
 
 ## Existing development data
@@ -97,7 +102,7 @@ Because the static demo has no backend trusted-device authority, it bypasses rea
 
 ## Validation
 
-The corrective implementation was validated through the repository verification workflow after one transactional cleanup bug was fixed:
+The corrective implementation was validated through the repository verification workflow after the pairing cleanup and device-proof boundaries were corrected:
 
 - frontend browser-demo tests passed;
 - production frontend build passed;
@@ -105,7 +110,8 @@ The corrective implementation was validated through the repository verification 
 - Django system checks passed;
 - committed-migration check passed;
 - migrations applied successfully to PostgreSQL;
-- all backend tests passed against PostgreSQL.
+- all backend tests passed against PostgreSQL;
+- an explicit regression test confirms that a copied bearer session is rejected without its matching trusted-device proof and succeeds with the correct device token.
 
 ## Explicitly deferred to Phase 8
 
