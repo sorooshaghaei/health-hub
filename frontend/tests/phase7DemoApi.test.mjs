@@ -26,29 +26,24 @@ function staff(role) {
 }
 
 async function sessions() {
-  const clinic = await demoApiRequest("/api/clinics/", {
+  await demoApiRequest("/api/clinics/", {
     method: "POST",
     data: {
       name: "North Clinic",
       email: "clinic@example.com",
       phone: "+33 1 00 00 00 00",
-      password: "clinic-password-123",
-      password_confirm: "clinic-password-123",
     },
   });
   const doctor = await demoApiRequest("/api/staff/register/", {
     method: "POST",
-    clinicToken: clinic.clinic_access_token,
     data: staff("doctor"),
   });
   const assistant = await demoApiRequest("/api/staff/register/", {
     method: "POST",
-    clinicToken: clinic.clinic_access_token,
     data: staff("assistant"),
   });
   const administrator = await demoApiRequest("/api/staff/login/", {
     method: "POST",
-    clinicToken: clinic.clinic_access_token,
     data: { role: "assistant", username: "doctor.one", password },
   });
   return { doctor, assistant, administrator };
