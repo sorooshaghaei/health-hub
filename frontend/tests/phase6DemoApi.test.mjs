@@ -7,10 +7,10 @@ const storage = new Map();
 globalThis.localStorage = { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: (k) => storage.delete(k), clear: () => storage.clear() };
 
 async function login() {
-  const clinic = await core("/api/clinics/", { method: "POST", data: { name: "North Clinic", email: "clinic@example.com", phone: "+33 1 00 00 00 00", password: "clinic-password-123", password_confirm: "clinic-password-123" } });
-  const reg = (role, username, email) => core("/api/staff/register/", { method: "POST", clinicToken: clinic.clinic_access_token, data: { role, username, email, first_name: "Test", last_name: role, password: "staff-password-123", password_confirm: "staff-password-123" } });
+  await core("/api/clinics/", { method: "POST", data: { name: "North Clinic", email: "clinic@example.com", phone: "+33 1 00 00 00 00" } });
+  const reg = (role, username, email) => core("/api/staff/register/", { method: "POST", data: { role, username, email, first_name: "Test", last_name: role, password: "staff-password-123", password_confirm: "staff-password-123" } });
   const assistant = await reg("assistant", "assistant.one", "assistant@example.com"), doctor = await reg("doctor", "doctor.one", "doctor@example.com");
-  const admin = await core("/api/staff/login/", { method: "POST", clinicToken: clinic.clinic_access_token, data: { role: "assistant", username: "doctor.one", password: "staff-password-123" } });
+  const admin = await core("/api/staff/login/", { method: "POST", data: { role: "assistant", username: "doctor.one", password: "staff-password-123" } });
   return { assistant, doctor, admin };
 }
 async function patient(token) {
