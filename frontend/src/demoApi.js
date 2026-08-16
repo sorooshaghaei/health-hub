@@ -5,7 +5,6 @@ import {
   createClinic,
   createPatient,
   createVisit,
-  enterClinic,
   fail,
   listPatients,
   listVisits,
@@ -20,7 +19,6 @@ import {
   queueVisits,
   registerStaff,
   requireAssistantWorkspace,
-  resolveClinic,
   resolveSession,
   rolePayload,
   roomState,
@@ -67,24 +65,23 @@ function rejectSameDayAppointment(store, conflict) {
 
 export async function demoApiRequest(
   path,
-  { method = "GET", data = {}, clinicToken, staffToken } = {},
+  { method = "GET", data = {}, staffToken } = {},
 ) {
   await new Promise((resolve) => globalThis.setTimeout(resolve, 20));
   const url = new URL(path, "https://health-hub.demo");
   const pathname = url.pathname;
 
   if (pathname === "/api/clinics/" && method === "POST") return createClinic(data);
-  if (pathname === "/api/clinics/enter/" && method === "POST") return enterClinic(data);
   if (pathname === "/api/clinic/context/" && method === "GET") {
     const store = loadStore();
-    const clinic = resolveClinic(store, clinicToken);
-    return { clinic: publicClinic(clinic), roles: rolePayload(store) };
+    if (!store.clinic) fail({ detail: "Open the browser demo first." }, 404);
+    return { clinic: publicClinic(store.clinic), roles: rolePayload(store) };
   }
   if (pathname === "/api/staff/register/" && method === "POST") {
-    return registerStaff(data, clinicToken);
+    return registerStaff(data);
   }
   if (pathname === "/api/staff/login/" && method === "POST") {
-    return loginStaff(data, clinicToken);
+    return loginStaff(data);
   }
   if (pathname === "/api/staff/me/" && method === "GET") {
     const store = loadStore();
