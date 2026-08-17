@@ -22,12 +22,12 @@ This is the handoff entry point for a new chat or development session.
 - Phase 5 — Completed consultation behavior: complete.
 - Phase 6 — Shared tasks: complete.
 - Phase 7 — Private sticky: complete.
-- Phase 8 — Account recovery, administration, multi-clinic identity, and security: **complete, including the GitHub Pages parity and entry-UX corrective passes**.
+- Phase 8 — Account recovery, administration, multi-clinic identity, and security: **complete, including the GitHub Pages demo-parity corrective pass**.
 - Phase 9 — Sensitive attachment architecture: not started.
 - Phase 10 — Production hardening: not started.
 - Phase 11 — First stable release: not started.
 
-The initial Phase 8 implementation validation passed on code commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. Later corrective passes removed the legacy separate `DemoApp`, made Pages use the same production React application, removed username login from the active demo flow, and simplified the everyday entry UX. The final corrective code/test commit `99e2bc072f3c99c4d0bb6bc5f846ea1db6d3bd58` passed frontend tests/builds, Django checks, migration verification/application, and the PostgreSQL backend suite.
+The initial Phase 8 implementation validation passed on code commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. A later corrective pass fixed the Pages build so it no longer opens the legacy separate `DemoApp` authentication flow. The Pages build now renders the same production Phase 8 React UI and uses only a browser-local API adapter underneath it. A regression test explicitly requires **Email or phone** login and rejects the old username contract.
 
 ## Product baseline
 
@@ -51,30 +51,6 @@ Clinic operational data is tenant-scoped. Personal staff identity is global.
 - private sticky.
 
 There is no production or active-demo username login. Staff sign in with email or phone + password, or a registered passkey in production.
-
-### Entry UX
-
-Do not expose the underlying account/tenant architecture on the first screen.
-
-The first screen is the sign-in form itself:
-
-- **Email or phone**;
-- password;
-- Sign in;
-- optional **Use passkey**;
-- **Forgot password?** in the sign-in area;
-- secondary **Create a clinic** action;
-- small **Have an Assistant setup code? Join a clinic** path.
-
-After authentication:
-
-- verify email/phone only if still required;
-- exactly one clinic membership → select it automatically;
-- multiple clinic memberships → show clinic chooser;
-- show trusted-browser authorization only when the selected clinic does not already trust the browser;
-- then show the allowed workspace choice.
-
-Do not reintroduce a mandatory clinic chooser for single-clinic users or a primary Assistant-join card on the public landing page.
 
 ### Clinic memberships
 
@@ -171,11 +147,11 @@ There is no Doctor replacement/ownership transfer in Phase 8.
 
 The GitHub Pages demo must use the same production React product UI; it must not expose a separate demo sign-in/application flow.
 
-The Pages environment sets production UI mode and routes only the API layer to the browser adapter. Therefore the visible sign-in, clinic selection when needed, workspace selection, account settings, device/team controls, and operational screens are the same components used by the real web app. Login is **Email or phone**; username is not an active demo credential.
+The Pages environment sets production UI mode and routes only the API layer to the browser adapter. Therefore the visible account flow, clinic picker, workspace selection, account settings, device/team controls, and login form are the same components used by the real web app. Login is **Email or phone**; username is not an active demo credential.
 
-The browser adapter locally simulates account/membership/device state and reuses the existing Patient/Appointment/queue/task demo engine. It does not provide a real production security boundary: no real email/SMS delivery, no real trusted-device authority, and no real WebAuthn/passkey security. Browser storage is demonstration state only and must never contain real Patient information.
+The browser adapter locally simulates account/membership/device state and reuses the existing Patient/Appointment/queue/task demo engine. It does not fake production security infrastructure: no real email/SMS delivery, no real trusted-device authority, and no fake WebAuthn/passkey security. Browser storage is demonstration state only and must never contain real Patient information.
 
-See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) for the detailed implemented contract.
+See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) for the detailed implemented contract and demo-parity invariant.
 
 ## Implemented clinic workflow
 
@@ -253,7 +229,7 @@ OPEN → DONE
 
 ## Current work
 
-**Phases 0–8 are complete, including the Phase 8 UI corrective passes. Phase 9 has not started.**
+**Phases 0–8 are complete, including the Phase 8 browser-demo parity correction. Phase 9 has not started.**
 
 ## Next action
 

@@ -48,7 +48,7 @@ Security/account actions do not use five-second Undo.
 | 5 | Completed consultation behavior | Implemented |
 | 6 | Shared tasks | Implemented |
 | 7 | Private sticky | Implemented |
-| 8 | Account recovery, administration, multi-clinic identity, and security | **Implemented and validated; Pages UI parity and entry-UX corrections complete** |
+| 8 | Account recovery, administration, multi-clinic identity, and security | **Implemented and validated; Pages UI parity correction complete** |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
@@ -142,7 +142,7 @@ See [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md).
 
 ## Phase 8 — Account recovery, administration, and security
 
-**Implemented and validated, including the Pages demo-parity and entry-UX corrective passes.**
+**Implemented and validated, including the Pages demo-parity corrective pass.**
 
 Final Phase 8 architecture:
 
@@ -154,14 +154,7 @@ Final Phase 8 architecture:
 - phone required;
 - both email and phone verified before clinic data access;
 - Clinic email/phone removed;
-- first screen is the sign-in form, not a multi-choice architecture explainer;
-- Create clinic is a secondary action;
-- Assistant setup is a small **Have an Assistant setup code? Join a clinic** path, not a primary landing action;
-- Forgot password is inside the sign-in area;
-- after sign-in, a single clinic membership is selected automatically;
-- clinic selection is shown only when the person has multiple clinic memberships;
-- trusted-device authorization appears only when the selected clinic does not already trust the browser;
-- workspace choice follows clinic/device resolution;
+- login-first → clinic selection → device authorization → workspace selection;
 - trusted-device authorization separately per clinic;
 - new device by verified email/SMS or existing trusted-device pairing;
 - last trusted device may be removed;
@@ -180,14 +173,14 @@ Final Phase 8 architecture:
 - no Doctor replacement/ownership transfer;
 - GitHub Pages uses the same production Phase 8 React screens rather than a separate `DemoApp` login/application;
 - Pages login is **Email or phone** and the old username contract is rejected;
-- only the API/security layer is browser-local in Pages.
+- only the API/security layer is browser-local in Pages; real email/SMS, device authority, and WebAuthn are not fabricated.
 
 Migrations:
 
 - `accounts.0006_phase8_global_accounts`;
 - `accounts.0007_alter_staffuser_options`.
 
-The original Phase 8 code validation passed on commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. The later UI corrections were revalidated on code/test commit `99e2bc072f3c99c4d0bb6bc5f846ea1db6d3bd58` through frontend tests/builds, Django checks, migration checks/application, and the PostgreSQL backend suite.
+The original Phase 8 code validation passed on commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. The browser-demo parity corrective pass added dedicated frontend regression coverage and was revalidated through the same Verify foundation workflow before Phase 8 was closed again.
 
 See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
@@ -222,6 +215,6 @@ Review complete Doctor/Assistant workflows, remove unfinished UI, confirm no una
 
 ## Current work
 
-**Phases 0–8 are complete, including the Phase 8 UI corrective passes. Phase 9 has not started.**
+**Phases 0–8 are complete, including the Phase 8 Pages demo-parity correction. Phase 9 has not started.**
 
 Stop here. The next implementation work begins only after the product owner explicitly says **continue** and Phase 9's attachment/security questions are resolved.

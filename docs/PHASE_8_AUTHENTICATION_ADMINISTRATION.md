@@ -2,15 +2,13 @@
 
 ## Status
 
-**Implemented and validated, including the browser-demo parity and entry-UX corrective passes.**
+**Implemented and validated, including the browser-demo parity corrective pass.**
 
 Phase 8 replaces the Phase 0 per-clinic staff identity model with global personal accounts plus clinic memberships, while preserving the trusted-device boundary around clinic operational data.
 
-The original Phase 8 implementation was validated on commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. A later corrective pass fixed a demo-only regression where the GitHub Pages build still selected the legacy `DemoApp` authentication screen and therefore displayed the obsolete Username field. A final UX correction kept the same Phase 8 security model while removing unnecessary architecture choices from the everyday entry screen.
+The original Phase 8 implementation was validated on commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. A later corrective pass fixed a demo-only regression where the GitHub Pages build still selected the legacy `DemoApp` authentication screen and therefore displayed the obsolete Username field. The final invariant is now explicit: **GitHub Pages renders the same production React application and Phase 8 account screens; only its API/security transport is replaced by a browser-local adapter.**
 
-The final invariant is explicit: **GitHub Pages renders the same production React application and Phase 8 account screens; only its API/security transport is replaced by a browser-local adapter.** The visible login identifier is **Email or phone**, the old username contract is rejected, and the first screen is the sign-in form rather than a multi-choice architecture explainer.
-
-The final corrective code/test commit `99e2bc072f3c99c4d0bb6bc5f846ea1db6d3bd58` passed the complete Verify foundation workflow: frontend browser tests, production/demo builds, Django checks, migration verification/application, and the PostgreSQL backend suite.
+The corrective pass adds automated coverage that requires the Pages build to use production UI mode, requires the visible login identifier to be **Email or phone**, and rejects the old username login contract in the Phase 8 browser adapter.
 
 ## Final account model
 
@@ -47,25 +45,12 @@ Authentication, verification, recovery, and security notifications use individua
 
 ## Sign-in and clinic selection
 
-The security architecture is global-account-first, but the UI intentionally hides unnecessary architecture from daily users.
+Production authentication is login-first:
 
-The first screen is the actual sign-in form:
-
-- **Email or phone**;
-- password;
-- Sign in;
-- optional **Use passkey**;
-- **Forgot password?** in the same sign-in area;
-- secondary **Create a clinic** action;
-- small **Have an Assistant setup code? Join a clinic** path for a new Assistant.
-
-After successful personal authentication:
-
-1. verify personal email/phone only if still required;
-2. if the person has exactly one active clinic membership, select that clinic automatically;
-3. if the person has multiple clinic memberships, show the clinic chooser;
-4. authorize the browser only if the selected clinic does not already trust it;
-5. choose an allowed workspace for that membership.
+1. person signs in to their global account;
+2. person chooses a clinic membership;
+3. that clinic authorizes the browser if needed;
+4. person chooses an allowed workspace for that membership.
 
 Normal password sign-in accepts either verified account email or phone plus password.
 
@@ -255,7 +240,7 @@ Historical task comments continue to reference their original personal author ev
 
 The public GitHub Pages demo **must not have a separate product UI or separate authentication screen**.
 
-The Pages build renders the same production Phase 8 screens and navigation as the real frontend. Its first screen is therefore the same simplified sign-in form, with **Email or phone**, secondary Create clinic, and the small Assistant setup-code path.
+The Pages build renders the same `ProductionApp` Phase 8 screens and navigation as the real frontend. Its visible authentication flow therefore uses the same **Email or phone** identifier and the same account → verification → clinic → device authorization → workspace sequence.
 
 The only demo-specific substitution is below the UI boundary: `VITE_DEMO_API=true` routes API calls to a browser-local adapter instead of a Django/PostgreSQL server. `VITE_DEMO_MODE=false` is intentionally used for the Pages build so production React components remain active.
 
@@ -268,7 +253,7 @@ The browser demo still must not fabricate real security infrastructure. In parti
 - passkeys are not simulated as real WebAuthn security and explicitly report that limitation;
 - browser storage is demonstration state only and must never contain real Patient information.
 
-Regression coverage locks the UI contract: production and Pages share one React application; the login form is visible immediately; the old architecture-explainer landing is absent; one clinic is auto-selected; username login is rejected; and the browser adapter remains the only Pages-specific substitution.
+A regression test now locks this architecture: the Pages environment must keep production UI mode, use the browser API adapter, expose **Email or phone**, and reject username-based login.
 
 ## Migrations and compatibility
 
@@ -295,12 +280,10 @@ Phase 8 does not add:
 - security-event history UI;
 - security-action five-second Undo;
 - a separate demo login/product application;
-- a mandatory clinic chooser for single-clinic users;
-- a primary Assistant-join card on the landing page;
 - fake production security inside the browser demo.
 
 ## Next phase boundary
 
-Phase 8 is complete after the UI corrective passes. Stop before Phase 9.
+Phase 8 is complete after the demo-parity corrective pass. Stop before Phase 9.
 
 Phase 9 is sensitive attachment architecture. Do not design or implement attachment storage, encryption, access control, file limits/types, scanning, retention/deletion, backups, audit requirements, or related Patient-file behavior until the product owner explicitly says **continue** and Phase 9 decisions are clarified.
