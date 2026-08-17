@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import AccountSettings from "./AccountSettings.jsx";
-import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, DEMO_MODE, apiRequest } from "./api.js";
-import DemoApp from "./DemoApp.jsx";
+import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
 import PatientWorkspace from "./PatientWorkspace.jsx";
 import { getPasskey } from "./webauthn.js";
 import { Brand, ErrorMessage, Field } from "./ui.jsx";
@@ -132,4 +131,4 @@ function ProductionApp(){
   return <LoadingScreen/>;
 }
 
-export default function App(){return DEMO_MODE?<DemoApp/>:<ProductionApp/>}
+export default ProductionApp;
