@@ -1,43 +1,47 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Clinic, DevicePairingRequest, StaffSession, StaffUser, TrustedDevice
-
+from .models import AssistantSetupToken, Clinic, DevicePairingRequest, PasskeyCredential, RecoveryCode, RecoveryGrant, StaffMembership, StaffSession, StaffUser, TrustedDevice, VerificationChallenge
 
 @admin.register(Clinic)
 class ClinicAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "phone", "created_at")
-    search_fields = ("name", "email", "phone")
+    list_display = ("name", "created_at")
+    search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
 
+@admin.register(StaffUser)
+class StaffUserAdmin(UserAdmin):
+    ordering = ("email",)
+    list_display = ("email", "first_name", "last_name", "phone", "is_active")
+    search_fields = ("email", "phone", "first_name", "last_name")
+    fieldsets = ((None, {"fields": ("email", "password")}), ("Personal info", {"fields": ("first_name", "last_name", "phone", "email_verified_at", "phone_verified_at", "private_note")}), ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}), ("Important dates", {"fields": ("last_login", "date_joined")}))
+    add_fieldsets = ((None, {"classes": ("wide",), "fields": ("email", "password1", "password2", "is_staff", "is_superuser")}),)
+
+@admin.register(StaffMembership)
+class StaffMembershipAdmin(admin.ModelAdmin):
+    list_display = ("user", "clinic", "role", "is_active", "joined_at")
+    list_filter = ("role", "is_active")
+    search_fields = ("user__email", "clinic__name")
 
 @admin.register(TrustedDevice)
 class TrustedDeviceAdmin(admin.ModelAdmin):
     list_display = ("clinic", "browser", "operating_system", "created_at")
     readonly_fields = ("token_hash", "created_at")
-    search_fields = ("clinic__name", "clinic__email", "browser", "operating_system")
-
+    search_fields = ("clinic__name", "browser", "operating_system")
 
 @admin.register(DevicePairingRequest)
 class DevicePairingRequestAdmin(admin.ModelAdmin):
     list_display = ("clinic", "browser", "operating_system", "created_at", "expires_at", "approved_at")
     readonly_fields = ("request_token_hash", "code_hash", "created_at", "approved_at")
-    search_fields = ("clinic__name", "clinic__email", "browser", "operating_system")
-
-
-@admin.register(StaffUser)
-class StaffUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (
-        ("Health Hub", {"fields": ("clinic", "role")}),
-    )
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        ("Health Hub", {"fields": ("clinic", "role", "email")}),
-    )
-    list_display = UserAdmin.list_display + ("clinic", "role")
-
 
 @admin.register(StaffSession)
 class StaffSessionAdmin(admin.ModelAdmin):
-    list_display = ("user", "trusted_device", "created_at", "expires_at", "last_used_at")
+    list_display = ("user", "membership", "trusted_device", "workspace_role", "auth_method", "created_at", "expires_at", "last_used_at")
     readonly_fields = ("token_hash", "created_at", "last_used_at")
-    search_fields = ("user__username", "user__email")
+    search_fields = ("user__email", "user__phone")
+
+admin.site.register(PasskeyCredential)
+admin.site.register(VerificationChallenge)
+admin.site.register(RecoveryGrant)
+admin.site.register(RecoveryCode)
+admin.site.register(AssistantSetupToken)

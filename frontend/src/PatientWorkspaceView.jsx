@@ -1,3 +1,5 @@
+import AccountSettings from "./AccountSettings.jsx";
+import ClinicTeam from "./ClinicTeam.jsx";
 import PatientDetail from "./PatientDetail.jsx";
 import PatientList from "./PatientList.jsx";
 import PrivateSticky from "./PrivateSticky.jsx";
@@ -8,34 +10,19 @@ import UndoStack from "./UndoStack.jsx";
 import { PatientProfileForm } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
 
-export default function PatientWorkspaceView({ user, staffToken, onSignOut, onCurrentDeviceRemoved, controller: c }) {
+export default function PatientWorkspaceView({ user, staffToken, onSignOut, onCurrentDeviceRemoved, onSwitchClinic, onUserChange, controller: c }) {
   const { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients: canCreate, canManageAppointments: canManage, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits } = c;
   const eyebrow = section === "schedule" ? "Appointments and live queue" : section === "tasks" ? "Shared tasks" : "Patient records";
   const workspace = doctorWorkspace ? "Doctor workspace" : "Assistant workspace";
   const intro = doctorWorkspace ? "Use Room ready, follow the live queue, keep Patient information up to date, and manage tasks for the Assistant." : doctorAccount ? "Manage Patients, appointments, check-in, the queue, consultation handoff, and Assistant tasks through Administrator access." : "Manage Patients, appointments, check-in, the live queue, consultation handoff, and Doctor-created tasks from one workspace.";
   return <div className="workspace">
-    <header className="workspace-header"><Brand compact /><div className="workspace-header__clinic"><span>{user.clinic.name}</span><strong>{workspace}</strong></div><div className="user-menu"><div><strong>{user.display_name}</strong><span>{doctorAccount ? assistantWorkspace ? "Doctor · Administrator access" : "Doctor · Administrator" : "Assistant"}</span></div><TrustedDevices staffToken={staffToken} onCurrentDeviceRemoved={onCurrentDeviceRemoved} /><button type="button" onClick={onSignOut}>Sign out</button></div></header>
-    <main className="workspace-main">
-      <section className="workspace-title"><div><p className="eyebrow">{eyebrow}</p><h1>{workspace}</h1><p>{intro}</p></div><div className="status-pill"><span /> Clinic access active</div></section>
-      <nav className="workspace-tabs" aria-label="Workspace sections">
-        <button className={`workspace-tab${section === "schedule" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("schedule")}>{doctorWorkspace ? "Consultations & queue" : "Schedule & queue"}</button>
-        <button className={`workspace-tab${section === "patients" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("patients")}>Patients</button>
-        <button className={`workspace-tab${section === "tasks" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("tasks")}>Tasks{taskAttention && <span className="task-attention-dot" aria-label={doctorAccount ? "Completed task activity" : "New task activity"} />}</button>
-      </nav>
+    <header className="workspace-header"><Brand compact /><div className="workspace-header__clinic"><div className="phase8-current-clinic"><span>{user.clinic.name}</span>{user.memberships?.length>1&&<button type="button" onClick={onSwitchClinic}>Switch</button>}</div><strong>{workspace}</strong></div><div className="user-menu"><div><strong>{user.display_name}</strong><span>{doctorAccount ? assistantWorkspace ? "Doctor · Administrator access" : "Doctor · Administrator" : "Assistant"}</span></div><AccountSettings user={user} staffToken={staffToken} onUserChange={onUserChange}/><ClinicTeam user={user} staffToken={staffToken}/><TrustedDevices staffToken={staffToken} onCurrentDeviceRemoved={onCurrentDeviceRemoved} /><button type="button" onClick={onSignOut}>Sign out</button></div></header>
+    <main className="workspace-main"><section className="workspace-title"><div><p className="eyebrow">{eyebrow}</p><h1>{workspace}</h1><p>{intro}</p></div><div className="status-pill"><span /> {user.clinic.name}</div></section>
+      <nav className="workspace-tabs" aria-label="Workspace sections"><button className={`workspace-tab${section === "schedule" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("schedule")}>{doctorWorkspace ? "Consultations & queue" : "Schedule & queue"}</button><button className={`workspace-tab${section === "patients" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("patients")}>Patients</button><button className={`workspace-tab${section === "tasks" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("tasks")}>Tasks{taskAttention && <span className="task-attention-dot" aria-label={doctorAccount ? "Completed task activity" : "New task activity"} />}</button></nav>
       <ErrorMessage error={error} />
       {section === "schedule" && <ScheduleWorkspace staffToken={staffToken} requestedVisitId={requestedVisitId} onRequestedVisitHandled={requestedHandled} onRegisterUndo={registerUndo} onOpenPatient={openPatient} refreshVersion={scheduleRefreshVersion} readOnly={!canManage} onVisitChanged={() => selectedPatient && loadPatientVisits(selectedPatient.id)} />}
-      {section === "patients" && <section className="workspace-grid workspace-grid--single"><article className="workspace-card workspace-card--wide workspace-card--patients">
-        <div className="card-heading"><div><p className="eyebrow">Clinic records</p><h2>Patients</h2></div><span className="count-badge">{patients.length}</span></div>
-        <div className="patient-content">
-          {patientView === "list" && <PatientList patients={patients} search={search} onSearchChange={setSearch} onClear={clearSearch} onAdd={() => { setSelectedPatient(null); setPatientView("create"); }} onOpen={openPatient} loading={loading} canCreate={canCreate} />}
-          {canCreate && patientView === "create" && <PatientProfileForm onSave={savePatient} onCancel={() => setPatientView("list")} onUseExisting={openPatient} />}
-          {canEditPatient && patientView === "edit" && selectedPatient && <PatientProfileForm patient={selectedPatient} onSave={savePatient} onCancel={() => setPatientView("detail")} onUseExisting={openPatient} />}
-          {patientView === "detail" && selectedPatient && <PatientDetail patient={selectedPatient} visits={patientVisits} visitsLoading={visitsLoading} onBack={() => setPatientView("list")} onEdit={() => setPatientView("edit")} onDelete={deletePatient} onEditVisit={editVisit} onDeleteVisit={deleteVisit} deleting={deleting} canEditPatient={canEditPatient} canDeletePatient={canCreate} canManageAppointments={canManage} />}
-        </div>
-      </article></section>}
+      {section === "patients" && <section className="workspace-grid workspace-grid--single"><article className="workspace-card workspace-card--wide workspace-card--patients"><div className="card-heading"><div><p className="eyebrow">Clinic records</p><h2>Patients</h2></div><span className="count-badge">{patients.length}</span></div><div className="patient-content">{patientView === "list" && <PatientList patients={patients} search={search} onSearchChange={setSearch} onClear={clearSearch} onAdd={() => { setSelectedPatient(null); setPatientView("create"); }} onOpen={openPatient} loading={loading} canCreate={canCreate} />}{canCreate && patientView === "create" && <PatientProfileForm onSave={savePatient} onCancel={() => setPatientView("list")} onUseExisting={openPatient} />}{canEditPatient && patientView === "edit" && selectedPatient && <PatientProfileForm patient={selectedPatient} onSave={savePatient} onCancel={() => setPatientView("detail")} onUseExisting={openPatient} />}{patientView === "detail" && selectedPatient && <PatientDetail patient={selectedPatient} visits={patientVisits} visitsLoading={visitsLoading} onBack={() => setPatientView("list")} onEdit={() => setPatientView("edit")} onDelete={deletePatient} onEditVisit={editVisit} onDeleteVisit={deleteVisit} deleting={deleting} canEditPatient={canEditPatient} canDeletePatient={canCreate} canManageAppointments={canManage} />}</div></article></section>}
       {section === "tasks" && <TaskWorkspace user={user} staffToken={staffToken} doctorAccount={doctorAccount} onRegisterUndo={registerUndo} onOpenPatient={openPatient} refreshVersion={taskRefreshVersion} />}
-    </main>
-    {user.role === user.workspace_role && <PrivateSticky staffToken={staffToken} />}
-    <UndoStack actions={undoActions} undoingId={undoingId} onUndo={undoAction} onExpire={expireUndo} />
+    </main>{user.role === user.workspace_role && <PrivateSticky staffToken={staffToken} />}<UndoStack actions={undoActions} undoingId={undoingId} onUndo={undoAction} onExpire={expireUndo} />
   </div>;
 }
