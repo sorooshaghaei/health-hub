@@ -35,7 +35,7 @@ class DoctorPatientEditTests(APITestCase):
         )
         self.assertEqual(doctor_response.status_code, status.HTTP_201_CREATED)
         self.doctor_token = doctor_response.data["session_token"]
-        clinic = Clinic.objects.get(email="clinic@example.com")
+        clinic = Clinic.objects.get(pk=clinic_response.data["clinic"]["id"])
         self.patient = Patient.objects.create(
             clinic=clinic,
             full_name="Sara Ahmadi",
