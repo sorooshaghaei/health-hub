@@ -1,9 +1,9 @@
-import { demoApiRequest } from "./demoApi.js";
-import { demoTaskApiRequest } from "./demoTasks.js";
+import { demoPhase8ApiRequest } from "./demoPhase8Api.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 const ACTIVE_DEVICE_TOKEN_KEY = "health-hub.active-device-token";
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+const BROWSER_DEMO_API = import.meta.env.VITE_DEMO_API === "true";
 
 export class ApiError extends Error {
   constructor(message, fields = null, status = 0) { super(message); this.name = "ApiError"; this.fields = fields; this.status = status; }
@@ -18,11 +18,10 @@ function firstError(payload) {
   if (typeof firstValue === "string") return firstValue;
   return "The request could not be completed.";
 }
-function isTaskDemoPath(path) { return path.startsWith("/api/tasks/") || path.startsWith("/api/task-comments/"); }
 
 export async function apiRequest(path, { method = "GET", data, deviceToken, staffToken } = {}) {
-  if (DEMO_MODE) {
-    try { const request = isTaskDemoPath(path) ? demoTaskApiRequest : demoApiRequest; return await request(path, { method, data, staffToken }); }
+  if (BROWSER_DEMO_API) {
+    try { return await demoPhase8ApiRequest(path, { method, data, deviceToken, staffToken }); }
     catch (error) { throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0); }
   }
   const headers = { Accept: "application/json" };
