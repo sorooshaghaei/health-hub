@@ -35,6 +35,8 @@ test("production and Pages share the simplified Phase 8 sign-in UI", async () =>
   assert.match(app, /title="Sign in"/);
   assert.match(app, /label="Email or phone"/);
   assert.match(app, /Have an Assistant setup code\?/);
+  assert.match(app, /next\.memberships\?\.length===1/);
+  assert.doesNotMatch(app, /screen==="login"/);
   assert.doesNotMatch(app, /Your account first\. Your clinic second\./);
   assert.doesNotMatch(app, /DemoApp/);
   assert.doesNotMatch(app, /DEMO_MODE\s*\?/);
