@@ -30,7 +30,9 @@ The project is developed directly on `main`, one approved phase/corrective pass 
 
 Phase 8 introduced global personal staff accounts, clinic memberships, mandatory verified personal email/phone before clinic-data access, email/phone login, optional passkeys, recovery, per-clinic trusted-device authorization, multi-clinic staff identity, and membership-based Assistant replacement.
 
-The validated Phase 8 code passed browser-demo tests, production/demo frontend builds, Django checks, committed migration verification, PostgreSQL migration application, and the full backend test suite.
+The final Phase 8 UI correction keeps the security architecture but simplifies daily use: the first screen is the sign-in form, Create clinic is secondary, Assistant setup is a small setup-code link, single-clinic users skip the clinic picker, and trusted-device authorization appears only when actually needed.
+
+The latest Phase 8 corrective code/test commit `99e2bc072f3c99c4d0bb6bc5f846ea1db6d3bd58` passed browser-demo tests, production/demo frontend builds, Django checks, committed migration verification, PostgreSQL migration application, and the full backend test suite.
 
 ## Account and clinic model
 
@@ -60,19 +62,22 @@ Clinic-level email and phone have been removed. There is no shared clinic passwo
 
 ## Authentication flow
 
-Production flow is:
+The normal entry flow is intentionally simple:
 
 ```text
-personal sign-in
+sign in with email or phone
     ↓
-verified personal email + phone
+verify email + phone if still required
     ↓
-choose clinic membership
+1 clinic → select it automatically
+multiple clinics → choose clinic
     ↓
-authorize this browser for that clinic if necessary
+authorize this browser only if that clinic does not already trust it
     ↓
 choose allowed workspace
 ```
+
+The landing page does not expose the account/tenant architecture. It shows the sign-in form directly. **Create a clinic** is a secondary action, **Forgot password?** stays with sign-in, and a new Assistant uses the small **Have an Assistant setup code? Join a clinic** path.
 
 Personal sign-in accepts email or phone + password. A registered WebAuthn passkey may be used instead.
 
