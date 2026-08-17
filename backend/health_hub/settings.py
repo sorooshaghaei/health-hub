@@ -22,6 +22,7 @@ ROOT_URLCONF = "health_hub.urls"
 TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [], "APP_DIRS": True, "OPTIONS": {"context_processors": ["django.template.context_processors.request", "django.contrib.auth.context_processors.auth", "django.contrib.messages.context_processors.messages"]}}]
 WSGI_APPLICATION = "health_hub.wsgi.application"
 ASGI_APPLICATION = "health_hub.asgi.application"
+TEST_RUNNER = "health_hub.test_runner.HealthHubDiscoverRunner"
 
 if os.getenv("USE_SQLITE", "false").lower() == "true":
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
