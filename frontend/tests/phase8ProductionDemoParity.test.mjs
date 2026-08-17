@@ -27,11 +27,13 @@ async function verifyContact(staffToken, kind) {
   });
 }
 
-test("Pages demo uses the production Phase 8 UI instead of DemoApp", async () => {
+test("production and Pages have one shared Phase 8 application UI", async () => {
   const app = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
   const env = await readFile(new URL("../.env.demo", import.meta.url), "utf8");
 
   assert.match(app, /label="Email or phone"/);
+  assert.doesNotMatch(app, /DemoApp/);
+  assert.doesNotMatch(app, /DEMO_MODE\s*\?/);
   assert.match(env, /^VITE_DEMO_MODE=false$/m);
   assert.match(env, /^VITE_DEMO_API=true$/m);
 });
