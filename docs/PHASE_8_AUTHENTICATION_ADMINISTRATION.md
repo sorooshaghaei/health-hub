@@ -2,189 +2,287 @@
 
 ## Status
 
-**Not started. Phase 0 authentication foundation is complete; decisions and open questions below are preserved for Phase 8.**
+**Implemented and validated.**
 
-The smaller Phase 0 base-authentication correction has been implemented and validated. Phase 8 must build on that trusted-device + individual-staff foundation rather than reintroducing the removed shared clinic-password layer.
+Phase 8 replaces the Phase 0 per-clinic staff identity model with global personal accounts plus clinic memberships, while preserving the trusted-device boundary around clinic operational data.
 
-## Implemented Phase 0 foundation that Phase 8 inherits
+Validation completed in GitHub Actions on implementation commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`:
 
-Phase 0 now provides:
+- browser-demo tests passed;
+- production frontend build passed;
+- GitHub Pages demo build passed;
+- Django system checks passed;
+- committed-migration verification passed;
+- migrations applied successfully to PostgreSQL;
+- the complete backend test suite passed against PostgreSQL.
 
-- trusted clinic browsers/devices as the clinic access boundary;
-- automatic trust of the first browser when a clinic is created;
-- six-digit, short-lived new-device pairing approved from an already trusted device;
-- trusted-device list and revocation for both Doctor and Assistant;
-- staff sessions bound to the trusted device that created them;
-- existing username + password staff sign-in behind the trusted-device boundary;
-- no shared clinic-password entry flow;
-- a static-demo exception that bypasses real trusted-device authority rather than simulating it.
+## Final account model
 
-Phase 8 owns the more complicated account lifecycle, recovery, contact verification, administration, passkey management, multi-clinic identity, and broader security behavior described below.
-
-Nothing in this document should be implemented without resolving its remaining questions and receiving explicit product-owner approval.
-
-## Previously approved Phase 8 decisions
-
-### Email/SMS and account recovery
-
-- Both email and SMS are supported as account recovery channels.
-- For forgotten-password recovery, the staff member chooses email or SMS.
-- Recovery authorization is valid for 30 minutes or until a new password is successfully set, whichever occurs first.
-- A newer recovery request invalidates an older outstanding recovery authorization.
-- A successful forgotten-password reset revokes all existing sessions belonging to that staff account.
-- Doctor and Assistant recovery are individual; one person's reset does not alter another person's credentials.
-- Newly chosen passwords are never sent to the other staff member.
-- Staff email addresses must be verified.
-- Staff phone numbers must be verified.
-- Changing email, phone number, or password requires verification.
-- Phone number is required on staff accounts.
-
-### New-device authorization upgrade
-
-Phase 0 currently authorizes additional clinic devices from an already trusted clinic device so email/SMS infrastructure did not have to be pulled into the foundation correction.
-
-In Phase 8, preserve the previously approved target behavior:
-
-- Doctor and Assistant may authorize a new clinic device using a verified contact channel;
-- the person authorizing the device chooses either verified email or verified SMS;
-- the exact verification screen/protocol remains to be designed in Phase 8;
-- this Phase 8 mechanism may replace or supplement the Phase 0 trusted-device-to-trusted-device pairing flow only after it is explicitly approved and implemented.
-
-### Staff profile editing
-
-Doctor and Assistant may edit their own:
+`StaffUser` is the global personal identity. Personal data follows the person across clinics:
 
 - first name;
 - last name;
-- username;
-- email;
-- phone number;
-- password.
+- unique email;
+- unique phone;
+- password;
+- email/phone verification state;
+- passkeys;
+- Doctor offline recovery codes;
+- private sticky.
 
-The exact reauthentication and contact-change sequence remains unresolved.
+`StaffMembership` carries clinic-specific identity:
 
-### Passkeys and biometrics
+- clinic;
+- Doctor or Assistant role;
+- active/inactive membership state;
+- clinic-specific task-attention seen state.
 
-- Passkey/device-biometric sign-in is approved for Phase 8.
-- Exact passkey policy is not yet decided.
+Each clinic has at most one active Doctor membership and one active Assistant membership.
 
-### Doctor emergency recovery
+Both Doctors and Assistants may belong to multiple clinics. A Doctor may be Doctor in multiple clinics simultaneously. A personal account cannot hold two roles in the same clinic.
 
-- The Doctor receives a list of offline recovery codes.
-- Each code is one-time use.
-- The Doctor must keep the codes somewhere safe.
-- The exact number, regeneration behavior, and relationship to Assistant recovery remain unresolved.
+Clinic operational data remains strictly clinic-scoped. Patient, Appointment, queue, room-call, shared-task, task-attention, and trusted-device queries resolve from the active session membership rather than from a permanent clinic field on the person.
 
-### Assistant recovery and replacement
+## Clinic fields
+
+Clinic-level email and phone were removed. A clinic now contains its identity/name and operational data only.
+
+Authentication, verification, recovery, and security notifications use individual staff contacts. The removed shared clinic-password architecture remains removed.
+
+## Sign-in and clinic selection
+
+Production authentication is login-first:
+
+1. person signs in to their global account;
+2. person chooses a clinic membership;
+3. that clinic authorizes the browser if needed;
+4. person chooses an allowed workspace for that membership.
+
+Normal password sign-in accepts either verified account email or phone plus password.
+
+The old username field is removed from the production account model and production API.
+
+Workspace authorization remains:
+
+- Doctor membership → Doctor workspace;
+- Doctor membership → Assistant workspace for administrator intervention;
+- Assistant membership → Assistant workspace;
+- Assistant membership cannot open Doctor workspace.
+
+## Contact verification
+
+Phone is required for new staff accounts.
+
+Both personal email and phone must be verified before clinic operational data may open. The server enforces this at the clinic-membership permission boundary, not only in the frontend.
+
+Verification codes:
+
+- six digits;
+- expire after 10 minutes by default;
+- resend minimum 60 seconds by default;
+- maximum five failed attempts;
+- code material is stored as keyed hashes, not plaintext.
+
+Email delivery uses Django email infrastructure. SMS delivery is provider-pluggable through the configured `SMS_SENDER`; production does not silently pretend SMS delivery occurred when no provider is configured.
+
+## Trusted-device authorization
+
+Trusted-device authorization remains separate for each clinic.
+
+A browser can become trusted for a clinic through either:
+
+- a verification code sent to the signed-in person's verified email or verified phone; or
+- the existing six-digit pairing flow approved from an already trusted device for that clinic.
+
+Trusted devices remain trusted until removed. Clearing browser storage, changing browser/computer, or removing trust requires authorization again for that clinic.
+
+Both Doctor and Assistant memberships may review and remove trusted devices for the active clinic.
+
+Phase 8 removes the Phase 0 last-device deletion lockout. The final trusted device may be removed because verified-contact authorization can establish a new trusted browser later.
+
+An active clinic staff session requires both:
+
+- the bearer session token; and
+- proof of the exact trusted device bound to that active clinic session.
+
+A copied bearer token alone cannot be replayed for clinic operational APIs.
+
+Global account sessions before clinic selection intentionally have no clinic/device binding and cannot open clinic operational data.
+
+## Session policy
+
+Default staff-session policy:
+
+- 12-hour absolute maximum lifetime;
+- 2-hour inactivity timeout;
+- no Remember Me behavior;
+- browser close does not itself revoke a valid server session;
+- explicit sign-out deletes the staff session;
+- sign-out does not remove trusted-device authorization.
+
+Selecting a clinic binds the session to one `StaffMembership`, trusted device, and workspace. Leaving/switching clinic clears that active clinic binding before a different membership is selected.
+
+## Profile and contact changes
+
+Doctor and Assistant own their global personal profile.
+
+First/last name can be edited directly.
+
+Email and phone changes require recent reauthentication by either:
+
+- current password; or
+- a registered passkey.
+
+The new contact value must then be verified. The former contact receives a best-effort security notice after the change.
+
+Changing a contact changes the global personal account, so the new verified value applies to every clinic membership.
+
+## Password changes
+
+Normal password change does not require entering the current password again. The signed-in person chooses verified email or verified SMS, receives a code, verifies it, and chooses the new password.
+
+Passwords use Django's configured password validators.
+
+A successful normal password change:
+
+- preserves the current session;
+- revokes the person's other sessions;
+- does not alter trusted-device records.
+
+Security/account changes do not use the five-second Undo mechanism.
+
+## Forgotten-password recovery
+
+Forgotten-password recovery is individual and global across clinic memberships.
+
+The user chooses verified email or verified SMS. Public recovery-request responses are generic so account existence is not disclosed through the normal response.
+
+A verified recovery code creates a recovery grant that is valid for 30 minutes or until consumed. Creating a newer grant invalidates older outstanding grants.
+
+Successful forgotten-password reset:
+
+- validates the new password;
+- consumes the recovery grant;
+- revokes all sessions belonging to the recovered person;
+- does not alter trusted-device records;
+- does not alter another staff person's credentials or sessions.
+
+## Doctor offline recovery codes
+
+Offline recovery codes are available only to a person with at least one active Doctor membership.
+
+- ten codes are generated at a time;
+- each code is one-time use;
+- codes are stored using password hashing, not plaintext;
+- generating a new list invalidates every unused code from the previous list;
+- Doctor codes recover only that Doctor's global account;
+- they are not transferable Assistant credentials.
+
+The UI shows newly generated plaintext codes only at generation time so the Doctor can store them offline.
+
+## Passkeys
+
+Passkeys are optional; password sign-in remains available.
+
+A verified personal account may register up to five passkeys. WebAuthn registration/authentication challenges are server-created, short-lived, and single-use. Credential assertions are cryptographically verified server-side.
+
+Passkeys can be used for:
+
+- normal personal-account sign-in;
+- sensitive-operation reauthentication.
+
+Removing a passkey requires either:
+
+- current password; or
+- recent successful reauthentication using a different passkey.
+
+The implementation uses the `webauthn` Python dependency and configured RP ID/origin settings.
+
+## Assistant administration and replacement
+
+The Doctor membership owns the clinic's Assistant slot management.
 
 The Doctor may:
 
-- edit Assistant identity/contact information;
-- initiate Assistant recovery;
-- perform a total Assistant-account reset when a different Assistant is hired.
+- view the active Assistant's identity/contact summary;
+- initiate normal recovery to the Assistant's own verified email/SMS;
+- generate a one-time setup code;
+- explicitly replace the current Assistant.
 
-The existing Assistant slot/account is reused rather than preserving a separate archived former-Assistant account.
+Replacement behavior is membership-based, not destructive account reuse:
 
-After reset, the replacement Assistant establishes their own password and enters/verifies their own identity/contact information.
+1. old Assistant membership for that clinic becomes inactive;
+2. sessions tied to that old membership are ended;
+3. clinic Patient/Appointment/queue/task data are unchanged;
+4. old Assistant retains their global personal account, password, contacts, passkeys, private sticky, and memberships in other clinics;
+5. historical task/comment authorship remains attached to the original person; inactive historical membership may be displayed as former Assistant;
+6. Doctor receives a one-time Assistant setup code;
+7. replacement Assistant can create a new global account or attach an existing global account to the clinic;
+8. clinic operational data still cannot open until that person verifies both contacts and authorizes a trusted browser for the clinic.
 
-Changing Assistant must not affect clinic, Patient, Appointment, queue, consultation, or other operational data.
+There is no Doctor replacement/ownership-transfer workflow in Phase 8.
 
-The treatment of the former Assistant private sticky, credentials, passkeys, sessions, and historical authored task comments remains unresolved.
+## Private sticky across clinics
 
-A separate Assistant disable/re-enable workflow was not approved as necessary for Phase 8.
+The private sticky belongs to the global person, not to a clinic membership.
 
-### Security actions
+It therefore follows the person across clinics, but remains visible only when the active workspace matches that membership's own role:
 
-- Password changes/resets, device removal, account reset, and other security/account actions do not use the five-second Undo workflow.
+- Doctor membership in Doctor workspace → Doctor sees their global sticky;
+- Assistant membership in Assistant workspace → Assistant sees their global sticky;
+- Doctor membership using Assistant workspace → no private sticky is exposed.
 
-### Clinic contacts
+## Shared-task identity after multi-clinic/replacement changes
 
-- Clinic-level email and phone are no longer intended to be authentication/recovery credentials once individual verified staff contacts provide those functions.
-- The shared clinic password is not part of the architecture.
-- Whether clinic email/phone remain as ordinary non-authentication profile/contact fields or are removed entirely still needs an explicit decision before Phase 8 schema changes.
+Task data remains clinic-scoped.
 
-### Doctor identity across clinics
+Doctor task-authoring permission is derived from the active clinic membership rather than from a global role field.
 
-- Doctor replacement/ownership transfer is not part of Phase 8.
-- A Doctor should be able to use one personal Doctor identity across more than one clinic instead of creating unrelated Doctor identities for each clinic.
-- Clinic operational and Patient data remain clinic-scoped.
-- The current `StaffUser.clinic` model does not support this and must not be changed until the multi-clinic behavior is clarified.
+Task attention seen state is membership-scoped, so activity in one clinic does not clear the attention state in another clinic.
 
-### Browser demo
+Historical task comments continue to reference their original personal author even after that person's clinic membership is inactive.
 
-- The GitHub Pages demo remains the same frontend/codebase through the browser adapter rather than becoming a separate application fork.
-- Real email/SMS delivery is unavailable in the browser-only demo.
-- Real trusted-device security is unavailable in the browser-only demo.
-- Phase 0 bypasses real trusted-device authorization and continues into the demo Doctor/Assistant flow.
-- Any later Phase 8 demo representation of account recovery/passkeys must remain simplified and must not pretend that real email/SMS or hardware trust exists.
+## Browser demo
 
-## Questions intentionally parked for Phase 8
+The public GitHub Pages demo remains the same React product UI through the browser adapter.
 
-### Account session policy
+The demo continues to exercise the core Doctor/Assistant workflow but deliberately does not fabricate production security mechanisms. It does not pretend to provide:
 
-- staff-session duration;
-- inactivity timeout;
-- browser-close behavior;
-- Remember me behavior.
+- real trusted-device authorization;
+- real email/SMS delivery;
+- real WebAuthn/passkey security;
+- real offline recovery-code security.
 
-### Passkey policy
+Account settings that would require those mechanisms are omitted or explicitly simplified in demo mode.
 
-- optional versus preferred/required after enrollment;
-- whether password remains a normal sign-in option;
-- number of passkeys/devices an account may register;
-- passkey removal/replacement flow.
+## Migrations and compatibility
 
-### Contact and credential changes
+Migration `accounts.0006_phase8_global_accounts`:
 
-- whether both email and phone must be verified before initial account activation;
-- whether changing email verifies only the new email, both old and new, or also requires current credential reauthentication;
-- equivalent behavior for phone changes;
-- whether normal password change requires current password/passkey plus an email/SMS code;
-- which channel is used for password-change verification.
+- creates `StaffMembership` rows from the former per-user clinic/role data;
+- removes Clinic email/phone;
+- removes `StaffUser.username`, `StaffUser.clinic`, and `StaffUser.role` database fields;
+- introduces verification, passkey, recovery, and Assistant-setup models;
+- makes staff sessions capable of existing globally before clinic selection.
 
-### Offline recovery codes
+Migration `accounts.0007_alter_staffuser_options` records the final inherited Django user model options so `makemigrations --check --dry-run` remains clean.
 
-- number generated at once;
-- whether generating a new list invalidates every unused old code;
-- whether Doctor codes recover only the Doctor;
-- how the Doctor helps an Assistant who has lost access to normal email/SMS recovery;
-- whether Assistant recovery should instead use a separate one-time Doctor-generated setup/recovery credential.
+The custom `HealthHubDiscoverRunner` adapts only historical Phase 1–7 test-fixture setup syntax during `manage.py test`. It does not change the production registration/login API. This keeps the older workflow regression suite useful while dedicated Phase 8 tests exercise the real new account API.
 
-### Total Assistant reset
+## Explicitly not added
 
-- whether former Assistant private sticky is erased;
-- treatment of old task comments authored by the former Assistant;
-- which profile fields, credentials, passkeys, recovery state, and sessions are erased;
-- how the replacement Assistant receives the first setup credential before their new email/phone are established.
+Phase 8 does not add:
 
-### Doctor account across multiple clinics
+- shared clinic passwords;
+- username login;
+- clinic email/phone authentication;
+- Doctor ownership transfer;
+- security-event history UI;
+- security-action five-second Undo;
+- fake production security inside the browser demo.
 
-- whether only Doctors may belong to multiple clinics or Assistants may also do so;
-- whether one Doctor may be Doctor for multiple clinics simultaneously;
-- clinic-selection flow;
-- whether trusted-device authorization is per clinic;
-- whether Doctor private sticky is global or per-clinic;
-- whether profile, contacts, password, passkeys, and recovery are global across clinic memberships.
+## Next phase boundary
 
-### Password and security internals
+Phase 8 is complete. Stop before Phase 9.
 
-- password validation requirements;
-- recovery/device-verification throttling and rate limits;
-- generic non-account-enumerating responses;
-- token/code hashing and related implementation protections beyond the Phase 0 foundation;
-- security event history, if any.
-
-### Demo behavior
-
-- exact Phase 8 demo representation of recovery/passkey/account settings;
-- whether demo password/passkey UI is simplified, simulated, or omitted.
-
-## Relationship to Phase 0
-
-See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
-
-Phase 0 is complete. Its implemented foundation keeps username/password staff login, uses already-trusted-device approval for additional devices, binds staff sessions to trusted devices, and bypasses real trusted-device authorization in the static demo.
-
-Phase 8 keeps the account-management/recovery/security decisions above for later, including the eventual verified email/SMS new-device authorization flow.
-
-Do not implement Phase 8 until the product owner explicitly says **continue** and the remaining Phase 8 questions are resolved.
+Phase 9 is sensitive attachment architecture. Do not design or implement attachment storage, encryption, access control, file limits/types, scanning, retention/deletion, backups, audit requirements, or related Patient-file behavior until the product owner explicitly says **continue** and Phase 9 decisions are clarified.
