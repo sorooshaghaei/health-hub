@@ -2,19 +2,13 @@
 
 ## Status
 
-**Implemented and validated.**
+**Implemented and validated, including the browser-demo parity corrective pass.**
 
 Phase 8 replaces the Phase 0 per-clinic staff identity model with global personal accounts plus clinic memberships, while preserving the trusted-device boundary around clinic operational data.
 
-Validation completed in GitHub Actions on implementation commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`:
+The original Phase 8 implementation was validated on commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. A later corrective pass fixed a demo-only regression where the GitHub Pages build still selected the legacy `DemoApp` authentication screen and therefore displayed the obsolete Username field. The final invariant is now explicit: **GitHub Pages renders the same production React application and Phase 8 account screens; only its API/security transport is replaced by a browser-local adapter.**
 
-- browser-demo tests passed;
-- production frontend build passed;
-- GitHub Pages demo build passed;
-- Django system checks passed;
-- committed-migration verification passed;
-- migrations applied successfully to PostgreSQL;
-- the complete backend test suite passed against PostgreSQL.
+The corrective pass adds automated coverage that requires the Pages build to use production UI mode, requires the visible login identifier to be **Email or phone**, and rejects the old username login contract in the Phase 8 browser adapter.
 
 ## Final account model
 
@@ -60,7 +54,7 @@ Production authentication is login-first:
 
 Normal password sign-in accepts either verified account email or phone plus password.
 
-The old username field is removed from the production account model and production API.
+The old username field is removed from the production account model, production API, and active GitHub Pages demo flow.
 
 Workspace authorization remains:
 
@@ -244,16 +238,22 @@ Historical task comments continue to reference their original personal author ev
 
 ## Browser demo
 
-The public GitHub Pages demo remains the same React product UI through the browser adapter.
+The public GitHub Pages demo **must not have a separate product UI or separate authentication screen**.
 
-The demo continues to exercise the core Doctor/Assistant workflow but deliberately does not fabricate production security mechanisms. It does not pretend to provide:
+The Pages build renders the same `ProductionApp` Phase 8 screens and navigation as the real frontend. Its visible authentication flow therefore uses the same **Email or phone** identifier and the same account → verification → clinic → device authorization → workspace sequence.
 
-- real trusted-device authorization;
-- real email/SMS delivery;
-- real WebAuthn/passkey security;
-- real offline recovery-code security.
+The only demo-specific substitution is below the UI boundary: `VITE_DEMO_API=true` routes API calls to a browser-local adapter instead of a Django/PostgreSQL server. `VITE_DEMO_MODE=false` is intentionally used for the Pages build so production React components remain active.
 
-Account settings that would require those mechanisms are omitted or explicitly simplified in demo mode.
+The browser adapter preserves the product workflow and Phase 8 account model sufficiently for demonstration, including personal accounts, email/phone login, contact-verification flow, clinic membership selection, browser authorization, account settings, clinic team setup, and clinic-scoped operational data. Existing Patient/Appointment/queue/task demo logic is reused behind that adapter.
+
+The browser demo still must not fabricate real security infrastructure. In particular:
+
+- verification codes shown by the demo are local development/demo codes, not delivered email/SMS;
+- trusted-device records are browser-local simulation, not a production trust boundary;
+- passkeys are not simulated as real WebAuthn security and explicitly report that limitation;
+- browser storage is demonstration state only and must never contain real Patient information.
+
+A regression test now locks this architecture: the Pages environment must keep production UI mode, use the browser API adapter, expose **Email or phone**, and reject username-based login.
 
 ## Migrations and compatibility
 
@@ -279,10 +279,11 @@ Phase 8 does not add:
 - Doctor ownership transfer;
 - security-event history UI;
 - security-action five-second Undo;
+- a separate demo login/product application;
 - fake production security inside the browser demo.
 
 ## Next phase boundary
 
-Phase 8 is complete. Stop before Phase 9.
+Phase 8 is complete after the demo-parity corrective pass. Stop before Phase 9.
 
 Phase 9 is sensitive attachment architecture. Do not design or implement attachment storage, encryption, access control, file limits/types, scanning, retention/deletion, backups, audit requirements, or related Patient-file behavior until the product owner explicitly says **continue** and Phase 9 decisions are clarified.
