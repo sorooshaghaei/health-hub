@@ -22,16 +22,16 @@ This is the handoff entry point for a new chat or development session.
 - Phase 5 — Completed consultation behavior: complete.
 - Phase 6 — Shared tasks: complete.
 - Phase 7 — Private sticky: complete.
-- Phase 8 — Account recovery, administration, multi-clinic identity, and security: **complete and validated**.
+- Phase 8 — Account recovery, administration, multi-clinic identity, and security: **complete, including the GitHub Pages demo-parity corrective pass**.
 - Phase 9 — Sensitive attachment architecture: not started.
 - Phase 10 — Production hardening: not started.
 - Phase 11 — First stable release: not started.
 
-Phase 8 implementation validation passed in GitHub Actions on code commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`: frontend demo tests, production build, demo build, Django checks, committed migration verification, PostgreSQL migrations, and the full backend test suite all succeeded.
+The initial Phase 8 implementation validation passed on code commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. A later corrective pass fixed the Pages build so it no longer opens the legacy separate `DemoApp` authentication flow. The Pages build now renders the same production Phase 8 React UI and uses only a browser-local API adapter underneath it. A regression test explicitly requires **Email or phone** login and rejects the old username contract.
 
 ## Product baseline
 
-Health Hub is a deliberately simple clinic workflow application for Doctor and Assistant roles using React/Vite, Django REST Framework, and PostgreSQL. The GitHub Pages build uses the same frontend through a browser-only demo adapter and is not a medical-data backend.
+Health Hub is a deliberately simple clinic workflow application for Doctor and Assistant roles using React/Vite, Django REST Framework, and PostgreSQL. The GitHub Pages build uses the same production frontend through a browser-only API adapter and is not a medical-data backend.
 
 Clinic operational data is tenant-scoped. Personal staff identity is global.
 
@@ -50,7 +50,7 @@ Clinic operational data is tenant-scoped. Personal staff identity is global.
 - Doctor offline recovery codes;
 - private sticky.
 
-There is no production username login. Staff sign in with email or phone + password, or a registered passkey.
+There is no production or active-demo username login. Staff sign in with email or phone + password, or a registered passkey in production.
 
 ### Clinic memberships
 
@@ -145,9 +145,13 @@ There is no Doctor replacement/ownership transfer in Phase 8.
 
 ### Browser demo
 
-The demo continues to exercise the Doctor/Assistant workflow but does not fake production security. It does not pretend to provide real email/SMS delivery, trusted-device authority, WebAuthn security, or offline recovery-code security.
+The GitHub Pages demo must use the same production React product UI; it must not expose a separate demo sign-in/application flow.
 
-See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) for the detailed implemented contract.
+The Pages environment sets production UI mode and routes only the API layer to the browser adapter. Therefore the visible account flow, clinic picker, workspace selection, account settings, device/team controls, and login form are the same components used by the real web app. Login is **Email or phone**; username is not an active demo credential.
+
+The browser adapter locally simulates account/membership/device state and reuses the existing Patient/Appointment/queue/task demo engine. It does not fake production security infrastructure: no real email/SMS delivery, no real trusted-device authority, and no fake WebAuthn/passkey security. Browser storage is demonstration state only and must never contain real Patient information.
+
+See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) for the detailed implemented contract and demo-parity invariant.
 
 ## Implemented clinic workflow
 
@@ -208,6 +212,7 @@ OPEN → DONE
 - `accounts.0006_phase8_global_accounts` migrates old per-clinic staff identity to global account + membership architecture and adds verification/passkey/recovery/setup models.
 - `accounts.0007_alter_staffuser_options` aligns final Django user-model migration state.
 - `backend/health_hub/test_runner.py` adapts only historical Phase 1–7 test-fixture syntax during `manage.py test`; it does not alter production API semantics.
+- `frontend/src/demoPhase8Api.js` is the browser-only Phase 8 API adapter used by GitHub Pages while the Pages UI remains the production React application.
 - Production account APIs require the new Phase 8 fields and flows.
 
 ## Phase specifications
@@ -224,7 +229,7 @@ OPEN → DONE
 
 ## Current work
 
-**Phases 0–8 are complete. Phase 9 has not started.**
+**Phases 0–8 are complete, including the Phase 8 browser-demo parity correction. Phase 9 has not started.**
 
 ## Next action
 
