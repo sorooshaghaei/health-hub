@@ -27,11 +27,15 @@ async function verifyContact(staffToken, kind) {
   });
 }
 
-test("production and Pages have one shared Phase 8 application UI", async () => {
+test("production and Pages share the simplified Phase 8 sign-in UI", async () => {
   const app = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
   const env = await readFile(new URL("../.env.demo", import.meta.url), "utf8");
 
+  assert.match(app, /function Landing\(\{ onSubmit, onPasskey, onNewClinic, onJoin, onRecovery \}\)/);
+  assert.match(app, /title="Sign in"/);
   assert.match(app, /label="Email or phone"/);
+  assert.match(app, /Have an Assistant setup code\?/);
+  assert.doesNotMatch(app, /Your account first\. Your clinic second\./);
   assert.doesNotMatch(app, /DemoApp/);
   assert.doesNotMatch(app, /DEMO_MODE\s*\?/);
   assert.match(env, /^VITE_DEMO_MODE=false$/m);
