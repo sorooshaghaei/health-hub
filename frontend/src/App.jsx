@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import AccountSettings from "./AccountSettings.jsx";
 import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
@@ -95,7 +95,6 @@ function AccountSettingsStandalone({ user, staffToken, onUserChange, onBack }) {
 
 function ProductionApp(){
   const[screen,setScreen]=useState("loading"),[staffToken,setStaffToken]=useState(null),[user,setUser]=useState(null),[pendingMembership,setPendingMembership]=useState(null),[pendingDeviceToken,setPendingDeviceToken]=useState(null);
-  const activeMembership=useMemo(()=>user?.clinic?user.memberships?.find((m)=>m.clinic.id===user.clinic.id)??null:null,[user]);
   async function routeUser(next){setUser(next);if(!next.account_ready){setScreen("verify");return}if(next.clinic&&next.workspace_role){setScreen("workspace");return}if(next.memberships?.length===1){await chooseMembership(next.memberships[0]);return}setScreen("clinics")}
   useEffect(()=>{async function restore(){const token=localStorage.getItem(STAFF_TOKEN_KEY);if(!token){setScreen("landing");return}try{const p=await apiRequest("/api/staff/me/",{staffToken:token});setStaffToken(token);await routeUser(p.user)}catch{localStorage.removeItem(STAFF_TOKEN_KEY);localStorage.removeItem(ACTIVE_DEVICE_TOKEN_KEY);setScreen("landing")}}restore()},[]);
   async function login(form){const p=await apiRequest("/api/staff/login/",{method:"POST",data:form});localStorage.setItem(STAFF_TOKEN_KEY,p.session_token);localStorage.removeItem(ACTIVE_DEVICE_TOKEN_KEY);setStaffToken(p.session_token);await routeUser(p.user)}
