@@ -49,13 +49,13 @@ The Phase 0–8 implementation already exists. Before Phase 9, all Phase 0–8 s
 | 4 | Doctor room call and consultation handoff | **Specification corrected; implementation already aligned; coverage strengthened** |
 | 5 | Completed consultation behavior | **Specification corrected; implementation already aligned** |
 | 6 | Shared tasks | **Specification corrected; implementation/terminology aligned; coverage strengthened** |
-| 7 | Private sticky | Next clarification target |
-| 8 | Account recovery, administration, multi-clinic identity, security | Awaiting final reconciliation |
+| 7 | Private sticky | **Specification corrected; minimized privacy behavior aligned; coverage strengthened** |
+| 8 | Account recovery, administration, multi-clinic identity, security | Next clarification target |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
 
-Do not begin Phase 9 until Phase 7–8 reconciliation and the final repository-wide consistency audit are complete.
+Do not begin Phase 9 until Phase 8 reconciliation and the final repository-wide consistency audit are complete.
 
 ## Phase 0 — Foundation
 
@@ -202,16 +202,24 @@ See [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md).
 
 ## Phase 7 — Private sticky
 
-Existing implementation provides one global plain-text scratchpad per personal account, autosaved and private, with desktop/mobile sticky behavior.
+Current contract:
 
-Reconcile next:
+- one global plain-text scratchpad per personal `StaffUser` account;
+- the same text follows the person across clinic memberships;
+- Doctor membership + Doctor workspace shows that person's sticky;
+- Assistant membership + Assistant workspace shows that person's sticky;
+- Doctor membership + Assistant administrator workspace shows no sticky;
+- the Doctor never gains access to the Assistant's sticky;
+- Assistant replacement/deactivation never transfers or deletes the former Assistant's sticky;
+- autosave while typing; empty string is valid;
+- no title, multiple notes, Delete/Trash, Undo, history, rich text, Patient links, task conversion, reminders, attachments, or notifications;
+- desktop minimized strip is movable; expanded sticky is movable/resizable;
+- mobile minimized strip is movable; expanded editor is full-screen;
+- no Close action;
+- minimized strip always shows **Private note**, never the note's text;
+- content persists globally, but layout/minimized state is not stored on the server and resets to the default presentation when reopened.
 
-- membership/workspace visibility language;
-- cross-clinic behavior;
-- Doctor administrator access privacy;
-- whether current implementation already matches the approved final rules.
-
-Do not change Phase 7 behavior until these decisions are approved.
+Implementation alignment removed the first-line minimized preview and added frontend regression coverage for that privacy rule.
 
 See [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md).
 
@@ -221,10 +229,11 @@ Implemented architecture includes global accounts, memberships, email/phone logi
 
 Final reconciliation must resolve remaining explicit questions rather than infer them, including:
 
-- Doctor-generated Assistant emergency recovery when email/SMS access is lost;
+- Doctor-generated Assistant emergency recovery when both verified email and phone access are lost;
 - whether recent login itself satisfies contact-change reauthentication or a fresh password/passkey prompt is required;
 - whether general login/auth throttling belongs in Phase 8 or Phase 10;
-- all stale trusted-device wording, including the now-approved current-device non-removal rule.
+- stale trusted-device wording, including the approved current-device non-removal rule;
+- login wording: email or phone + password is accepted even before verification, while both contacts must be verified before clinic operational data opens.
 
 See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
@@ -244,4 +253,4 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 
 ## Current work
 
-**Phase 0–6 reconciliation is complete. Phase 7 clarification is next.**
+**Phase 0–7 reconciliation is complete. Phase 8 clarification is next.**
