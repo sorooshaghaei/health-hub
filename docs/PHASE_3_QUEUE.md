@@ -1,6 +1,6 @@
 # Phase 3 — Check-in and live queue
 
-Status: **Implemented, with the current membership and clinic-timezone contract documented here.**
+Status: **Implemented, with the current account-role, clinic-membership, and clinic-timezone contract documented here.**
 
 ## Workflow state
 
@@ -35,16 +35,16 @@ Browser-local formatting may still be used where appropriate for presentation, b
 - only an Appointment dated today in the clinic's operational timezone can be checked in;
 - future and past Appointments cannot enter today's queue;
 - an Appointment that already entered the clinic workflow cannot be checked in again;
-- an Assistant membership in Assistant workspace may perform check-in and queue operations;
-- a Doctor membership opened in Assistant workspace has the same administrative controls;
-- a Doctor membership in Doctor workspace views the queue but does not perform Phase 3 mutations;
-- an Assistant membership cannot open Doctor workspace.
+- an Assistant account with an active clinic membership in Assistant workspace may perform check-in and queue operations;
+- a Doctor account with an active clinic membership opened in Assistant workspace has the same administrative controls;
+- a Doctor account in Doctor workspace views the queue but does not perform Phase 3 mutations;
+- an Assistant account cannot open Doctor workspace.
 
 ## Clinic isolation
 
 The live queue belongs to exactly one clinic.
 
-Patient, Appointment, check-in, queue sequence, and later consultation state are resolved through the active clinic membership. If the same personal account belongs to several clinics, every clinic has an independent daily Appointment list and live queue.
+Patient, Appointment, check-in, queue sequence, and later consultation state are resolved through the active clinic membership. If the same permanent-role personal account belongs to several clinics, every clinic has an independent daily Appointment list and live queue.
 
 Switching clinics never carries queue state, queue positions, check-in ordering, or Room-ready state from one clinic into another.
 
@@ -146,7 +146,7 @@ POST /api/visits/<visit-id>/undo-delete/
 POST /api/patients/<patient-id>/undo-delete/
 ```
 
-Queue access is clinic-scoped through the active membership. Mutation endpoints require Assistant workspace, whether it is opened by an Assistant membership or by a Doctor membership using administrator access.
+Queue access is clinic-scoped through the active membership. Mutation endpoints require Assistant workspace, whether opened by an Assistant account or by a Doctor account using administrator access.
 
 ## Phase 3 invariants
 
