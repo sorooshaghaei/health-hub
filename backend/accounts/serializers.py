@@ -45,6 +45,7 @@ class TrustedDeviceSerializer(serializers.ModelSerializer):
 
 class MembershipSerializer(serializers.ModelSerializer):
     clinic = ClinicSummarySerializer(read_only=True)
+    role = serializers.CharField(source="user.role", read_only=True)
     is_clinic_admin = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -57,20 +58,20 @@ class StaffSerializer(serializers.ModelSerializer):
     email_verified = serializers.SerializerMethodField()
     phone_verified = serializers.SerializerMethodField()
     account_ready = serializers.SerializerMethodField()
-    role = serializers.SerializerMethodField()
     workspace_role = serializers.SerializerMethodField()
     is_clinic_admin = serializers.SerializerMethodField()
     clinic = serializers.SerializerMethodField()
     memberships = serializers.SerializerMethodField()
     has_doctor_membership = serializers.BooleanField(read_only=True)
+    device_trusted = serializers.SerializerMethodField()
 
     class Meta:
         model = StaffUser
         fields = [
-            "id", "email", "phone", "first_name", "last_name", "display_name",
-            "email_verified", "phone_verified", "account_ready", "role",
-            "workspace_role", "is_clinic_admin", "clinic", "memberships",
-            "has_doctor_membership",
+            "id", "role", "email", "phone", "first_name", "last_name", "display_name",
+            "email_verified", "phone_verified", "account_ready", "workspace_role",
+            "is_clinic_admin", "clinic", "memberships", "has_doctor_membership",
+            "device_trusted",
         ]
 
     def _membership(self):
@@ -89,10 +90,6 @@ class StaffSerializer(serializers.ModelSerializer):
     def get_account_ready(self, obj):
         return obj.contacts_verified
 
-    def get_role(self, obj):
-        membership = self._membership()
-        return membership.role if membership is not None else None
-
     def get_workspace_role(self, obj):
         explicit = self.context.get("workspace_role")
         if explicit is not None:
@@ -109,8 +106,13 @@ class StaffSerializer(serializers.ModelSerializer):
         return ClinicSummarySerializer(membership.clinic).data if membership else None
 
     def get_memberships(self, obj):
-        memberships = obj.memberships.filter(is_active=True).select_related("clinic")
+        memberships = obj.memberships.filter(is_active=True).select_related("clinic", "user")
         return MembershipSerializer(memberships, many=True).data
+
+    def get_device_trusted(self, obj):
+        request = self.context.get("request")
+        device = getattr(getattr(request, "auth", None), "trusted_device", None)
+        return bool(device and device.user_id == obj.id)
 
 
 class StaffRegistrationSerializer(serializers.Serializer):
@@ -121,7 +123,6 @@ class StaffRegistrationSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True, trim_whitespace=False)
     password_confirm = serializers.CharField(write_only=True, trim_whitespace=False)
-    setup_code = serializers.CharField(max_length=32, required=False, allow_blank=False)
 
     def validate_email(self, value):
         value = value.strip().lower()
@@ -141,7 +142,13 @@ class StaffRegistrationSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
-        candidate = StaffUser(email=attrs["email"], phone=attrs["phone"], first_name=attrs["first_name"], last_name=attrs["last_name"])
+        candidate = StaffUser(
+            email=attrs["email"],
+            phone=attrs["phone"],
+            first_name=attrs["first_name"],
+            last_name=attrs["last_name"],
+            role=attrs["role"],
+        )
         try:
             validate_password(attrs["password"], user=candidate)
         except DjangoValidationError as exc:
@@ -150,13 +157,12 @@ class StaffRegistrationSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         validated_data.pop("password_confirm")
-        validated_data.pop("role")
-        validated_data.pop("setup_code", None)
         password = validated_data.pop("password")
         return StaffUser.objects.create_user(password=password, **validated_data)
 
 
 class StaffLoginSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=StaffUser.Role.choices)
     identity = serializers.CharField(max_length=254)
     password = serializers.CharField(trim_whitespace=False)
 
@@ -171,9 +177,13 @@ class StaffLoginSerializer(serializers.Serializer):
         query = Q(email__iexact=identity.lower())
         if phone:
             query |= Q(phone=phone)
-        user = StaffUser.objects.filter(query, is_active=True).first()
-        if user is None or not user.check_password(attrs["password"]):
-            raise serializers.ValidationError("Email/phone or password is incorrect.")
+        user = StaffUser.objects.filter(query, is_active=True, anonymized_at__isnull=True).first()
+        if (
+            user is None
+            or user.role != attrs["role"]
+            or not user.check_password(attrs["password"])
+        ):
+            raise serializers.ValidationError("Role, email/phone, or password is incorrect.")
         attrs["user"] = user
         return attrs
 
@@ -203,7 +213,7 @@ class SelectClinicSerializer(serializers.Serializer):
 
 
 class DevicePairingStartSerializer(serializers.Serializer):
-    clinic_id = serializers.UUIDField()
+    pass
 
 
 class DevicePairingCodeSerializer(serializers.Serializer):
@@ -286,10 +296,12 @@ class PasskeyRegisterCompleteSerializer(serializers.Serializer):
 
 
 class PasskeyAuthenticateBeginSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=StaffUser.Role.choices)
     identity = serializers.CharField(max_length=254)
 
 
 class PasskeyAuthenticateCompleteSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(choices=StaffUser.Role.choices)
     identity = serializers.CharField(max_length=254)
     credential = serializers.JSONField()
 
@@ -308,4 +320,13 @@ class AssistantSetupSerializer(serializers.Serializer):
 
 class AssistantSetupClaimSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=32)
-    workspace_role = serializers.ChoiceField(choices=StaffUser.Role.choices, default=StaffUser.Role.ASSISTANT)
+
+
+class AccountDeleteSerializer(serializers.Serializer):
+    confirmation = serializers.CharField(max_length=32)
+    current_password = serializers.CharField(required=False, allow_blank=False, trim_whitespace=False, write_only=True)
+
+    def validate_confirmation(self, value):
+        if value.strip().upper() != "DELETE":
+            raise serializers.ValidationError("Type DELETE to confirm permanent account deletion.")
+        return value
