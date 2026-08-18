@@ -23,8 +23,9 @@ Alignment completed so far:
 - Phase 1 — Patient records: specification corrected to membership/workspace and multi-clinic terminology; implementation already matched.
 - Phase 2 — Appointments: specification corrected to current clinic-scoped architecture; implementation already matched.
 - Phase 3 — Check-in/live queue: specification corrected and clinic operational timezone implemented.
+- Phase 4 — Room ready/consultation handoff: specification corrected to membership/workspace, clinic isolation, clinic timezone, and final Completed semantics; implementation already matched and permission regression coverage was strengthened.
 
-Next clarification target: **Phase 4 — Room ready and consultation handoff**.
+Next clarification target: **Phase 5 — Completed consultation behavior**.
 
 Do not begin Phase 9 while this Phase 0–8 reconciliation is still in progress.
 
@@ -131,7 +132,7 @@ The backend activates the selected clinic timezone for clinic-scoped requests an
 
 Migration `accounts.0008_clinic_timezone` adds the persisted clinic timezone field.
 
-## Implemented clinic workflow through Phase 3
+## Implemented clinic workflow through Phase 4
 
 ### Patients
 
@@ -176,11 +177,31 @@ PLANNED → CHECKED_IN
 - check-in and eligible destructive actions use the five-second server-enforced Undo;
 - live queue refresh uses the existing three-second authenticated polling.
 
-## Existing Phase 4–8 implementation
+### Room ready and consultation handoff
 
-The repository already contains the Phase 4–8 features: Room ready/consultation handoff, Completed consultation behavior, shared tasks, private sticky, and Phase 8 account/recovery/security architecture.
+```text
+CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
+```
 
-However, their phase documents are being reviewed sequentially in the current reconciliation pass. When an older Phase 4–8 document conflicts with an explicitly corrected Phase 0–3 rule above, do not silently choose one: continue the phase-by-phase clarification process with the product owner.
+- **Room ready** is strictly a Doctor-membership + Doctor-workspace action;
+- Doctor membership in Assistant workspace cannot use Room ready there;
+- Assistant workspace may perform **With doctor**, whether opened by the Assistant membership or by the Doctor membership as administrator;
+- consultation/current-Patient/Room-ready state is strictly clinic-scoped;
+- the clinic operational timezone determines the active consultation day;
+- one pending Room-ready call maximum per clinic;
+- Room ready has five-second server-enforced Undo before Assistant-side notification;
+- after the Undo period, Assistant workspace receives one short sound plus persistent visual indication;
+- first waiting Patient is suggested but any checked-in Patient may be selected;
+- With doctor preserves the original queue sequence and has its own five-second Undo;
+- the current `WITH_DOCTOR` Appointment becomes `DOCTOR_FINISHED` / **Completed** when the Doctor next uses Room ready;
+- no Checkout workflow exists;
+- synchronization remains authenticated three-second polling.
+
+## Existing Phase 5–8 implementation
+
+The repository already contains Phase 5–8 features: final Completed consultation behavior, shared tasks, private sticky, and Phase 8 account/recovery/security architecture.
+
+Their phase documents are being reviewed sequentially in the current reconciliation pass. When an older Phase 5–8 document conflicts with an explicitly corrected Phase 0–4 rule above, do not silently choose one: continue the phase-by-phase clarification process with the product owner.
 
 The Phase 8 Pages parity correction remains an invariant: production and GitHub Pages render the same React product UI. Pages substitutes only the browser-local API/security storage layer and must not expose a separate username/demo application.
 
@@ -209,6 +230,6 @@ Do not enter real Patient information into the public demo.
 
 ## Next action
 
-Continue with **Phase 4 clarification**. Do not implement Phase 4 corrections until its behavior is fully approved.
+Continue with **Phase 5 clarification**. Do not implement Phase 5 corrections until its behavior is fully approved.
 
 After Phase 8 reconciliation is complete, perform a final repository-wide documentation/code consistency audit before considering Phase 9.
