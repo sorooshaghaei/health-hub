@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import StaffUser
-from accounts.permissions import active_membership_role
+from accounts.permissions import active_membership
 from patients.models import Patient
 from patients.views import clinic_for_staff
 
@@ -14,8 +14,9 @@ from .models import SharedTask, TaskComment
 from .serializers import SharedTaskSerializer, TaskCommentSerializer, TaskCommentWriteSerializer, TaskWriteSerializer
 
 
-def require_doctor_membership(request):
-    if active_membership_role(request) != StaffUser.Role.DOCTOR:
+def require_doctor_account(request):
+    active_membership(request)
+    if request.user.role != StaffUser.Role.DOCTOR:
         raise PermissionDenied("Only the Doctor can create, edit, or remove shared tasks.")
 
 
@@ -58,7 +59,7 @@ def patient_for_task(clinic, patient_id):
 
 
 def ensure_task_creator(request, task):
-    require_doctor_membership(request)
+    require_doctor_account(request)
     if task.created_by_id != request.user.id: raise PermissionDenied("Only the Doctor who created this task can edit it.")
 
 
@@ -90,7 +91,7 @@ class SharedTaskListCreateView(APIView):
         base = SharedTask.objects.select_related("patient", "created_by", "completed_by").filter(clinic=clinic)
         return Response({"open_tasks": SharedTaskSerializer(base.filter(status=SharedTask.Status.OPEN).order_by("created_at", "id"), many=True).data, "completed_tasks": SharedTaskSerializer(base.filter(status=SharedTask.Status.DONE).order_by("-completed_at", "-created_at", "-id"), many=True).data})
     def post(self, request):
-        require_doctor_membership(request); clinic=clinic_for_staff(request); serializer=TaskWriteSerializer(data=request.data); serializer.is_valid(raise_exception=True); data=serializer.validated_data
+        require_doctor_account(request); clinic=clinic_for_staff(request); serializer=TaskWriteSerializer(data=request.data); serializer.is_valid(raise_exception=True); data=serializer.validated_data
         task=SharedTask.objects.create(clinic=clinic, created_by=request.user, patient=patient_for_task(clinic, data.get("patient_id")), title=data["title"], description=data.get("description", ""), due_date=data.get("due_date"))
         return Response(SharedTaskSerializer(task).data, status=status.HTTP_201_CREATED)
 
@@ -105,7 +106,7 @@ class SharedTaskDetailView(APIView):
         if "patient_id" in data: task.patient=patient_for_task(task.clinic, data["patient_id"])
         task.save(); return Response(SharedTaskSerializer(task).data)
     def delete(self, request, task_id):
-        require_doctor_membership(request)
+        require_doctor_account(request)
         with transaction.atomic(): task=active_task_for_request(request, task_id, lock=True); task.soft_delete()
         return Response({"code":"task_deleted","detail":"Task deleted.","task_id":str(task.id),"undo_until":task.delete_undo_until})
 
@@ -131,7 +132,7 @@ class SharedTaskUndoDoneView(APIView):
 
 class SharedTaskUndoDeleteView(APIView):
     def post(self, request, task_id):
-        require_doctor_membership(request)
+        require_doctor_account(request)
         with transaction.atomic():
             task=deleted_task_for_request(request, task_id, lock=True)
             if timezone.now() > task.delete_undo_until: return Response({"code":"undo_expired","detail":"The five-second Undo period has expired."}, status=status.HTTP_400_BAD_REQUEST)
