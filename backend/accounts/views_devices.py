@@ -1,10 +1,16 @@
 from .view_helpers import *  # noqa: F401,F403
 
 
+def require_current_trusted_device(request):
+    device = request.auth.trusted_device
+    if device is None or device.user_id != request.user.id:
+        raise PermissionDenied("Authorize this browser before managing trusted devices.")
+    return device
+
+
 class DevicePairingApproveView(APIView):
     def post(self, request):
-        if request.auth.trusted_device_id is None:
-            raise PermissionDenied("Use a trusted device to approve another browser.")
+        require_current_trusted_device(request)
         serializer = DevicePairingCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
@@ -84,13 +90,14 @@ class DeviceContactAuthorizationConfirmView(APIView):
 
 class TrustedDeviceListView(APIView):
     def get(self, request):
+        current = require_current_trusted_device(request)
         devices = request.user.trusted_devices.all()
         return Response(
             {
                 "devices": TrustedDeviceSerializer(
                     devices,
                     many=True,
-                    context={"current_device_id": request.auth.trusted_device_id},
+                    context={"current_device_id": current.id},
                 ).data
             }
         )
@@ -98,6 +105,7 @@ class TrustedDeviceListView(APIView):
 
 class TrustedDeviceDeleteView(APIView):
     def delete(self, request, device_id):
+        current = require_current_trusted_device(request)
         try:
             device = request.user.trusted_devices.get(pk=device_id)
         except TrustedDevice.DoesNotExist:
@@ -106,7 +114,7 @@ class TrustedDeviceDeleteView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if device.id == request.auth.trusted_device_id:
+        if device.id == current.id:
             return Response(
                 {"detail": "The current trusted device cannot be removed."},
                 status=status.HTTP_400_BAD_REQUEST,
