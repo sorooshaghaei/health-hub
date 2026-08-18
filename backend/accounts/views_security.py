@@ -327,9 +327,38 @@ class StaffAccountDeleteView(APIView):
     def delete(self, request):
         if request.user.role != StaffUser.Role.DOCTOR:
             raise PermissionDenied("Assistant accounts cannot be deleted from account settings.")
+        if request.auth.trusted_device_id is None:
+            raise PermissionDenied("Authorize this browser before deleting the Doctor account.")
         serializer = AccountDeleteSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
         reauthenticate_if_needed(request, serializer.validated_data.get("current_password"))
-        user = request.user
-        user.delete()
+
+        doctor = request.user
+        with transaction.atomic():
+            owned_clinics = list(doctor.owned_clinics.select_for_update())
+            clinic_ids = [clinic.id for clinic in owned_clinics]
+            assistant_ids = list(
+                StaffMembership.objects.filter(
+                    clinic_id__in=clinic_ids,
+                    is_active=True,
+                    user__role=StaffUser.Role.ASSISTANT,
+                ).values_list("user_id", flat=True)
+            )
+
+            # Delete clinics before the Doctor account. Clinic deletion removes
+            # clinic-owned tasks/comments first, so their protected author
+            # references cannot block the intentional destructive cascade.
+            Clinic.objects.filter(id__in=clinic_ids).delete()
+
+            dormant_at = timezone.now()
+            for assistant in StaffUser.objects.filter(
+                id__in=assistant_ids,
+                role=StaffUser.Role.ASSISTANT,
+                is_active=True,
+            ):
+                if not assistant.memberships.filter(is_active=True).exists():
+                    assistant.dormant_since = dormant_at
+                    assistant.save(update_fields=["dormant_since"])
+
+            doctor.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
