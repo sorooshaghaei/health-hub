@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { demoApiRequest } from "../src/demoApi.js";
@@ -98,4 +99,10 @@ test("Phase 7 demo hides all private notes from Doctor administrator access", as
     }),
     (error) => error.status === 403,
   );
+});
+
+test("Phase 7 minimized sticky never previews private text", () => {
+  const source = readFileSync(new URL("../src/PrivateSticky.jsx", import.meta.url), "utf8");
+  assert.match(source, /private-sticky__preview">Private note<\/span>/);
+  assert.doesNotMatch(source, /content\.trim\(\)\.split/);
 });
