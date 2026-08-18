@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AccountSettings from "./AccountSettings.jsx";
 import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
@@ -294,31 +294,36 @@ export default function ProductionApp() {
     setScreen("clinics");
   }
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
     async function restore() {
       const token = localStorage.getItem(STAFF_TOKEN_KEY);
-      if (!token) { setScreen("role"); return; }
+      if (!token) { if (!cancelled) setScreen("role"); return; }
       try {
         const payload = await apiRequest("/api/staff/me/", { staffToken: token });
+        if (cancelled) return;
         setRole(payload.user.role); setStaffToken(token); await routeReady(payload.user, token);
       } catch {
+        if (cancelled) return;
         localStorage.removeItem(STAFF_TOKEN_KEY);
         setStaffToken(null); setUser(null); setScreen("role");
       }
     }
     restore();
-    return null;
-  });
+    return () => { cancelled = true; };
+  }, []);
 
   async function login(form) {
-    const payload = await apiRequest("/api/staff/login/", { method: "POST", data: { role, ...form } });
+    const deviceToken = localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY);
+    const payload = await apiRequest("/api/staff/login/", { method: "POST", deviceToken, data: { role, ...form } });
     saveSession(payload.session_token); await routeReady(payload.user, payload.session_token);
   }
 
   async function passkeyLogin(identity) {
     const begin = await apiRequest("/api/passkeys/auth/options/", { method: "POST", data: { role, identity } });
     const credential = await getPasskey(begin.public_key);
-    const payload = await apiRequest("/api/passkeys/auth/complete/", { method: "POST", data: { role, identity, credential } });
+    const deviceToken = localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY);
+    const payload = await apiRequest("/api/passkeys/auth/complete/", { method: "POST", deviceToken, data: { role, identity, credential } });
     saveSession(payload.session_token); await routeReady(payload.user, payload.session_token);
   }
 
