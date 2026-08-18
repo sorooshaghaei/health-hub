@@ -39,11 +39,11 @@ class AuthenticationFlowTests(APITestCase):
     def setUp(self):
         sent_sms.clear()
 
-    def create_clinic(self, name="North Clinic", client=None):
+    def create_clinic(self, name="North Clinic", client=None, timezone_name="Europe/Paris"):
         client = client or self.client
         response = client.post(
             "/api/clinics/",
-            {"name": name},
+            {"name": name, "timezone": timezone_name},
             format="json",
             HTTP_USER_AGENT=self.user_agent,
         )
@@ -129,17 +129,23 @@ class AuthenticationFlowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response
 
-    def test_new_clinic_has_name_only_and_first_browser_is_trusted(self):
+    def test_new_clinic_has_timezone_and_first_browser_is_trusted(self):
         payload = self.create_clinic()
         clinic = Clinic.objects.get(pk=payload["clinic"]["id"])
-        self.assertEqual({field.name for field in Clinic._meta.fields}, {"id", "name", "created_at", "updated_at"})
+        self.assertEqual(
+            {field.name for field in Clinic._meta.fields},
+            {"id", "name", "timezone", "created_at", "updated_at"},
+        )
         self.assertEqual(clinic.name, "North Clinic")
+        self.assertEqual(clinic.timezone, "Europe/Paris")
+        self.assertEqual(payload["clinic"]["timezone"], "Europe/Paris")
         self.assertFalse(payload["roles"]["doctor"]["exists"])
         self.assertEqual(clinic.trusted_devices.count(), 1)
         self.assertEqual(payload["trusted_device"]["browser"], "Chrome")
         context = self.client.get("/api/clinic/context/", HTTP_X_DEVICE_TOKEN=payload["device_token"])
         self.assertEqual(context.status_code, status.HTTP_200_OK)
         self.assertEqual(context.data["clinic"]["id"], str(clinic.id))
+        self.assertEqual(context.data["clinic"]["timezone"], "Europe/Paris")
         self.assertEqual(self.client.get("/api/clinic/context/").status_code, status.HTTP_403_FORBIDDEN)
 
     def test_both_contacts_must_be_verified_before_clinic_data_opens(self):
@@ -262,7 +268,7 @@ class AuthenticationFlowTests(APITestCase):
         selected = self.select_clinic(token, membership, confirm.data["device_token"], client=fresh)
         self.assertEqual(selected.data["user"]["clinic"]["id"], membership["clinic"]["id"])
 
-    def test_pairing_remains_an_alternative_and_last_device_can_be_removed(self):
+    def test_pairing_remains_an_alternative_and_current_device_cannot_be_removed(self):
         clinic = self.create_clinic()
         registered = self.register(clinic)
         self.verify_contacts(registered.data["session_token"], clinic["device_token"])
@@ -292,19 +298,23 @@ class AuthenticationFlowTests(APITestCase):
         self.assertEqual(claim.data["status"], "approved")
         self.assertEqual(TrustedDevice.objects.count(), 2)
 
-        # Phase 8 recovery removes the old last-device lockout.
-        other_device = TrustedDevice.objects.exclude(token_hash=TrustedDevice.objects.first().token_hash).first()
-        self.assertIsNotNone(other_device)
-        # Remove both devices from sessions bound to each device, one at a time.
         self.select_clinic(global_token, membership, claim.data["device_token"])
-        for device in list(TrustedDevice.objects.filter(clinic_id=membership["clinic"]["id"])):
-            response = self.client.delete(
-                f"/api/devices/{device.id}/",
-                **self.auth(global_token, claim.data["device_token"]),
-            )
-            if device.token_hash == self.client.cookies.get(f"health_hub_device_{str(membership['clinic']['id']).replace('-', '')}", ""):
-                break
-            self.assertIn(response.status_code, {status.HTTP_204_NO_CONTENT, status.HTTP_401_UNAUTHORIZED})
+        current_device_id = claim.data["trusted_device"]["id"]
+        blocked = self.client.delete(
+            f"/api/devices/{current_device_id}/",
+            **self.auth(global_token, claim.data["device_token"]),
+        )
+        self.assertEqual(blocked.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(blocked.data["detail"], "The current trusted device cannot be removed.")
+        self.assertEqual(TrustedDevice.objects.count(), 2)
+
+        other_device = TrustedDevice.objects.exclude(pk=current_device_id).get()
+        removed = self.client.delete(
+            f"/api/devices/{other_device.id}/",
+            **self.auth(global_token, claim.data["device_token"]),
+        )
+        self.assertEqual(removed.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(TrustedDevice.objects.count(), 1)
 
     def test_doctor_recovery_codes_are_one_time_and_assistant_is_denied(self):
         clinic = self.create_clinic()
