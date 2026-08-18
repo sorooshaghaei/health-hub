@@ -257,7 +257,6 @@ export default function PrivateSticky({ staffToken }) {
           width: frame.width,
           height: frame.height,
         };
-  const preview = content.trim().split("\n")[0] || "Private note";
 
   if (minimized) {
     return (
@@ -269,7 +268,7 @@ export default function PrivateSticky({ staffToken }) {
           onPointerUp={endInteraction}
           onPointerCancel={endInteraction}
         >
-          <span className="private-sticky__preview">{preview}</span>
+          <span className="private-sticky__preview">Private note</span>
           <button type="button" onClick={maximize} aria-label="Maximize private note">□</button>
         </div>
       </aside>
