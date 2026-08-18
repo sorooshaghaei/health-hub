@@ -287,10 +287,30 @@ export default function ProductionApp() {
     setUser(nextUser);
     if (!nextUser.account_ready) { setScreen("verify"); return; }
     if (nextUser.clinic && nextUser.workspace_role) { setScreen("workspace"); return; }
+
     const memberships = nextUser.memberships ?? [];
-    if (!memberships.length) { setScreen(nextUser.role === "doctor" ? "create-clinic" : "join-clinic"); return; }
-    if (!nextUser.device_trusted || !localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY)) { setScreen("device-auth"); return; }
-    if (!forcePicker && memberships.length === 1) { await openMembership(memberships[0], nextUser, token); return; }
+    const savedDevice = Boolean(localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY));
+
+    // A brand-new account has no trusted devices yet and gets its first device
+    // automatically when the first clinic is created/joined. A dormant or
+    // otherwise existing account that already has trusted devices must prove
+    // identity again before a new browser can rejoin a clinic.
+    if (!nextUser.device_trusted && nextUser.has_trusted_devices) {
+      setScreen("device-auth");
+      return;
+    }
+    if (!memberships.length) {
+      setScreen(nextUser.role === "doctor" ? "create-clinic" : "join-clinic");
+      return;
+    }
+    if (!nextUser.device_trusted || !savedDevice) {
+      setScreen("device-auth");
+      return;
+    }
+    if (!forcePicker && memberships.length === 1) {
+      await openMembership(memberships[0], nextUser, token);
+      return;
+    }
     setScreen("clinics");
   }
 
@@ -338,7 +358,7 @@ export default function ProductionApp() {
 
   async function deviceAuthorized(deviceToken, nextUser) {
     localStorage.setItem(ACTIVE_DEVICE_TOKEN_KEY, deviceToken);
-    await routeReady({ ...nextUser, device_trusted: true }, staffToken);
+    await routeReady({ ...nextUser, device_trusted: true, has_trusted_devices: true }, staffToken);
   }
 
   async function createClinic(name) {
