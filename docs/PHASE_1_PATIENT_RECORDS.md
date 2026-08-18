@@ -30,7 +30,7 @@ No address, Patient email, reminder, or additional field is approved.
 
 ## Clinic isolation
 
-Patient data belongs to the active clinic membership selected for the current session.
+Patient data belongs to the active clinic selected through the current account's active membership.
 
 A Doctor or Assistant personal account may belong to several clinics, but:
 
@@ -41,11 +41,11 @@ A Doctor or Assistant personal account may belong to several clinics, but:
 - switching clinics changes the available Patient data to the newly selected clinic;
 - Patient data from one clinic must never appear in another clinic merely because the same staff person belongs to both clinics.
 
-## Workspace and membership permissions
+## Account-role and workspace permissions
 
-Permissions come from the **active clinic membership and active workspace**, not from a permanent role field on the global personal account.
+The person's permanent account role determines Doctor/Assistant authority. The active clinic membership determines which clinic may be accessed, and the active workspace determines which operational controls are exposed.
 
-### Doctor membership in Doctor workspace
+### Doctor account in Doctor workspace
 
 The Doctor may:
 
@@ -55,7 +55,7 @@ The Doctor may:
 - not create or delete Patients;
 - not administer Appointments.
 
-### Assistant membership in Assistant workspace
+### Assistant account in Assistant workspace
 
 The Assistant may:
 
@@ -63,11 +63,11 @@ The Assistant may:
 - edit every approved Patient field;
 - manage Appointments, check-in, queue operations, and consultation handoff.
 
-### Doctor membership in Assistant workspace
+### Doctor account in Assistant workspace
 
-A Doctor membership may open Assistant workspace for administrator intervention and receives the same Patient-management controls available in that workspace, including Patient creation and deletion.
+A Doctor account with an active membership in the clinic may open Assistant workspace for administrator intervention and receives the same Patient-management controls available in that workspace, including Patient creation and deletion.
 
-An Assistant membership cannot open Doctor workspace.
+An Assistant account cannot open Doctor workspace.
 
 All Patient access remains clinic-scoped regardless of workspace.
 
@@ -83,7 +83,7 @@ Duplicate detection is limited to the active clinic. A matching Patient in anoth
 
 Patient deletion is an internal soft deletion with no visible archive state.
 
-- deletion is available only from Assistant workspace, including when a Doctor membership opens that workspace as administrator;
+- deletion is available only from Assistant workspace, including when a Doctor account opens that workspace as administrator;
 - current and future Appointments must be deleted first;
 - past Appointments remain historical through Patient identity snapshots;
 - the deleted Patient immediately disappears from active search and selection;
