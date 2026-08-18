@@ -96,6 +96,7 @@ function publicUser(store, account, session = null) {
     clinic: publicClinic(clinic), memberships,
     has_doctor_membership: account.role === "doctor" && memberships.length > 0,
     device_trusted: Boolean(device && device.user_id === account.id),
+    has_trusted_devices: store.devices.some((item) => item.user_id === account.id),
   };
 }
 function findAccountByIdentity(store, identity) {
@@ -126,6 +127,11 @@ function issueDevice(store, userId) {
 function deviceFromToken(store, token, userId = null) {
   const device = token ? store.devices.find((item) => item.token === token) : null;
   if (!device || (userId && device.user_id !== userId)) fail({ detail: "This browser is not trusted for this account." }, 403);
+  return device;
+}
+function currentTrustedDevice(store, session, account) {
+  const device = deviceForSession(store, session);
+  if (!device || device.user_id !== account.id) fail({ detail: "Authorize this browser before managing trusted devices." }, 403);
   return device;
 }
 function recentReauth(session) { return Boolean(session.reauthenticated_at && Date.now() - new Date(session.reauthenticated_at).getTime() <= REAUTH_TTL_MS); }
@@ -236,9 +242,12 @@ function deviceAuthorizationConfirm(store, staffToken, data) {
   const { session, account } = sessionFor(store, staffToken); consumeChallenge(store, account, "device_authorize", data.code); const issued = issueDevice(store, account.id); session.device_id = issued.device.id; saveAuthStore(store);
   return { device_token: issued.token, trusted_device: publicDevice(issued.device, issued.device.id), user: publicUser(store, account, session) };
 }
-function deviceList(store, staffToken) { const { session, account } = sessionFor(store, staffToken); return { devices: store.devices.filter((item) => item.user_id === account.id).map((item) => publicDevice(item, session.device_id)) }; }
+function deviceList(store, staffToken) {
+  const { session, account } = sessionFor(store, staffToken); const current = currentTrustedDevice(store, session, account);
+  return { devices: store.devices.filter((item) => item.user_id === account.id).map((item) => publicDevice(item, current.id)) };
+}
 function deviceDelete(store, staffToken, id) {
-  const { session, account } = sessionFor(store, staffToken); const device = store.devices.find((item) => item.id === id && item.user_id === account.id); if (!device) fail({ detail: "Trusted device not found." }, 404); if (session.device_id === id) fail({ detail: "The current trusted device cannot be removed." }, 400);
+  const { session, account } = sessionFor(store, staffToken); const current = currentTrustedDevice(store, session, account); const device = store.devices.find((item) => item.id === id && item.user_id === account.id); if (!device) fail({ detail: "Trusted device not found." }, 404); if (current.id === id) fail({ detail: "The current trusted device cannot be removed." }, 400);
   store.devices = store.devices.filter((item) => item.id !== id); for (const [token, other] of Object.entries(store.sessions)) if (other.device_id === id) delete store.sessions[token]; saveAuthStore(store); return null;
 }
 
@@ -282,9 +291,9 @@ function assistantRecovery(store, staffToken, data) { const current = clinicAssi
 function privateNote(store, staffToken, method, data) { const { session, account } = sessionFor(store, staffToken); if (!session.clinic_id || !membershipFor(store, account.id, session.clinic_id)) fail({ detail: "Choose a clinic first." }, 403); if (session.workspace_role !== account.role) fail({ detail: "Private notes are available only in your own workspace." }, 403); if (method === "GET") return { content: account.private_note ?? "" }; if (typeof data.content !== "string") fail({ content: ["Not a valid string."] }); account.private_note = data.content; saveAuthStore(store); return { content: account.private_note }; }
 function passkeyUnavailable(pathname, method) { if (pathname === "/api/passkeys/" && method === "GET") return { passkeys: [] }; fail({ detail: "Passkeys are not simulated as real WebAuthn security in the browser demo. Use email or phone with a password." }, 400); }
 
-function accountDeletePreview(store, staffToken) { const { account } = sessionFor(store, staffToken); if (account.role !== "doctor") fail({ detail: "Assistant accounts are managed through clinic memberships." }, 403); return { clinics: store.clinics.filter((c) => c.owner_doctor_id === account.id).map(publicClinic) }; }
+function accountDeletePreview(store, staffToken) { const { session, account } = sessionFor(store, staffToken); if (account.role !== "doctor") fail({ detail: "Assistant accounts are managed through clinic memberships." }, 403); currentTrustedDevice(store, session, account); return { clinics: store.clinics.filter((c) => c.owner_doctor_id === account.id).map(publicClinic) }; }
 async function deleteDoctorAccount(store, staffToken, data) {
-  const { session, account } = sessionFor(store, staffToken); if (account.role !== "doctor") fail({ detail: "Assistant accounts cannot be deleted from account settings." }, 403); if (clean(data.confirmation).toUpperCase() !== "DELETE") fail({ confirmation: ["Type DELETE to confirm permanent account deletion."] });
+  const { session, account } = sessionFor(store, staffToken); if (account.role !== "doctor") fail({ detail: "Assistant accounts cannot be deleted from account settings." }, 403); currentTrustedDevice(store, session, account); if (clean(data.confirmation).toUpperCase() !== "DELETE") fail({ confirmation: ["Type DELETE to confirm permanent account deletion."] });
   if (data.current_password) await reauthenticatePassword(store, staffToken, data.current_password); else if (!recentReauth(session)) fail({ detail: "Reauthenticate with your password or a passkey first." }, 403);
   const clinicIds = store.clinics.filter((c) => c.owner_doctor_id === account.id).map((c) => c.id); archiveLegacyStore(store); store.clinics = store.clinics.filter((c) => !clinicIds.includes(c.id)); const removedMemberships = store.memberships.filter((m) => clinicIds.includes(m.clinic_id)); store.memberships = store.memberships.filter((m) => !clinicIds.includes(m.clinic_id)); for (const m of removedMemberships) if (accountFor(store, m.user_id)?.role === "assistant") markDormantIfNeeded(store, m.user_id); for (const clinicId of clinicIds) delete store.clinic_data[clinicId]; store.devices = store.devices.filter((d) => d.user_id !== account.id); for (const [token, s] of Object.entries(store.sessions)) if (s.user_id === account.id) delete store.sessions[token]; store.accounts = store.accounts.filter((a) => a.id !== account.id); saveAuthStore(store); return null;
 }
