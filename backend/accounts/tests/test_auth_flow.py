@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import Clinic, StaffMembership, StaffSession, StaffUser, TrustedDevice
+from accounts.services import anonymize_dormant_assistants
 from patients.models import Patient
 
 
@@ -31,6 +32,7 @@ def code_from_message(message):
     SMS_SENDER="accounts.tests.test_auth_flow.capture_sms",
     VERIFICATION_RESEND_MIN_AGE=0,
     STAFF_SESSION_INACTIVITY_AGE=7200,
+    ASSISTANT_SETUP_MAX_AGE=86400,
 )
 class AuthenticationFlowTests(APITestCase):
     password = "Strong-staff-password-123"
@@ -39,46 +41,35 @@ class AuthenticationFlowTests(APITestCase):
     def setUp(self):
         sent_sms.clear()
 
-    def create_clinic(self, name="North Clinic", client=None, timezone_name="Europe/Paris"):
-        client = client or self.client
-        response = client.post(
-            "/api/clinics/",
-            {"name": name, "timezone": timezone_name},
-            format="json",
-            HTTP_USER_AGENT=self.user_agent,
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        return response.data
-
-    def register(self, clinic_payload, role="doctor", email="doctor@example.com", phone="+33611111111", client=None, setup_code=None):
-        client = client or self.client
-        data = {
-            "role": role,
-            "email": email,
-            "phone": phone,
-            "first_name": "Test",
-            "last_name": role.title(),
-            "password": self.password,
-            "password_confirm": self.password,
-        }
-        if setup_code:
-            data["setup_code"] = setup_code
-        extra = {}
-        if clinic_payload and clinic_payload.get("device_token"):
-            extra["HTTP_X_DEVICE_TOKEN"] = clinic_payload["device_token"]
-        response = client.post("/api/staff/register/", data, format="json", **extra)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        return response
-
     def auth(self, session_token, device_token=None):
         headers = {"HTTP_AUTHORIZATION": f"Bearer {session_token}"}
         if device_token:
             headers["HTTP_X_DEVICE_TOKEN"] = device_token
         return headers
 
-    def verify_contacts(self, session_token, device_token, client=None):
+    def register(self, role="doctor", email="doctor@example.com", phone="+33611111111", client=None):
         client = client or self.client
-        headers = self.auth(session_token, device_token)
+        response = client.post(
+            "/api/staff/register/",
+            {
+                "role": role,
+                "email": email,
+                "phone": phone,
+                "first_name": "Test",
+                "last_name": role.title(),
+                "password": self.password,
+                "password_confirm": self.password,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["user"]["role"], role)
+        self.assertFalse(response.data["user"]["account_ready"])
+        return response
+
+    def verify_contacts(self, session_token, client=None):
+        client = client or self.client
+        headers = self.auth(session_token)
         email_request = client.post("/api/staff/verify/email/request/", {}, format="json", **headers)
         self.assertEqual(email_request.status_code, status.HTTP_200_OK)
         email_code = code_from_message(mail.outbox[-1].body)
@@ -103,156 +94,168 @@ class AuthenticationFlowTests(APITestCase):
         self.assertTrue(phone_confirm.data["user"]["account_ready"])
         return phone_confirm.data["user"]
 
-    def global_login(self, identity="doctor@example.com", client=None):
-        client = client or self.client
-        response = client.post(
-            "/api/staff/login/",
-            {"identity": identity, "password": self.password},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIsNone(response.data["user"]["clinic"])
-        self.assertIsNone(response.data["user"]["workspace_role"])
-        return response
-
-    def select_clinic(self, session_token, membership, device_token, workspace_role=None, client=None):
-        client = client or self.client
-        response = client.post(
-            "/api/staff/select-clinic/",
-            {
-                "clinic_id": membership["clinic"]["id"],
-                "workspace_role": workspace_role or membership["role"],
-            },
-            format="json",
-            **self.auth(session_token, device_token),
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        return response
-
-    def test_new_clinic_has_timezone_and_first_browser_is_trusted(self):
-        payload = self.create_clinic()
-        clinic = Clinic.objects.get(pk=payload["clinic"]["id"])
-        self.assertEqual(
-            {field.name for field in Clinic._meta.fields},
-            {"id", "name", "timezone", "created_at", "updated_at"},
-        )
-        self.assertEqual(clinic.name, "North Clinic")
-        self.assertEqual(clinic.timezone, "Europe/Paris")
-        self.assertEqual(payload["clinic"]["timezone"], "Europe/Paris")
-        self.assertFalse(payload["roles"]["doctor"]["exists"])
-        self.assertEqual(clinic.trusted_devices.count(), 1)
-        self.assertEqual(payload["trusted_device"]["browser"], "Chrome")
-        context = self.client.get("/api/clinic/context/", HTTP_X_DEVICE_TOKEN=payload["device_token"])
-        self.assertEqual(context.status_code, status.HTTP_200_OK)
-        self.assertEqual(context.data["clinic"]["id"], str(clinic.id))
-        self.assertEqual(context.data["clinic"]["timezone"], "Europe/Paris")
-        self.assertEqual(self.client.get("/api/clinic/context/").status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_both_contacts_must_be_verified_before_clinic_data_opens(self):
-        clinic = self.create_clinic()
-        registered = self.register(clinic)
+    def create_doctor_clinic(self, name="North Clinic", email="doctor@example.com", phone="+33611111111"):
+        registered = self.register("doctor", email, phone)
         token = registered.data["session_token"]
-        blocked = self.client.get("/api/patients/", **self.auth(token, clinic["device_token"]))
+        self.verify_contacts(token)
+        created = self.client.post(
+            "/api/clinics/",
+            {"name": name, "timezone": "Europe/Paris"},
+            format="json",
+            HTTP_USER_AGENT=self.user_agent,
+            **self.auth(token),
+        )
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        return registered, created
+
+    def create_assistant_for_clinic(self, doctor_token, doctor_device, *, email="assistant@example.com", phone="+33622222222"):
+        setup = self.client.post(
+            "/api/clinic/assistant/setup/",
+            {"replace_existing": False},
+            format="json",
+            **self.auth(doctor_token, doctor_device),
+        )
+        self.assertEqual(setup.status_code, status.HTTP_201_CREATED)
+        assistant = self.register("assistant", email, phone)
+        assistant_token = assistant.data["session_token"]
+        self.verify_contacts(assistant_token)
+        claim = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup.data["setup_code"]},
+            format="json",
+            HTTP_USER_AGENT=self.user_agent,
+            **self.auth(assistant_token),
+        )
+        self.assertEqual(claim.status_code, status.HTTP_201_CREATED)
+        return assistant, claim
+
+    def login(self, role, identity, *, client=None, device_token=None):
+        client = client or self.client
+        extra = {"HTTP_X_DEVICE_TOKEN": device_token} if device_token else {}
+        return client.post(
+            "/api/staff/login/",
+            {"role": role, "identity": identity, "password": self.password},
+            format="json",
+            **extra,
+        )
+
+    def select_clinic(self, token, clinic_id, role, device_token, *, client=None):
+        client = client or self.client
+        return client.post(
+            "/api/staff/select-clinic/",
+            {"clinic_id": clinic_id, "workspace_role": role},
+            format="json",
+            **self.auth(token, device_token),
+        )
+
+    def test_account_role_is_permanent_and_wrong_role_login_is_rejected(self):
+        registered, created = self.create_doctor_clinic()
+        user = StaffUser.objects.get(email="doctor@example.com")
+        membership = user.memberships.get()
+        self.assertEqual(user.role, StaffUser.Role.DOCTOR)
+        self.assertEqual(membership.role, StaffUser.Role.DOCTOR)
+        self.assertNotIn("role", {field.name for field in StaffMembership._meta.fields})
+        self.assertEqual(created.data["user"]["role"], "doctor")
+
+        wrong = self.login("assistant", "doctor@example.com", device_token=created.data["device_token"])
+        self.assertEqual(wrong.status_code, status.HTTP_400_BAD_REQUEST)
+        correct = self.login("doctor", "doctor@example.com", device_token=created.data["device_token"])
+        self.assertEqual(correct.status_code, status.HTTP_200_OK)
+        self.assertTrue(correct.data["user"]["device_trusted"])
+
+    def test_both_contacts_are_required_before_doctor_can_create_clinic(self):
+        registered = self.register()
+        token = registered.data["session_token"]
+        blocked = self.client.post(
+            "/api/clinics/",
+            {"name": "Blocked Clinic", "timezone": "Europe/Paris"},
+            format="json",
+            **self.auth(token),
+        )
         self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
-        user = self.verify_contacts(token, clinic["device_token"])
-        self.assertTrue(user["email_verified"])
-        self.assertTrue(user["phone_verified"])
-        allowed = self.client.get("/api/patients/", **self.auth(token, clinic["device_token"]))
-        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+        self.verify_contacts(token)
+        allowed = self.client.post(
+            "/api/clinics/",
+            {"name": "Allowed Clinic", "timezone": "Europe/Paris"},
+            format="json",
+            HTTP_USER_AGENT=self.user_agent,
+            **self.auth(token),
+        )
+        self.assertEqual(allowed.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(allowed.data["user"]["workspace_role"], "doctor")
+        self.assertEqual(Clinic.objects.get().owner_doctor.email, "doctor@example.com")
+        self.assertEqual(TrustedDevice.objects.get().user.email, "doctor@example.com")
 
-    def test_global_login_accepts_email_or_phone_then_clinic_is_selected(self):
-        clinic = self.create_clinic()
-        registered = self.register(clinic)
-        self.verify_contacts(registered.data["session_token"], clinic["device_token"])
-        self.client.post("/api/staff/logout/", {}, format="json", **self.auth(registered.data["session_token"], clinic["device_token"]))
+    def test_assistant_cannot_create_clinic_and_joins_with_doctor_setup_code(self):
+        doctor, clinic = self.create_doctor_clinic()
+        assistant, claim = self.create_assistant_for_clinic(
+            doctor.data["session_token"],
+            clinic.data["device_token"],
+        )
+        self.assertEqual(claim.data["user"]["role"], "assistant")
+        self.assertEqual(claim.data["user"]["workspace_role"], "assistant")
+        self.assertTrue(claim.data["device_token"])
+        assistant_token = assistant.data["session_token"]
+        blocked = self.client.post(
+            "/api/clinics/",
+            {"name": "Assistant Clinic", "timezone": "Europe/Paris"},
+            format="json",
+            **self.auth(assistant_token, claim.data["device_token"]),
+        )
+        self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
 
-        for identity in ("doctor@example.com", "+33611111111"):
-            login = self.global_login(identity)
-            membership = login.data["user"]["memberships"][0]
-            selected = self.select_clinic(login.data["session_token"], membership, clinic["device_token"])
-            self.assertEqual(selected.data["user"]["role"], "doctor")
-            self.assertEqual(selected.data["user"]["workspace_role"], "doctor")
-            self.client.post("/api/staff/logout/", {}, format="json", **self.auth(login.data["session_token"], clinic["device_token"]))
+    def test_global_trusted_device_works_for_multiple_doctor_clinics(self):
+        registered, first = self.create_doctor_clinic("First Clinic")
+        token = registered.data["session_token"]
+        device = first.data["device_token"]
+        second = self.client.post(
+            "/api/clinics/",
+            {"name": "Second Clinic", "timezone": "Europe/Paris"},
+            format="json",
+            **self.auth(token, device),
+        )
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn("device_token", second.data)
+        self.assertEqual(TrustedDevice.objects.filter(user__email="doctor@example.com").count(), 1)
 
-    def test_doctor_membership_can_open_assistant_workspace_but_assistant_cannot_open_doctor(self):
-        clinic = self.create_clinic()
-        doctor = self.register(clinic)
-        self.verify_contacts(doctor.data["session_token"], clinic["device_token"])
-        login = self.global_login()
-        membership = login.data["user"]["memberships"][0]
-        admin = self.select_clinic(login.data["session_token"], membership, clinic["device_token"], "assistant")
+        leave = self.client.post("/api/staff/leave-clinic/", {}, format="json", **self.auth(token, device))
+        self.assertEqual(leave.status_code, status.HTTP_200_OK)
+        first_id = first.data["clinic"]["id"]
+        selected = self.select_clinic(token, first_id, "doctor", device)
+        self.assertEqual(selected.status_code, status.HTTP_200_OK)
+        self.assertEqual(selected.data["user"]["clinic"]["id"], first_id)
+
+    def test_doctor_defaults_to_doctor_role_but_can_open_assistant_workspace_as_admin(self):
+        registered, clinic = self.create_doctor_clinic()
+        token = registered.data["session_token"]
+        device = clinic.data["device_token"]
+        clinic_id = clinic.data["clinic"]["id"]
+        admin = self.select_clinic(token, clinic_id, "assistant", device)
+        self.assertEqual(admin.status_code, status.HTTP_200_OK)
         self.assertEqual(admin.data["user"]["role"], "doctor")
         self.assertEqual(admin.data["user"]["workspace_role"], "assistant")
 
-        assistant_clinic = self.create_clinic("Assistant Clinic")
-        assistant = self.register(assistant_clinic, role="assistant", email="assistant@example.com", phone="+33622222222")
-        self.verify_contacts(assistant.data["session_token"], assistant_clinic["device_token"])
-        assistant_login = self.global_login("assistant@example.com")
-        assistant_membership = assistant_login.data["user"]["memberships"][0]
-        forbidden = self.client.post(
-            "/api/staff/select-clinic/",
-            {"clinic_id": assistant_membership["clinic"]["id"], "workspace_role": "doctor"},
-            format="json",
-            **self.auth(assistant_login.data["session_token"], assistant_clinic["device_token"]),
+        assistant, claim = self.create_assistant_for_clinic(token, device)
+        forbidden = self.select_clinic(
+            assistant.data["session_token"],
+            clinic_id,
+            "doctor",
+            claim.data["device_token"],
         )
         self.assertEqual(forbidden.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_same_person_can_be_doctor_in_multiple_clinics_and_patient_data_is_isolated(self):
-        first = self.create_clinic("First Clinic")
-        registered = self.register(first)
-        self.verify_contacts(registered.data["session_token"], first["device_token"])
-        global_session = self.global_login()
-        token = global_session.data["session_token"]
-
-        second = self.create_clinic("Second Clinic")
-        claim = self.client.post(
-            f"/api/clinics/{second['clinic']['id']}/claim-doctor/",
-            {},
-            format="json",
-            **self.auth(token, second["device_token"]),
-        )
-        self.assertEqual(claim.status_code, status.HTTP_201_CREATED)
-        me = self.client.get("/api/staff/me/", **self.auth(token))
-        self.assertEqual(len(me.data["user"]["memberships"]), 2)
-
-        first_membership = next(m for m in me.data["user"]["memberships"] if m["clinic"]["id"] == first["clinic"]["id"])
-        self.select_clinic(token, first_membership, first["device_token"], "assistant")
-        first_patient = self.client.post(
-            "/api/patients/",
-            {"full_name": "First Patient", "gender": "Woman", "country_calling_code": "+33", "phone_number": "0611111111", "patient_note": ""},
-            format="json",
-            **self.auth(token, first["device_token"]),
-        )
-        self.assertEqual(first_patient.status_code, status.HTTP_201_CREATED)
-        self.client.post("/api/staff/leave-clinic/", {}, format="json", **self.auth(token, first["device_token"]))
-
-        second_membership = next(m for m in me.data["user"]["memberships"] if m["clinic"]["id"] == second["clinic"]["id"])
-        self.select_clinic(token, second_membership, second["device_token"], "assistant")
-        listing = self.client.get("/api/patients/", **self.auth(token, second["device_token"]))
-        self.assertEqual(listing.status_code, status.HTTP_200_OK)
-        self.assertEqual(listing.data["patients"], [])
-        self.assertTrue(Patient.objects.filter(full_name="First Patient").exists())
-
-    def test_verified_contact_can_authorize_a_new_device(self):
-        clinic = self.create_clinic()
-        registered = self.register(clinic)
-        self.verify_contacts(registered.data["session_token"], clinic["device_token"])
+    def test_untrusted_login_requires_one_device_otp_then_device_is_global(self):
+        registered, clinic = self.create_doctor_clinic()
+        original_device = clinic.data["device_token"]
         fresh = APIClient()
-        login = self.global_login(client=fresh)
+        login = self.login("doctor", "doctor@example.com", client=fresh)
+        self.assertEqual(login.status_code, status.HTTP_200_OK)
+        self.assertFalse(login.data["user"]["device_trusted"])
         token = login.data["session_token"]
-        membership = login.data["user"]["memberships"][0]
-
-        blocked = fresh.post(
-            "/api/staff/select-clinic/",
-            {"clinic_id": membership["clinic"]["id"], "workspace_role": "doctor"},
-            format="json",
-            **self.auth(token, "not-trusted"),
-        )
-        self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
 
         request = fresh.post(
             "/api/devices/contact/request/",
-            {"clinic_id": membership["clinic"]["id"], "channel": "email"},
+            {"channel": "email"},
             format="json",
             **self.auth(token),
         )
@@ -260,172 +263,208 @@ class AuthenticationFlowTests(APITestCase):
         code = code_from_message(mail.outbox[-1].body)
         confirm = fresh.post(
             "/api/devices/contact/confirm/",
-            {"clinic_id": membership["clinic"]["id"], "code": code},
+            {"code": code},
             format="json",
+            HTTP_USER_AGENT="Firefox on another machine",
             **self.auth(token),
         )
         self.assertEqual(confirm.status_code, status.HTTP_201_CREATED)
-        selected = self.select_clinic(token, membership, confirm.data["device_token"], client=fresh)
-        self.assertEqual(selected.data["user"]["clinic"]["id"], membership["clinic"]["id"])
+        new_device = confirm.data["device_token"]
+        self.assertNotEqual(new_device, original_device)
 
-    def test_pairing_remains_an_alternative_and_current_device_cannot_be_removed(self):
-        clinic = self.create_clinic()
-        registered = self.register(clinic)
-        self.verify_contacts(registered.data["session_token"], clinic["device_token"])
-        global_login = self.global_login()
-        global_token = global_login.data["session_token"]
-        membership = global_login.data["user"]["memberships"][0]
-        start = self.client.post(
-            "/api/devices/pairing/",
-            {"clinic_id": membership["clinic"]["id"]},
-            format="json",
-            **self.auth(global_token),
-        )
-        self.assertEqual(start.status_code, status.HTTP_201_CREATED)
-        approve = self.client.post(
-            "/api/devices/pairing/approve/",
-            {"code": start.data["pairing_code"]},
-            format="json",
-            **self.auth(registered.data["session_token"], clinic["device_token"]),
-        )
-        self.assertEqual(approve.status_code, status.HTTP_200_OK)
-        claim = self.client.post(
-            "/api/devices/pairing/status/",
-            {"request_token": start.data["request_token"]},
-            format="json",
-            **self.auth(global_token),
-        )
-        self.assertEqual(claim.data["status"], "approved")
-        self.assertEqual(TrustedDevice.objects.count(), 2)
+        clinic_id = clinic.data["clinic"]["id"]
+        selected = self.select_clinic(token, clinic_id, "doctor", new_device, client=fresh)
+        self.assertEqual(selected.status_code, status.HTTP_200_OK)
+        self.assertEqual(TrustedDevice.objects.filter(user__email="doctor@example.com").count(), 2)
 
-        self.select_clinic(global_token, membership, claim.data["device_token"])
-        current_device_id = claim.data["trusted_device"]["id"]
-        blocked = self.client.delete(
-            f"/api/devices/{current_device_id}/",
-            **self.auth(global_token, claim.data["device_token"]),
-        )
+    def test_current_device_cannot_be_removed_and_other_device_removal_revokes_its_sessions(self):
+        registered, clinic = self.create_doctor_clinic()
+        original_device = clinic.data["device_token"]
+        fresh = APIClient()
+        login = self.login("doctor", "doctor@example.com", client=fresh)
+        token = login.data["session_token"]
+        fresh.post("/api/devices/contact/request/", {"channel": "email"}, format="json", **self.auth(token))
+        code = code_from_message(mail.outbox[-1].body)
+        confirmed = fresh.post("/api/devices/contact/confirm/", {"code": code}, format="json", **self.auth(token))
+        new_device = confirmed.data["device_token"]
+        clinic_id = clinic.data["clinic"]["id"]
+        self.select_clinic(token, clinic_id, "doctor", new_device, client=fresh)
+
+        listing = fresh.get("/api/devices/", **self.auth(token, new_device))
+        current = next(item for item in listing.data["devices"] if item["current"])
+        other = next(item for item in listing.data["devices"] if not item["current"])
+        blocked = fresh.delete(f"/api/devices/{current['id']}/", **self.auth(token, new_device))
         self.assertEqual(blocked.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(blocked.data["detail"], "The current trusted device cannot be removed.")
-        self.assertEqual(TrustedDevice.objects.count(), 2)
+        removed = fresh.delete(f"/api/devices/{other['id']}/", **self.auth(token, new_device))
+        self.assertEqual(removed.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(TrustedDevice.objects.filter(token_hash__isnull=False).exclude(pk=current["id"]).exists())
+        self.assertFalse(StaffSession.objects.filter(user__email="doctor@example.com", trusted_device_id=other["id"]).exists())
+        self.assertTrue(TrustedDevice.objects.filter(pk=current["id"]).exists())
+        self.assertNotEqual(original_device, new_device)
 
-        other_device = TrustedDevice.objects.exclude(pk=current_device_id).get()
+    def test_login_does_not_count_as_sensitive_reauthentication_for_contact_change(self):
+        registered, clinic = self.create_doctor_clinic()
+        device = clinic.data["device_token"]
+        login = self.login("doctor", "doctor@example.com", device_token=device)
+        token = login.data["session_token"]
+        blocked = self.client.post(
+            "/api/staff/email/change/request/",
+            {"value": "new-doctor@example.com"},
+            format="json",
+            **self.auth(token, device),
+        )
+        self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
+        reauth = self.client.post(
+            "/api/staff/reauthenticate/password/",
+            {"password": self.password},
+            format="json",
+            **self.auth(token, device),
+        )
+        self.assertEqual(reauth.status_code, status.HTTP_200_OK)
+        allowed = self.client.post(
+            "/api/staff/email/change/request/",
+            {"value": "new-doctor@example.com"},
+            format="json",
+            **self.auth(token, device),
+        )
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+
+    def test_replacing_assistant_only_deactivates_this_clinic_membership(self):
+        doctor1, clinic1 = self.create_doctor_clinic("Clinic One")
+        assistant, claim1 = self.create_assistant_for_clinic(
+            doctor1.data["session_token"], clinic1.data["device_token"]
+        )
+        assistant_user = StaffUser.objects.get(email="assistant@example.com")
+
+        doctor2 = self.register("doctor", "doctor2@example.com", "+33633333333")
+        doctor2_token = doctor2.data["session_token"]
+        self.verify_contacts(doctor2_token)
+        clinic2 = self.client.post(
+            "/api/clinics/",
+            {"name": "Clinic Two", "timezone": "Europe/Paris"},
+            format="json",
+            **self.auth(doctor2_token),
+        )
+        setup2 = self.client.post(
+            "/api/clinic/assistant/setup/",
+            {"replace_existing": False},
+            format="json",
+            **self.auth(doctor2_token, clinic2.data["device_token"]),
+        )
+        assistant_login = self.login("assistant", "assistant@example.com", device_token=claim1.data["device_token"])
+        join2 = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup2.data["setup_code"]},
+            format="json",
+            **self.auth(assistant_login.data["session_token"], claim1.data["device_token"]),
+        )
+        self.assertEqual(join2.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(assistant_user.memberships.filter(is_active=True).count(), 2)
+
+        replaced = self.client.post(
+            "/api/clinic/assistant/setup/",
+            {"replace_existing": True},
+            format="json",
+            **self.auth(doctor1.data["session_token"], clinic1.data["device_token"]),
+        )
+        self.assertEqual(replaced.status_code, status.HTTP_201_CREATED)
+        assistant_user.refresh_from_db()
+        self.assertEqual(assistant_user.memberships.filter(is_active=True).count(), 1)
+        self.assertIsNone(assistant_user.dormant_since)
+        self.assertTrue(assistant_user.is_active)
+
+    def test_zero_memberships_starts_dormancy_and_two_year_cleanup_anonymizes(self):
+        doctor, clinic = self.create_doctor_clinic()
+        assistant, claim = self.create_assistant_for_clinic(
+            doctor.data["session_token"], clinic.data["device_token"]
+        )
+        assistant_user = StaffUser.objects.get(email="assistant@example.com")
         removed = self.client.delete(
-            f"/api/devices/{other_device.id}/",
-            **self.auth(global_token, claim.data["device_token"]),
+            "/api/clinic/assistant/",
+            **self.auth(doctor.data["session_token"], clinic.data["device_token"]),
         )
         self.assertEqual(removed.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(TrustedDevice.objects.count(), 1)
+        assistant_user.refresh_from_db()
+        self.assertIsNotNone(assistant_user.dormant_since)
+        self.assertTrue(assistant_user.is_active)
+
+        assistant_user.dormant_since = timezone.now() - timedelta(days=731)
+        assistant_user.private_note = "Must disappear"
+        assistant_user.save(update_fields=["dormant_since", "private_note"])
+        count = anonymize_dormant_assistants()
+        self.assertEqual(count, 1)
+        assistant_user.refresh_from_db()
+        self.assertFalse(assistant_user.is_active)
+        self.assertIsNotNone(assistant_user.anonymized_at)
+        self.assertEqual(assistant_user.display_name, "Former Assistant")
+        self.assertEqual(assistant_user.private_note, "")
+        self.assertIsNone(assistant_user.phone)
+        self.assertTrue(assistant_user.email.endswith("@deleted.invalid"))
+        self.assertTrue(assistant_user.memberships.exists())
+
+    def test_assistant_has_no_account_delete_but_doctor_delete_cascades_owned_clinic_only(self):
+        doctor, clinic = self.create_doctor_clinic()
+        assistant, claim = self.create_assistant_for_clinic(
+            doctor.data["session_token"], clinic.data["device_token"]
+        )
+        assistant_token = assistant.data["session_token"]
+        assistant_device = claim.data["device_token"]
+        assistant_delete = self.client.delete(
+            "/api/staff/account/",
+            {"confirmation": "DELETE", "current_password": self.password},
+            format="json",
+            **self.auth(assistant_token, assistant_device),
+        )
+        self.assertEqual(assistant_delete.status_code, status.HTTP_403_FORBIDDEN)
+
+        doctor_token = doctor.data["session_token"]
+        doctor_device = clinic.data["device_token"]
+        preview = self.client.get("/api/staff/account/", **self.auth(doctor_token, doctor_device))
+        self.assertEqual([item["name"] for item in preview.data["clinics"]], ["North Clinic"])
+        deleted = self.client.delete(
+            "/api/staff/account/",
+            {"confirmation": "DELETE", "current_password": self.password},
+            format="json",
+            **self.auth(doctor_token, doctor_device),
+        )
+        self.assertEqual(deleted.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(StaffUser.objects.filter(email="doctor@example.com").exists())
+        self.assertFalse(Clinic.objects.filter(name="North Clinic").exists())
+        self.assertTrue(StaffUser.objects.filter(email="assistant@example.com").exists())
 
     def test_doctor_recovery_codes_are_one_time_and_assistant_is_denied(self):
-        clinic = self.create_clinic()
-        doctor = self.register(clinic)
-        self.verify_contacts(doctor.data["session_token"], clinic["device_token"])
+        doctor, clinic = self.create_doctor_clinic()
         generated = self.client.post(
             "/api/staff/recovery-codes/",
             {},
             format="json",
-            **self.auth(doctor.data["session_token"], clinic["device_token"]),
+            **self.auth(doctor.data["session_token"], clinic.data["device_token"]),
         )
         self.assertEqual(generated.status_code, status.HTTP_200_OK)
         self.assertEqual(len(generated.data["codes"]), 10)
-        first_code = generated.data["codes"][0]
+        code = generated.data["codes"][0]
 
-        grant = self.client.post(
+        confirm = self.client.post(
             "/api/recovery/code/confirm/",
-            {"identity": "doctor@example.com", "code": first_code},
+            {"identity": "doctor@example.com", "code": code},
             format="json",
         )
-        self.assertEqual(grant.status_code, status.HTTP_200_OK)
+        self.assertEqual(confirm.status_code, status.HTTP_200_OK)
         reused = self.client.post(
             "/api/recovery/code/confirm/",
-            {"identity": "doctor@example.com", "code": first_code},
+            {"identity": "doctor@example.com", "code": code},
             format="json",
         )
         self.assertEqual(reused.status_code, status.HTTP_400_BAD_REQUEST)
 
-        assistant_clinic = self.create_clinic("Assistant-only")
-        assistant = self.register(assistant_clinic, role="assistant", email="assistant@example.com", phone="+33622222222")
-        self.verify_contacts(assistant.data["session_token"], assistant_clinic["device_token"])
+        assistant, claim = self.create_assistant_for_clinic(
+            doctor.data["session_token"], clinic.data["device_token"],
+            email="assistant-recovery@example.com", phone="+33644444444",
+        )
         denied = self.client.post(
             "/api/staff/recovery-codes/",
             {},
             format="json",
-            **self.auth(assistant.data["session_token"], assistant_clinic["device_token"]),
+            **self.auth(assistant.data["session_token"], claim.data["device_token"]),
         )
         self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_password_recovery_revokes_only_affected_users_sessions(self):
-        clinic = self.create_clinic()
-        doctor = self.register(clinic)
-        self.verify_contacts(doctor.data["session_token"], clinic["device_token"])
-        extra = self.global_login()
-        self.assertEqual(StaffSession.objects.filter(user__email="doctor@example.com").count(), 2)
-
-        request = self.client.post(
-            "/api/recovery/request/",
-            {"identity": "doctor@example.com", "channel": "email"},
-            format="json",
-        )
-        self.assertEqual(request.status_code, status.HTTP_200_OK)
-        code = code_from_message(mail.outbox[-1].body)
-        confirm = self.client.post(
-            "/api/recovery/confirm/",
-            {"identity": "doctor@example.com", "code": code},
-            format="json",
-        )
-        reset = self.client.post(
-            "/api/recovery/reset/",
-            {"recovery_token": confirm.data["recovery_token"], "password": "New-strong-password-456", "password_confirm": "New-strong-password-456"},
-            format="json",
-        )
-        self.assertEqual(reset.status_code, status.HTTP_200_OK)
-        self.assertFalse(StaffSession.objects.filter(user__email="doctor@example.com").exists())
-        self.assertEqual(TrustedDevice.objects.count(), 1)
-
-    def test_assistant_replacement_changes_membership_not_personal_account(self):
-        clinic = self.create_clinic()
-        doctor = self.register(clinic)
-        self.verify_contacts(doctor.data["session_token"], clinic["device_token"])
-        assistant = self.register(clinic, role="assistant", email="old-assistant@example.com", phone="+33622222222")
-        old_user = StaffUser.objects.get(email="old-assistant@example.com")
-        old_user.private_note = "Personal sticky survives replacement"
-        old_user.save(update_fields=["private_note"])
-
-        setup = self.client.post(
-            "/api/clinic/assistant/setup/",
-            {"replace_existing": True},
-            format="json",
-            **self.auth(doctor.data["session_token"], clinic["device_token"]),
-        )
-        self.assertEqual(setup.status_code, status.HTTP_201_CREATED)
-        old_membership = StaffMembership.objects.get(user=old_user, clinic_id=clinic["clinic"]["id"])
-        self.assertFalse(old_membership.is_active)
-        old_user.refresh_from_db()
-        self.assertEqual(old_user.private_note, "Personal sticky survives replacement")
-
-        newcomer = APIClient()
-        replacement = self.register(
-            None,
-            role="assistant",
-            email="new-assistant@example.com",
-            phone="+33633333333",
-            client=newcomer,
-            setup_code=setup.data["setup_code"],
-        )
-        self.assertIsNone(replacement.data["user"]["clinic"])
-        self.assertTrue(StaffMembership.objects.filter(user__email="new-assistant@example.com", clinic_id=clinic["clinic"]["id"], role="assistant", is_active=True).exists())
-
-    def test_inactive_session_expires_and_logout_keeps_device_trusted(self):
-        clinic = self.create_clinic()
-        doctor = self.register(clinic)
-        self.verify_contacts(doctor.data["session_token"], clinic["device_token"])
-        session = StaffSession.objects.get(token_hash__isnull=False, user__email="doctor@example.com")
-        session.last_used_at = timezone.now() - timedelta(hours=3)
-        session.save(update_fields=["last_used_at"])
-        expired = self.client.get("/api/staff/me/", **self.auth(doctor.data["session_token"], clinic["device_token"]))
-        self.assertEqual(expired.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(TrustedDevice.objects.count(), 1)
-
-        login = self.global_login()
-        self.assertEqual(self.client.post("/api/staff/logout/", {}, format="json", **self.auth(login.data["session_token"])).status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(TrustedDevice.objects.count(), 1)
