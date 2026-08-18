@@ -38,6 +38,18 @@ function readDemoStore(key) {
   }
 }
 
+function protectCurrentDemoDevice(path, method, staffToken) {
+  if (method !== "DELETE") return;
+  const match = path.match(/^\/api\/devices\/([0-9a-f-]+)\/$/i);
+  if (!match || typeof localStorage === "undefined") return;
+  const authStore = readDemoStore(DEMO_AUTH_STORE_KEY);
+  const session = staffToken ? authStore?.sessions?.[staffToken] : null;
+  if (session?.device_id === match[1]) {
+    const fields = { detail: "The current trusted device cannot be removed." };
+    throw new ApiError(fields.detail, fields, 400);
+  }
+}
+
 function syncDemoClinicTimezone(path, method, requestData, payload) {
   if (typeof localStorage === "undefined") return payload;
 
@@ -67,10 +79,12 @@ function syncDemoClinicTimezone(path, method, requestData, payload) {
 export async function apiRequest(path, { method = "GET", data, deviceToken, staffToken } = {}) {
   const requestData = withClinicTimezone(path, method, data);
   if (BROWSER_DEMO_API) {
+    protectCurrentDemoDevice(path, method, staffToken);
     try {
       const payload = await demoPhase8ApiRequest(path, { method, data: requestData, deviceToken, staffToken });
       return syncDemoClinicTimezone(path, method, requestData, payload);
     } catch (error) {
+      if (error instanceof ApiError) throw error;
       throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0);
     }
   }
