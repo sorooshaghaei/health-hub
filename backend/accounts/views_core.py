@@ -9,74 +9,110 @@ class HealthView(APIView):
 
 
 class ClinicCreateView(APIView):
-    permission_classes = [AllowAny]
-
     def post(self, request):
+        if request.user.role != StaffUser.Role.DOCTOR:
+            raise PermissionDenied("Only Doctor accounts can create clinics.")
+        if not request.user.contacts_verified:
+            raise PermissionDenied("Verify both email and phone before creating a clinic.")
+
         serializer = ClinicCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        clinic = serializer.save()
-        raw_device_token, device = issue_trusted_device(clinic, user_agent(request))
-        response = Response(
-            {
-                **clinic_payload(clinic),
-                "device_token": raw_device_token,
-                "trusted_device": TrustedDeviceSerializer(
-                    device,
-                    context={"current_device_id": device.id},
-                ).data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
-        return set_device_cookie(response, clinic.id, raw_device_token, request)
+
+        raw_device_token = None
+        device = request.auth.trusted_device
+        if device is not None and device.user_id != request.user.id:
+            raise PermissionDenied("This browser is not trusted for this account.")
+        if device is None:
+            if request.user.trusted_devices.exists():
+                raise PermissionDenied("Authorize this browser before creating another clinic.")
+            raw_device_token, device = issue_trusted_device(request.user, user_agent(request))
+            request.auth.trusted_device = device
+            request.auth.save(update_fields=["trusted_device"])
+
+        with transaction.atomic():
+            clinic = serializer.save(owner_doctor=request.user)
+            membership = StaffMembership.objects.create(
+                user=request.user,
+                clinic=clinic,
+            )
+            activate_session_clinic(
+                request.auth,
+                membership,
+                device,
+                StaffUser.Role.DOCTOR,
+            )
+
+        payload = {
+            **clinic_payload(clinic),
+            "membership": MembershipSerializer(membership).data,
+            "user": serialize_user(request),
+            "trusted_device": TrustedDeviceSerializer(
+                device,
+                context={"current_device_id": device.id},
+            ).data,
+        }
+        if raw_device_token:
+            payload["device_token"] = raw_device_token
+        response = Response(payload, status=status.HTTP_201_CREATED)
+        if raw_device_token:
+            response = set_device_cookie(response, raw_device_token, request)
+        return response
 
 
 class ClinicContextView(APIView):
-    permission_classes = [AllowAny]
-
     def get(self, request):
-        device = trusted_device_from_request(request)
-        return Response(clinic_payload(device.clinic))
+        device = request.auth.trusted_device
+        if device is None or device.user_id != request.user.id:
+            raise PermissionDenied("This browser is not trusted for this account.")
+        payload = {
+            "trusted_device": TrustedDeviceSerializer(
+                device,
+                context={"current_device_id": device.id},
+            ).data,
+            "user": serialize_user(request),
+        }
+        if request.auth.membership_id:
+            payload.update(clinic_payload(request.auth.membership.clinic))
+        return Response(payload)
 
 
 class ClaimDoctorMembershipView(APIView):
+    """Compatibility endpoint for an ownerless migrated/test clinic.
+
+    Normal production clinic creation assigns the Doctor owner atomically and
+    never uses this endpoint.
+    """
+
     def post(self, request, clinic_id):
-        device = trusted_device_from_request(request)
-        if str(device.clinic_id) != str(clinic_id):
-            raise PermissionDenied("This device is not trusted for that clinic.")
-        clinic = device.clinic
+        if request.user.role != StaffUser.Role.DOCTOR:
+            raise PermissionDenied("Only Doctor accounts can own clinics.")
+        if request.auth.trusted_device_id is None:
+            raise PermissionDenied("Authorize this browser first.")
         try:
             with transaction.atomic():
-                Clinic.objects.select_for_update().get(pk=clinic.pk)
-                if clinic.staff_memberships.filter(
-                    role=StaffUser.Role.DOCTOR,
-                    is_active=True,
-                ).exists():
+                clinic = Clinic.objects.select_for_update().get(pk=clinic_id)
+                if clinic.owner_doctor_id and clinic.owner_doctor_id != request.user.id:
                     return Response(
                         {"detail": "This clinic already has a Doctor."},
                         status=status.HTTP_409_CONFLICT,
                     )
-                if request.user.memberships.filter(clinic=clinic, is_active=True).exists():
+                membership, created = StaffMembership.objects.get_or_create(
+                    user=request.user,
+                    clinic=clinic,
+                    defaults={"is_active": True},
+                )
+                if not created and membership.is_active:
                     return Response(
                         {"detail": "This account already belongs to this clinic."},
                         status=status.HTTP_409_CONFLICT,
                     )
-                existing = request.user.memberships.filter(clinic=clinic).first()
-                if existing:
-                    existing.role = StaffUser.Role.DOCTOR
-                    existing.is_active = True
-                    existing.save(update_fields=["role", "is_active"])
-                    membership = existing
-                else:
-                    membership = StaffMembership.objects.create(
-                        user=request.user,
-                        clinic=clinic,
-                        role=StaffUser.Role.DOCTOR,
-                    )
-        except IntegrityError:
-            return Response(
-                {"detail": "The Doctor slot was already claimed."},
-                status=status.HTTP_409_CONFLICT,
-            )
+                if not membership.is_active:
+                    membership.is_active = True
+                    membership.save(update_fields=["is_active"])
+                clinic.owner_doctor = request.user
+                clinic.save(update_fields=["owner_doctor"])
+        except Clinic.DoesNotExist:
+            return Response({"detail": "Clinic not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(MembershipSerializer(membership).data, status=status.HTTP_201_CREATED)
 
 
@@ -86,82 +122,17 @@ class StaffRegisterView(APIView):
     def post(self, request):
         serializer = StaffRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        role = serializer.validated_data["role"]
-        setup_code = serializer.validated_data.get("setup_code")
-        setup_token = None
-        device = None
-
-        if role == StaffUser.Role.ASSISTANT and setup_code:
-            try:
-                setup_token = resolve_assistant_setup_code(setup_code)
-            except InvalidAssistantSetup as exc:
-                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-            clinic = setup_token.clinic
-            raw_device_token = request.headers.get("X-Device-Token")
-            if raw_device_token:
-                try:
-                    candidate = resolve_trusted_device_token(raw_device_token)
-                    if candidate.clinic_id == clinic.id:
-                        device = candidate
-                except InvalidTrustedDevice:
-                    device = None
-        else:
-            # Doctor creation and ordinary in-clinic Assistant creation require
-            # a browser already trusted for the clinic.
-            device = trusted_device_from_request(request)
-            clinic = device.clinic
-
-        if role == StaffUser.Role.ASSISTANT:
-            outstanding = clinic.assistant_setup_tokens.filter(
-                used_at__isnull=True,
-                expires_at__gt=timezone.now(),
-            ).exists()
-            if outstanding and not setup_code:
-                raise PermissionDenied("Use the Assistant setup code for this clinic.")
-            if setup_token is not None and setup_token.clinic_id != clinic.id:
-                raise PermissionDenied("This setup code belongs to another clinic.")
-
         try:
-            with transaction.atomic():
-                Clinic.objects.select_for_update().get(pk=clinic.pk)
-                if clinic.staff_memberships.filter(role=role, is_active=True).exists():
-                    return Response(
-                        {"role": ["This clinic already has an account for this role."]},
-                        status=status.HTTP_409_CONFLICT,
-                    )
-                user = serializer.save()
-                membership = StaffMembership.objects.create(
-                    user=user,
-                    clinic=clinic,
-                    role=role,
-                )
-                if setup_token is not None:
-                    setup_token.used_at = timezone.now()
-                    setup_token.save(update_fields=["used_at"])
+            user = serializer.save()
         except IntegrityError:
             return Response(
-                {"detail": "An account or clinic role with one of these values already exists."},
+                {"detail": "An account with one of these contacts already exists."},
                 status=status.HTTP_409_CONFLICT,
             )
-
-        if device is not None:
-            raw_token, expires_at = issue_staff_session(
-                user,
-                membership=membership,
-                trusted_device=device,
-                workspace_role=role,
-            )
-            user_context = {"membership": membership, "workspace_role": role}
-        else:
-            # A replacement Assistant may create the personal account from the
-            # one-time Doctor setup code on an untrusted browser. No clinic data
-            # opens until verified contacts authorize that browser.
-            raw_token, expires_at = issue_staff_session(user)
-            user_context = {}
-
+        raw_token, expires_at = issue_staff_session(user)
         return Response(
             {
-                "user": StaffSerializer(user, context=user_context).data,
+                "user": StaffSerializer(user).data,
                 "session_token": raw_token,
                 "expires_at": expires_at,
             },
@@ -176,10 +147,23 @@ class StaffLoginView(APIView):
         serializer = StaffLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        raw_token, expires_at = issue_staff_session(user)
+
+        device = None
+        raw_device_token = request.headers.get("X-Device-Token") or request.COOKIES.get(
+            trusted_device_cookie_name()
+        )
+        if raw_device_token:
+            try:
+                device = resolve_trusted_device_token(raw_device_token, user=user)
+            except InvalidTrustedDevice:
+                device = None
+
+        raw_token, expires_at = issue_staff_session(user, trusted_device=device)
+        user_payload = StaffSerializer(user).data
+        user_payload["device_trusted"] = device is not None
         return Response(
             {
-                "user": StaffSerializer(user).data,
+                "user": user_payload,
                 "session_token": raw_token,
                 "expires_at": expires_at,
             }
@@ -210,23 +194,22 @@ class SelectClinicView(APIView):
     def post(self, request):
         if not request.user.contacts_verified:
             raise PermissionDenied("Verify both email and phone before opening clinic data.")
+        if request.auth.trusted_device_id is None:
+            raise PermissionDenied("Authorize this browser before opening clinic data.")
         serializer = SelectClinicSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            membership = request.user.memberships.select_related("clinic").get(
+            membership = request.user.memberships.select_related("clinic", "user").get(
                 clinic_id=serializer.validated_data["clinic_id"],
                 is_active=True,
             )
         except StaffMembership.DoesNotExist:
             raise PermissionDenied("This account does not belong to that clinic.")
-        device = trusted_device_from_request(request)
-        if device.clinic_id != membership.clinic_id:
-            raise PermissionDenied("This browser is not trusted for that clinic.")
         try:
             activate_session_clinic(
                 request.auth,
                 membership,
-                device,
+                request.auth.trusted_device,
                 serializer.validated_data["workspace_role"],
             )
         except ValueError as exc:
@@ -247,15 +230,8 @@ class DevicePairingStartView(APIView):
         serializer = DevicePairingStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            membership = request.user.memberships.select_related("clinic").get(
-                clinic_id=serializer.validated_data["clinic_id"],
-                is_active=True,
-            )
-        except StaffMembership.DoesNotExist:
-            raise PermissionDenied("This account does not belong to that clinic.")
-        try:
             pairing, code, request_token = create_device_pairing_request(
-                membership.clinic,
+                request.user,
                 user_agent(request),
             )
         except InvalidDevicePairing as exc:
@@ -276,18 +252,15 @@ class DevicePairingStatusView(APIView):
         serializer.is_valid(raise_exception=True)
         try:
             pairing, raw_device_token, device = claim_device_pairing(
-                serializer.validated_data["request_token"]
+                request.user,
+                serializer.validated_data["request_token"],
             )
         except InvalidDevicePairing as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         if device is None:
             return Response({"status": "pending", "expires_at": pairing.expires_at})
-        if not request.user.memberships.filter(
-            clinic=device.clinic,
-            is_active=True,
-        ).exists():
-            device.delete()
-            raise PermissionDenied("This account no longer belongs to that clinic.")
+        request.auth.trusted_device = device
+        request.auth.save(update_fields=["trusted_device"])
         response = Response(
             {
                 "status": "approved",
@@ -296,7 +269,7 @@ class DevicePairingStatusView(APIView):
                     device,
                     context={"current_device_id": device.id},
                 ).data,
-                **clinic_payload(device.clinic),
+                "user": serialize_user(request),
             }
         )
-        return set_device_cookie(response, device.clinic_id, raw_device_token, request)
+        return set_device_cookie(response, raw_device_token, request)
