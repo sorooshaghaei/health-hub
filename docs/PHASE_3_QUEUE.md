@@ -1,6 +1,6 @@
 # Phase 3 — Check-in and live queue
 
-Status: **Implemented in the repository.**
+Status: **Implemented, with the current membership and clinic-timezone contract documented here.**
 
 ## Workflow state
 
@@ -12,17 +12,45 @@ PLANNED → CHECKED_IN
 
 There is no separate Arrived state and no alternate Visit type.
 
-## Check-in eligibility
+## Clinic operational timezone
 
-- only an Appointment dated today can be checked in;
+Each clinic has one operational timezone.
+
+When a clinic is created, Health Hub automatically captures the creating browser's IANA timezone, for example `Europe/Paris`, and stores it with the clinic. The user is not required to choose a timezone manually during normal clinic creation.
+
+The clinic operational timezone determines:
+
+- what calendar date counts as **today** for that clinic;
+- which Appointment list is today's list;
+- whether an Appointment is eligible for check-in;
+- which checked-in Appointments belong to the live queue;
+- the operational day used by the Room-ready and consultation workflow.
+
+A staff member travelling with a different browser timezone does not change the clinic's operational day. Different staff devices therefore cannot disagree about which clinic date is active.
+
+Browser-local formatting may still be used where appropriate for presentation, but workflow eligibility and clinic-day boundaries use the stored clinic timezone.
+
+## Check-in eligibility and permissions
+
+- only an Appointment dated today in the clinic's operational timezone can be checked in;
 - future and past Appointments cannot enter today's queue;
 - an Appointment that already entered the clinic workflow cannot be checked in again;
-- the Assistant workspace performs check-in;
-- the Doctor workspace views the queue but does not perform Phase 3 actions.
+- an Assistant membership in Assistant workspace may perform check-in and queue operations;
+- a Doctor membership opened in Assistant workspace has the same administrative controls;
+- a Doctor membership in Doctor workspace views the queue but does not perform Phase 3 mutations;
+- an Assistant membership cannot open Doctor workspace.
+
+## Clinic isolation
+
+The live queue belongs to exactly one clinic.
+
+Patient, Appointment, check-in, queue sequence, and later consultation state are resolved through the active clinic membership. If the same personal account belongs to several clinics, every clinic has an independent daily Appointment list and live queue.
+
+Switching clinics never carries queue state, queue positions, check-in ordering, or Room-ready state from one clinic into another.
 
 ## Live queue scope and ordering
 
-The live queue contains only active, checked-in Appointments for the clinic's current local date.
+The live queue contains only active, checked-in Appointments for the active clinic's current operational date.
 
 Ordering is:
 
@@ -33,6 +61,8 @@ Ordering is:
 The sequence is assigned while holding a clinic-level database lock. Therefore, when two check-in timestamps are equal, the first successfully saved check-in remains first.
 
 Displayed queue position is recalculated from the active ordered queue, so positions close automatically when an Appointment is removed or enters consultation.
+
+Scheduled time is planning information only and never determines queue position.
 
 ## Queue row
 
@@ -60,9 +90,11 @@ While checked in:
 - Patient profile details, including phone, may be corrected from the Patient profile;
 - queue order remains based on the original check-in action.
 
+Corrections to scheduled time or Patient details never recalculate the original persisted queue order.
+
 ## Patient leaves before consultation
 
-The Assistant deletes the Appointment, including when it is checked in.
+The Assistant workspace deletes the Appointment, including when it is checked in.
 
 Deletion immediately removes it from:
 
@@ -70,11 +102,11 @@ Deletion immediately removes it from:
 - the live queue;
 - Patient Appointment history.
 
-This frees the time and presents the Appointment as though it did not exist. Internally, deletion is soft for the five-second Undo mechanism.
+Internally, deletion is soft for the five-second Undo mechanism.
 
 There is no Left, Cancelled, unavailable, or no-show state in Phase 3.
 
-Once consultation starts, Phase 4 prevents Appointment deletion. Phase 5 confirms that `DOCTOR_FINISHED` is the final **Completed** state and adds no checkout or post-consultation deletion workflow.
+Once consultation starts, the Appointment cannot be deleted. `DOCTOR_FINISHED` later remains the final **Completed** state and there is no checkout workflow.
 
 ## Five-second Undo
 
@@ -102,7 +134,7 @@ Undo restores the Patient profile exactly.
 
 ## Live refresh
 
-The frontend refreshes the live queue every three seconds using the existing authenticated API. No WebSocket service or external dependency is introduced.
+The frontend refreshes the live queue every three seconds using the authenticated clinic session. No WebSocket service or external dependency is introduced in Phase 3.
 
 ## API contract
 
@@ -114,4 +146,22 @@ POST /api/visits/<visit-id>/undo-delete/
 POST /api/patients/<patient-id>/undo-delete/
 ```
 
-Queue access is clinic-scoped. Mutation endpoints require the Assistant workspace.
+Queue access is clinic-scoped through the active membership. Mutation endpoints require Assistant workspace, whether it is opened by an Assistant membership or by a Doctor membership using administrator access.
+
+## Phase 3 invariants
+
+- `PLANNED → CHECKED_IN` is the only Phase 3 status transition;
+- check-in is available only for the clinic's current operational date;
+- clinic operational timezone is captured automatically from the browser that creates the clinic;
+- clinic operational timezone, not each viewing browser's timezone, determines the clinic day;
+- queue state is completely clinic-scoped;
+- queue order is the persisted original check-in order;
+- Doctor workspace omits Patient phone from queue rows;
+- Assistant workspace includes Patient phone in queue/list context;
+- Patient and Appointment date are locked after check-in;
+- scheduled time, reason, and Patient profile details remain correctable;
+- check-in and destructive actions use five-second server-enforced Undo;
+- normal edits do not use Undo;
+- live queue refresh remains lightweight three-second polling.
+
+**Phase 3 is complete as the queue/check-in product contract.**
