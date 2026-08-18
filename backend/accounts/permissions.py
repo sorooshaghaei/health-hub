@@ -1,3 +1,6 @@
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from .models import StaffUser
@@ -9,6 +12,10 @@ def active_membership(request, *, require_verified=True):
         raise PermissionDenied("Choose a clinic before opening clinic data.")
     if require_verified and not request.user.contacts_verified:
         raise PermissionDenied("Verify both email and phone before opening clinic data.")
+    try:
+        timezone.activate(ZoneInfo(membership.clinic.timezone))
+    except (ZoneInfoNotFoundError, ValueError):
+        timezone.activate(ZoneInfo("UTC"))
     return membership
 
 
