@@ -1,53 +1,80 @@
 # Phase 7 — Private sticky
 
-Status: **Implemented according to the approved single-scratchpad workflow.**
+Status: **Reconciled and implemented according to the approved single-scratchpad workflow.**
 
 ## Purpose
 
-Each staff member has one private piece of virtual sticky-note paper for temporary personal reminders. It is deliberately not a notes collection, task system, Patient record, or daily log.
+Each personal `StaffUser` account owns one private plain-text scratchpad for temporary personal reminders.
 
-Example content:
+It is deliberately not a notes collection, task system, Patient record, clinic record, or daily log.
 
-```text
-I have to call Suzi
-Today there is a coffee shop I should go to
-My husband called
-```
+The text follows the person across clinics because it belongs to the global personal account rather than to a clinic membership.
 
-The same text remains on later days until its owner erases or replaces it.
+## Data and persistence
 
-## Data and editing
-
-- one text value per staff account;
+- one text value per personal account;
 - plain text and line breaks only;
 - no title and no second note;
 - direct editing at any time;
 - autosave to the backend while typing;
-- no routine **Saving…** or **Saved** indicator;
 - clearing every character saves an empty scratchpad;
+- the same text remains until its owner changes or clears it;
 - no Delete action, Trash, five-second Undo, revision history, or **Edited** label.
+
+Only the note content is persistent application data.
+
+The sticky's screen position, size, and minimized/expanded state are not stored on the server. Reopening a workspace starts from the default minimized lower-right presentation.
+
+## Global-account and membership behavior
+
+The sticky belongs to the personal account, not to a clinic.
+
+Therefore:
+
+- the same person sees the same sticky when working through different clinic memberships;
+- if one person is Doctor in one clinic and Assistant in another, the same personal sticky is available when that person is inside their own membership workspace;
+- deactivating or replacing an Assistant membership does not delete or transfer that person's sticky;
+- a replacement Assistant receives only their own personal-account sticky.
 
 ## Privacy and workspace placement
 
-| Signed-in account | Active workspace | Sticky result |
-| --- | --- | --- |
-| Doctor | Doctor | Doctor's private sticky |
-| Assistant | Assistant | Assistant's private sticky |
-| Doctor administrator | Assistant | No private sticky |
-| Assistant | Doctor | Access is not permitted |
+Access is determined by the active clinic membership and active workspace:
 
-The Doctor cannot read the Assistant's text. Doctor administrator access to Assistant workspace also does not carry the Doctor's own sticky into that workspace. The backend rejects private-note reads and writes whenever account role and active workspace do not match.
+| Active membership | Active workspace | Sticky result |
+| --- | --- | --- |
+| Doctor | Doctor | that person's private sticky |
+| Assistant | Assistant | that person's private sticky |
+| Doctor | Assistant administrator workspace | no private sticky |
+| Assistant | Doctor | access is not permitted |
+
+The backend permits private-note reads/writes only when the active workspace role equals the active membership role.
+
+Consequences:
+
+- the Doctor cannot read or edit the Assistant's sticky;
+- Doctor administrator access to Assistant workspace does not expose the Assistant's sticky;
+- Doctor administrator access also does not carry the Doctor's own sticky into Assistant workspace;
+- no clinic membership can access another person's sticky.
+
+## Minimized privacy rule
+
+The minimized sticky never displays private note content.
+
+Its visible label is always **Private note**. The actual text is shown only after the owner expands the sticky.
+
+This avoids exposing personal reminder text on a clinic screen while the sticky is minimized.
 
 ## Desktop interaction
 
-- the sticky is fixed to the browser viewport, not placed in document flow;
+- the sticky is fixed to the browser viewport rather than document flow;
 - it remains reachable while the page scrolls;
-- its minimized state is a small yellow strip placed at the lower-right;
-- the minimized strip can be dragged elsewhere within the viewport;
+- default state is a small minimized strip near the lower-right;
+- the minimized strip may be dragged within the viewport;
 - maximizing opens the same scratchpad;
-- the opened sticky can be dragged and resized within the viewport;
-- minimizing returns it to the lower-right;
-- there is no Close button and no separate Notes tab or Open-note workflow.
+- the expanded sticky may be dragged and resized within the viewport;
+- minimizing returns it to the lower-right default position;
+- there is no Close button;
+- there is no separate Notes tab or Open-note workflow.
 
 ## Mobile interaction
 
@@ -58,11 +85,15 @@ The Doctor cannot read the Assistant's text. Doctor administrator access to Assi
 
 ## Explicit exclusions
 
+Phase 7 does not add:
+
 - multiple notes or note ordering;
 - titles, rich text, formatting controls, or color choices;
 - Patient links or appearance inside Patient profiles;
 - task conversion, due dates, reminders, notifications, or badges;
-- attachments, search, archive, history, or collaborative access.
+- attachments;
+- search, archive, history, or collaborative access;
+- server-side persistence of sticky position, size, or minimized state.
 
 ## API
 
@@ -71,8 +102,18 @@ GET   /api/staff/private-note/
 PATCH /api/staff/private-note/
 ```
 
-Both endpoints require an authenticated staff session whose account role matches the active workspace. `PATCH` accepts the complete plain-text `content` value, including an empty string.
+Both endpoints require an authenticated clinic-bound staff session whose active workspace matches the active membership role.
 
-## Browser demo and validation
+`PATCH` accepts the complete plain-text `content` value, including an empty string.
 
-The Pages adapter stores the same one-text-value-per-account structure in browser-local demo data. Migration initializes older demo staff records with an empty private note. Automated tests cover independent Doctor/Assistant text, blank-page persistence, authentication, and the Doctor-administrator Assistant-workspace denial.
+## Browser demo parity
+
+The Pages adapter follows the same product rules:
+
+- one private text value per personal demo account;
+- the value follows that account across demo clinic memberships;
+- Doctor administrator access to Assistant workspace shows no sticky;
+- minimized UI displays only **Private note**, never note content;
+- layout state is not treated as persistent server data.
+
+The public browser demo remains demonstration storage only and must not contain real Patient or sensitive personal information.
