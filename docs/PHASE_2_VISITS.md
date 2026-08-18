@@ -1,6 +1,6 @@
 # Phase 2 — Planned appointments
 
-Status: **Implemented and aligned with the current clinic-membership architecture.**
+Status: **Implemented and aligned with the current account-role/clinic-membership architecture.**
 
 A Patient is a reusable profile inside one clinic. An Appointment is one separate clinic attendance attached to that clinic's Patient record.
 
@@ -49,19 +49,21 @@ Appointment deletion reserves the Patient/date combination during the five-secon
 
 Every clinic attendance is represented by an Appointment.
 
-When a Patient arrives without an existing Appointment for today, the Assistant creates a normal same-day Appointment and then checks the Patient in. The frontend defaults the scheduled time to the current local time for a same-day new Appointment.
+When a Patient arrives without an existing Appointment for today, the Assistant creates a normal same-day Appointment and then checks the Patient in. The frontend defaults the scheduled time to the current clinic time for a same-day new Appointment.
 
 There is no active alternate Visit type or `visit_type` field in the product.
 
-## Workspace and membership permissions
+## Account-role and workspace permissions
 
-### Doctor membership in Doctor workspace
+The permanent account role supplies Doctor/Assistant authority. The active membership supplies the clinic boundary.
+
+### Doctor account in Doctor workspace
 
 - view Appointment lists for the active clinic;
 - view Appointment history inside Patient profiles for the active clinic;
 - no create, edit, delete, or check-in controls.
 
-### Assistant membership in Assistant workspace
+### Assistant account in Assistant workspace
 
 - create Appointments;
 - edit past and future Appointments subject to workflow locks;
@@ -69,11 +71,11 @@ There is no active alternate Visit type or `visit_type` field in the product.
 - create a Patient and Appointment together;
 - perform the later check-in, queue, and handoff operations defined by subsequent phases.
 
-### Doctor membership in Assistant workspace
+### Doctor account in Assistant workspace
 
-A Doctor membership may open Assistant workspace as administrator and receives the same Patient and Appointment administration controls available in that workspace.
+A Doctor account with an active membership in the clinic may open Assistant workspace as administrator and receives the same Patient and Appointment administration controls available in that workspace.
 
-An Assistant membership cannot open Doctor workspace.
+An Assistant account cannot open Doctor workspace.
 
 ## Patient-first Appointment form
 
@@ -109,7 +111,7 @@ No Patient or Appointment suggestion is sourced from another clinic.
 
 All Appointment operations resolve through the active clinic membership.
 
-If one personal account belongs to Clinic A and Clinic B:
+If one permanent-role account belongs to Clinic A and Clinic B:
 
 - Clinic A Appointment lists contain only Clinic A Appointments;
 - Clinic B Appointment lists contain only Clinic B Appointments;
@@ -144,4 +146,4 @@ Create and update payloads do not contain `visit_type`.
 
 A nested `new_patient` may replace `patient_id` during creation or before check-in.
 
-All endpoints operate only on the active clinic and require the membership/workspace permissions defined above.
+All endpoints operate only on the active clinic and require the account-role/workspace/membership permissions defined above.
