@@ -4,17 +4,15 @@
 [![Deploy frontend demo](https://github.com/sorooshaghaei/health-hub/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/sorooshaghaei/health-hub/actions/workflows/pages.yml)
 [![Sponsor Health Hub](https://img.shields.io/badge/Sponsor-Health%20Hub-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/sorooshaghaei)
 
-Health Hub is a deliberately simple clinic workflow application for Doctor and Assistant roles. The frontend is React/Vite and the backend is Django REST Framework with PostgreSQL.
+Health Hub is a deliberately simple clinic workflow application for Doctor and Assistant accounts. The frontend is React/Vite and the backend is Django REST Framework with PostgreSQL.
 
 Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 ## Current status
 
-The Phase 0–8 implementation exists. Before Phase 9, the project is undergoing a line-by-line specification/implementation reconciliation to remove outdated pre-Phase-8 assumptions.
+**Phases 0–8 are implemented and specification-aligned on `main`. Phase 8 is at its final validation/consistency-audit boundary. Phase 9 has not started.**
 
-**Phase 0–7 reconciliation is complete. Phase 8 is next. Phase 9 has not started.**
-
-Detailed source-of-truth documents:
+Source-of-truth documents:
 
 - [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
 - [`docs/DEVELOPMENT_PLAN.md`](docs/DEVELOPMENT_PLAN.md)
@@ -30,52 +28,99 @@ Detailed source-of-truth documents:
 
 ## Account and clinic architecture
 
-Personal identity is global. Clinic workflow data is tenant-scoped.
+Personal identity and trusted devices are global. Clinic workflow data is tenant-scoped.
 
-`StaffUser` owns personal/global identity and security data such as name, unique email/phone, password, verification state, passkeys, eligible Doctor recovery codes, and the private sticky.
+`StaffUser` owns the person's permanent Doctor/Assistant role and global identity/security data. The role never changes and cannot differ between clinics.
 
-`StaffMembership` owns clinic-specific role/state. Each clinic currently has at most one active Doctor and one active Assistant membership. Both roles may belong to multiple clinics.
+`StaffMembership` links a global account to a clinic. It does not assign role. Both Doctor and Assistant accounts may belong to multiple clinics.
+
+Only Doctors create clinics. Each clinic currently has one owning Doctor and at most one active Assistant.
 
 Workspace rules:
 
-- Doctor membership → Doctor workspace;
-- Doctor membership → Assistant workspace as administrator;
-- Assistant membership → Assistant workspace only.
+- Doctor account + active clinic membership → Doctor workspace;
+- Doctor account + active clinic membership → Assistant workspace as administrator;
+- Assistant account + active clinic membership → Assistant workspace only.
 
-There is no shared clinic password and no active username login. Sign-in uses email or phone + password, with optional passkeys where supported.
+There is no shared clinic password and no username login. Sign-in uses selected permanent role plus email or phone + password, with optional passkeys.
 
-## Trusted devices
+Both personal email and phone must be verified before clinic operational data opens.
 
-Device trust is per clinic. A browser can be authorized through verified email/SMS or six-digit pairing approved from another trusted browser for the clinic.
+## Authentication flow
 
-Clinic-bound APIs require bearer session + matching trusted-device proof.
+New Doctor:
 
-Current rule:
+```text
+Doctor → create account → verify email → verify phone → create clinic → first device trusted → Doctor workspace
+```
 
-- other trusted devices may be removed;
-- **the current trusted device cannot be removed**;
-- sign-out preserves device trust.
+New Assistant:
+
+```text
+Assistant → create account → verify email → verify phone → Doctor setup code → first device trusted → Assistant workspace
+```
+
+Existing trusted browser:
+
+```text
+role → email/phone + password or passkey → clinic
+```
+
+There is no second OTP on an already trusted browser. One clinic opens automatically; multiple clinics use the clinic picker.
+
+New/untrusted browser:
+
+```text
+role → sign in → verified email or SMS OTP → browser becomes globally trusted → clinic
+```
+
+## Trusted devices and sessions
+
+Device trust is global per personal account, not per clinic.
+
+- one trusted browser works across all of that account's clinics;
+- current trusted device cannot be removed;
+- another trusted device may be removed;
+- removing it ends sessions on that device across all clinics;
+- sign-out revokes only the session and preserves device trust;
+- untrusted sessions cannot open clinic operational data or manage trusted devices.
+
+Trusted-device-bound sessions require bearer token + matching device proof.
 
 Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, and no Remember Me.
+
+## Phase 8 administration/security
+
+- Assistant setup codes are one-time and valid for 24 hours.
+- A Doctor removes/replaces an Assistant's membership in that clinic; the Doctor never deletes or takes over the Assistant's global account.
+- An existing Assistant may join several clinics with separate Doctor setup codes.
+- Assistants have no self-service Delete account action.
+- Zero active Assistant memberships starts a two-year dormant period; after two years, personal/authentication data is anonymized while minimal **Former Assistant** history remains.
+- A Doctor who deletes their own account permanently deletes all Doctor-owned clinics and their operational data, but not other people's global accounts.
+- Doctor deletion requires trusted browser, fresh password/passkey reauthentication, affected-clinic warning, typed `DELETE`, and has no Undo.
+- Email/phone changes require explicit fresh password/passkey reauthentication; ordinary login does not count. Reauthentication remains valid for 10 minutes by default.
+- Doctor offline recovery uses ten one-time codes; regeneration invalidates unused previous codes.
+- Passkeys are optional, maximum five.
+- OTP defaults are six digits, 10-minute expiry, 60-second resend minimum, five failed attempts.
+- Broader login/recovery/IP throttling is deferred to Phase 10 production hardening.
 
 ## Clinic operational timezone
 
 Each clinic stores one IANA operational timezone automatically captured from the browser when the clinic is created.
 
-That stored timezone determines clinic **today**, today's Appointments, check-in eligibility, live queue membership, and consultation/Room-ready day boundaries. A travelling staff browser does not move the clinic into another operational day.
+That timezone determines clinic **today**, today's Appointments, check-in eligibility, live queue membership, and consultation/Room-ready day boundaries. A travelling staff browser does not move the clinic into another operational day.
 
-Migration: `accounts.0008_clinic_timezone`.
-
-## Reconciled clinic workflow
+## Clinic workflow
 
 ### Patients
 
 - clinic-scoped reusable Patient records;
-- full name, `Man`/`Woman`, calling code + phone, optional DOB, optional shared Patient note;
+- full name, `Man`/`Woman`, country/phone, optional DOB, optional shared Patient note;
 - Iran `+98` default;
 - automatic search + one duplicate warning;
 - Doctor workspace may edit approved Patient data;
 - Assistant workspace administers Patient creation/deletion;
+- Doctor in Assistant workspace gets Assistant-side administrator controls;
 - current/future Appointments block Patient deletion;
 - deletion has five-second Undo;
 - Patient records never merge across clinics.
@@ -97,18 +142,18 @@ PLANNED → CHECKED_IN
 ```
 
 - check-in only for clinic-operational-today Appointments;
-- persisted original check-in sequence controls queue order;
+- original persisted check-in sequence controls queue order;
 - Assistant queue shows Patient phone; Doctor queue omits it;
 - check-in has five-second Undo;
 - authenticated three-second polling.
 
-### Room ready and consultation handoff
+### Room ready and consultation
 
 ```text
 CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
-- **Room ready** requires Doctor membership + Doctor workspace;
+- **Room ready** requires Doctor account + Doctor workspace + active membership;
 - **With doctor** is an Assistant-workspace action, including Doctor administrator access;
 - one pending Room-ready call maximum per clinic;
 - Room ready has five-second Undo before Assistant notification;
@@ -120,7 +165,7 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 
 `DOCTOR_FINISHED` is final and displayed as **Completed**.
 
-- no Checkout workflow exists;
+- no Checkout workflow;
 - Doctor's next Room ready completes the current consultation;
 - five-second Undo Room ready is the only reversal;
 - Completed remains in date list + Patient history but leaves queue/current Doctor card;
@@ -133,52 +178,42 @@ OPEN → DONE
 ```
 
 - clinic-scoped Doctor-to-Assistant work;
-- Doctor membership can create tasks from Doctor or Assistant workspace;
-- Assistant membership cannot create/edit/delete tasks;
-- only the personal creator may edit a task;
-- active Doctor membership may delete tasks in that clinic;
-- Doctor or Assistant may mark Done;
+- Doctor account may create tasks from Doctor or Assistant administrator workspace;
+- Assistant account cannot create/edit/delete tasks;
+- only the task creator may edit it;
+- Doctor may delete tasks in the active clinic;
+- both roles may mark Done;
 - Done has five-second Undo and no permanent Reopen after expiry;
-- optional date-only due date; no overdue state or reminders;
-- optional Patient link must belong to the same clinic;
+- optional date-only due date and same-clinic Patient link;
 - comments are shared but only each personal author may edit/delete their own;
-- former Assistant comments remain attached to the original person after replacement;
+- former Assistant attribution is preserved;
 - task/comment deletion has five-second Undo;
-- attention dots are stored per clinic membership;
-- Assistant dot = new Doctor task; Doctor dot = Assistant completion;
-- Doctor self-completion does not generate a Doctor dot;
-- New Task uses a compact modal;
-- no task sound/push/email/SMS/comment/due-date notification;
+- attention dots remain per clinic membership;
+- no general task notification system beyond the red dot;
 - authenticated three-second polling.
 
 ### Private sticky
 
 - one global plain-text scratchpad per personal account;
-- the same sticky follows the person across clinic memberships;
-- visible only when the active workspace matches that person's active membership role;
+- follows that account across clinics;
+- visible only when workspace matches permanent account role;
 - Doctor administrator access to Assistant workspace shows no sticky;
-- the Doctor never gains access to the Assistant's sticky;
-- Assistant replacement/deactivation does not transfer or delete the former Assistant's sticky;
-- autosave while typing; empty text is valid;
-- no multiple notes, title, Delete/Trash, Undo, history, rich text, Patient links, task conversion, reminders, attachments, or notifications;
-- desktop minimized strip is movable and the expanded sticky is movable/resizable;
-- mobile minimized strip is movable and the expanded editor is full-screen;
-- no Close action;
-- minimized strip always shows **Private note** and never previews private text;
-- content persists globally, while sticky position/size/minimized state is not stored on the server.
+- minimized strip always shows **Private note**, never private content;
+- autosave; no multiple notes/title/history/attachments/etc.;
+- layout/minimized state is not stored on the server.
 
 ## Browser demo
 
 GitHub Pages uses the same production React product UI and substitutes only browser-local API/storage behavior.
 
-It must not expose a separate legacy username/demo application. The public demo is demonstration storage only and must not contain real Patient information.
+The adapter mirrors permanent account roles, global trusted-device simulation, clinic ownership/memberships, Assistant setup/replacement, and Doctor account deletion at the product-workflow level.
 
-It does not claim real trusted-device authority, email/SMS delivery, WebAuthn security, or medical-data guarantees.
+It does not claim real trusted-device authority, email/SMS delivery, WebAuthn security, or medical-data guarantees. Real Patient information must not be entered into the public demo.
 
 ## Repository structure
 
 ```text
-backend/accounts/        personal accounts, memberships, sessions, devices, verification, passkeys, recovery
+backend/accounts/        accounts, memberships, ownership, sessions, devices, verification, passkeys, recovery
 backend/patients/        Patient records and deletion Undo
 backend/visits/          Appointments, queue, room calls, consultation handoff
 backend/tasks/           clinic-scoped shared tasks/comments
@@ -219,6 +254,14 @@ python manage.py migrate --noinput
 python manage.py test
 ```
 
+Dormant Assistant cleanup:
+
+```bash
+python manage.py cleanup_dormant_assistants
+```
+
+Production scheduling of this cleanup command belongs to deployment/operations configuration.
+
 ### Frontend
 
 Use Node.js 22.
@@ -239,6 +282,6 @@ npm run build:demo
 
 ## Production boundary
 
-This repository is not yet a production medical-data deployment. Production use still requires the later security/privacy/deployment work, real communication providers, backups, logging/audit decisions, monitoring, retention policy, jurisdiction-appropriate healthcare/privacy review, and explicit Phase 9/10 decisions.
+This repository is not yet a production medical-data deployment. Production use still requires Phase 9 attachment/security decisions and Phase 10 hardening including broader auth throttling, security/privacy review, communication providers, backups, audit/logging, monitoring, retention operations, and deployment review.
 
 Phase 9 sensitive attachment architecture has not started.
