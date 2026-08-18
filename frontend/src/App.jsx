@@ -289,7 +289,6 @@ export default function ProductionApp() {
     if (nextUser.clinic && nextUser.workspace_role) { setScreen("workspace"); return; }
 
     const memberships = nextUser.memberships ?? [];
-    const savedDevice = Boolean(localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY));
 
     // A brand-new account has no trusted devices yet and gets its first device
     // automatically when the first clinic is created/joined. A dormant or
@@ -303,7 +302,7 @@ export default function ProductionApp() {
       setScreen(nextUser.role === "doctor" ? "create-clinic" : "join-clinic");
       return;
     }
-    if (!nextUser.device_trusted || !savedDevice) {
+    if (!nextUser.device_trusted) {
       setScreen("device-auth");
       return;
     }
