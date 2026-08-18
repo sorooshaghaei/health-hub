@@ -2,155 +2,222 @@
 
 ## Status
 
-**Implemented, including the base-authentication corrective pass and subsequent obsolete-auth cleanup.**
+**Complete as the current foundation contract for Health Hub.**
 
-Phase 0 originally established the application foundation. After Phases 1–7, its shared clinic-password layer was reopened and corrected before Phase 8. That corrective pass and its cleanup are now implemented and validated.
+Phase 0 defines the technical and access foundation on which the later clinic workflows are built. This document describes the **current final foundation**, including the account, clinic-membership, and trusted-device structure established through Phase 8. Obsolete username, shared-clinic-password, and old demo-authentication flows are not part of the current specification.
 
-This was not a rollback of Phases 1–7. Patient, Appointment, queue, consultation, task, and private-sticky behavior remain implemented.
+## Technical foundation
 
-## Implemented foundation
-
-The repository has:
+Health Hub uses:
 
 - React/Vite frontend;
 - Django REST Framework backend;
 - PostgreSQL primary database;
 - clinic-scoped operational and Patient data;
-- Doctor and Assistant workspaces;
-- Doctor administrator access to Assistant workspace;
-- individual staff accounts and staff sessions;
-- trusted clinic-device authorization;
-- browser-only public demo adapter;
-- the completed Phase 1–7 workflows.
+- global personal staff accounts;
+- clinic-specific Doctor and Assistant memberships;
+- trusted-device authorization per clinic;
+- authenticated staff sessions;
+- the same React application UI for production and the public GitHub Pages demo.
 
-## Implemented authentication boundary
+The clinic is the operational data boundary. Personal staff identity is separate from clinic data.
 
-The old shared clinic password is no longer part of normal application authentication.
+## Account, clinic, and workspace boundary
 
-The implemented boundary is:
+The current access model separates four concepts:
 
-1. a browser must be trusted for the clinic;
-2. on that trusted browser, Doctor or Assistant chooses the workspace role;
-3. staff authenticates with the existing individual username + password flow;
-4. the resulting staff session is bound to the trusted device that created it;
-5. authenticated staff API requests must prove both the staff bearer session and possession of the matching trusted-device credential.
+1. **Personal account** — the Doctor or Assistant as a person;
+2. **Clinic membership** — that person's Doctor or Assistant role in one clinic;
+3. **Trusted device** — whether the current browser is authorized for that clinic;
+4. **Workspace** — Doctor or Assistant workspace opened for the selected membership.
 
-The clinic remains the tenant/container for clinic data. Trusted-device authorization and individual staff sessions are separate. Signing a staff member out ends the staff session without untrusting the browser.
+A personal account may belong to multiple clinics. Clinic Patient, Appointment, queue, room-call, task, and trusted-device data remain isolated by clinic.
 
-A copied bearer token by itself is not enough to use clinic APIs from another browser. The backend rejects a staff session when the matching trusted-device proof is absent or belongs to another device.
+Each clinic has at most:
 
-An untrusted browser cannot use staff credentials to open normal clinic or Patient data. The removed `/api/clinics/enter/` shared-password route is not part of the implemented API.
+- one active Doctor membership;
+- one active Assistant membership.
 
-## First clinic device
+Both Doctors and Assistants may belong to multiple clinics.
+
+Workspace authorization is:
+
+- Doctor membership → Doctor workspace;
+- Doctor membership → Assistant workspace for administrator intervention;
+- Assistant membership → Assistant workspace;
+- Assistant membership cannot open Doctor workspace.
+
+## Personal authentication
+
+There is no active username login and no shared clinic password.
+
+A person authenticates with either:
+
+- email or phone + password; or
+- a registered passkey where supported.
+
+Both personal email and phone must be verified before clinic operational data can open.
+
+Authentication of the person and authorization of a browser for a clinic are separate security boundaries.
+
+## Normal access flow
+
+For an existing staff member, the current foundation is:
+
+1. sign in to the personal account;
+2. complete personal contact verification if still required;
+3. choose a clinic membership;
+4. authorize the current browser for that clinic if it is not already trusted;
+5. choose an allowed workspace;
+6. enter the clinic workflow.
+
+A global personal session before clinic selection cannot open clinic operational data.
+
+## First clinic and first trusted browser
 
 For a brand-new clinic:
 
 1. the clinic is created;
-2. the current browser is automatically registered as the clinic's first trusted device;
-3. the Doctor account is created using the existing Phase 0 username/password mechanism;
-4. the UI explains that Health Hub only allows clinic access from trusted devices and that the current browser has been registered.
+2. the current browser becomes that clinic's first trusted device automatically;
+3. the first Doctor personal account is created and attached to the clinic through a Doctor membership;
+4. the Doctor verifies both personal email and phone before clinic operational data opens.
 
-The first browser is auto-trusted so the Doctor cannot create a clinic and immediately lose access to it.
+The first browser is trusted automatically so initial clinic creation does not require a second device or an already-existing clinic authorization mechanism.
 
-Email/SMS verification is intentionally not part of this Phase 0 flow. Contact verification belongs to Phase 8.
+Clinic-level email, clinic-level phone, and clinic passwords are not authentication or recovery credentials.
 
-## Additional clinic devices
+## Trusted-device authorization
 
-Phase 0 authorizes another browser through an already trusted clinic device:
+Trusted-device authorization is **per clinic**.
 
-- the new/untrusted browser identifies the clinic and receives a six-digit pairing code;
-- the pairing request expires after 10 minutes;
-- no clinic or Patient data is returned to that browser before approval;
-- on an already trusted device, a signed-in Doctor or Assistant opens **Devices** and enters the pairing code;
-- the code is single-use;
-- after approval, the requesting browser claims its own trusted-device token and can continue to the normal role-selection/sign-in flow.
+A browser that is not trusted for the selected clinic may be authorized using either of two methods.
 
-Verified email/SMS authorization of new devices remains a Phase 8 enhancement.
+### Verified-contact authorization
+
+The signed-in person may request a verification code through either:
+
+- verified personal email; or
+- verified personal SMS/phone.
+
+After successful verification, that browser receives its own trusted-device authorization for the selected clinic.
+
+### Pairing through another trusted device
+
+The existing pairing method remains available:
+
+1. the new browser starts a pairing request for a clinic membership;
+2. Health Hub displays a six-digit pairing code;
+3. the pairing request expires after 10 minutes;
+4. a signed-in Doctor or Assistant on an already trusted device for that clinic opens **Devices** and approves the code;
+5. the requesting browser claims its own trusted-device credential;
+6. the pairing code cannot be reused.
+
+No Patient or other clinic operational data is exposed to the requesting browser merely because it has started a pairing request.
 
 ## Trusted-device management
 
-- Trusted browsers remain trusted indefinitely until explicitly revoked.
-- Both Doctor and Assistant may open the trusted-device list.
-- Each row shows browser + operating system, added date, and **Current device** when applicable; for example: `Chrome on macOS · Added 16 Aug 2026 · Current device`.
-- Each removable row has a **Remove** action.
-- Removing a trusted device also ends staff sessions created from that device because sessions are bound to the trusted-device record.
-- The last remaining trusted device cannot be removed in the Phase 0 implementation; another device must be paired first. This prevents an unrecoverable clinic lockout before Phase 8 recovery channels exist.
-- Signing out does not untrust the current browser.
-- Clearing browser storage, changing browser, reinstalling the browser, or using another computer requires authorization again.
-- Device removal and other security actions do not use the five-second Undo workflow.
+- Trust belongs to the clinic, not globally to the person.
+- Trusted devices remain trusted until explicitly removed.
+- Both Doctor and Assistant memberships may view the trusted-device list for the active clinic.
+- Each device row identifies browser, operating system, added date, and whether it is the **Current device**.
+- Other trusted devices may be removed.
+- **The current trusted device cannot be removed.**
+- Signing out ends the staff session but does not remove device trust.
+- Clearing browser storage, changing browser, reinstalling the browser, or using another computer requires authorization again for the relevant clinic.
+- Device/security actions do not use the five-second workflow Undo.
 
-## Tokens and API boundary
+The current-device restriction keeps device management simple: Health Hub does not allow a staff member to invalidate the exact trusted browser from which they are currently operating.
 
-- Production frontend trusted-device requests use `X-Device-Token`.
-- Production staff API requests send both `Authorization: Bearer <session-token>` and the matching trusted-device proof.
-- The automatically trusted first browser also receives an HttpOnly `SameSite=Strict` device cookie as a secondary browser credential for staff-session proof; clinic bootstrap/context, registration, and login still require an explicit trusted-device token.
-- Trusted-device secrets are stored as hashes rather than plaintext database values.
-- Staff bearer sessions are linked to the trusted device that created them and cannot be replayed successfully without matching device proof.
-- The obsolete `X-Clinic-Token` header alias and `clinic_access_token` response alias have been removed from active backend code and regression fixtures. `X-Device-Token` is the only explicit trusted-device header.
+## Session and API security boundary
 
-## Existing development data
+Personal and clinic-bound sessions are deliberately different.
 
-Migration `accounts.0005_trusted_device_auth` deliberately resets incompatible pre-release clinic/authentication data before removing `Clinic.password_hash` and adding the trusted-device models.
+### Global personal session
 
-This was explicitly approved because existing clinics/accounts were development data and did not require a compatibility migration. This is **not** a general permission to discard future production data.
+After personal authentication but before clinic selection:
 
-Historical migrations remain unchanged when they describe fields that existed at the time of those migrations. They are database history, not active authentication behavior.
+- the session identifies the person;
+- no clinic membership is active;
+- no trusted device is bound to the session;
+- clinic operational APIs are unavailable.
+
+### Active clinic session
+
+After clinic, device, and workspace selection:
+
+- the session is bound to one active clinic membership;
+- the session is bound to one trusted device for that clinic;
+- the session carries the active workspace role.
+
+Clinic-bound authenticated API requests require:
+
+- `Authorization: Bearer <session-token>`; and
+- proof of the matching trusted device.
+
+The explicit browser header is `X-Device-Token`. The trusted-device credential may also be represented by the clinic-specific HttpOnly `SameSite=Strict` browser cookie where supported by the request path.
+
+A copied bearer token alone is insufficient to open clinic data from another browser. A device credential for another clinic or another trusted device does not satisfy the active session binding.
+
+Trusted-device secrets and staff-session secrets are stored as hashes rather than plaintext database credentials.
+
+## Session lifecycle
+
+The current default staff-session policy is:
+
+- 12-hour absolute lifetime;
+- 2-hour inactivity timeout;
+- no Remember Me behavior;
+- browser close does not itself revoke a still-valid server session;
+- explicit sign-out deletes the staff session;
+- sign-out does not remove trusted-device authorization.
+
+Switching clinics clears the previous active clinic/device/workspace binding before another clinic is selected.
 
 ## Browser demo
 
-The GitHub Pages demo remains the same React frontend through the browser adapter.
+The GitHub Pages demo uses the **same React application UI** as the real web application. There is no separate demo product, separate demo login screen, or active demo username flow.
 
-Because the static demo has no backend trusted-device authority, it bypasses real trusted-device authorization and continues into the demo Doctor/Assistant flow. The demo has no clinic password, clinic access token, or simulated trusted-device credential. Individual demo staff username/password behavior remains only to exercise the Doctor/Assistant interface locally. It does not simulate real email/SMS delivery or hardware/device trust and is not a medical-data backend.
+The Pages build differs only below the UI boundary:
 
-## Cleanup pass
+- production API calls are replaced by a browser-local adapter;
+- visible account, clinic-selection, workspace, Patient, Appointment, queue, task, and settings screens remain the production React components.
 
-After the Phase 0 correction, a focused cleanup removed obsolete authentication remnants from active code and tests:
+The demo login uses **Email or phone**, matching the real application.
 
-- removed `X-Clinic-Token` compatibility handling;
-- removed `clinic_access_token` response/test plumbing;
-- removed clinic-password and `/api/clinics/enter/` implementation from the browser demo;
-- removed demo-only clinic-token state from the React application;
-- converted older Phase 1–7 backend fixtures to `device_token` / `X-Device-Token`;
-- converted demo regression fixtures to the credential-free demo clinic boundary;
-- removed the unused `CLINIC_ACCESS_TOKEN_MAX_AGE` environment setting and documented `DEVICE_PAIRING_MAX_AGE` instead.
+The browser adapter is demonstration storage only. It does not provide or claim real production security infrastructure. In particular, it does not provide real:
 
-Intentional historical/compatibility behavior is not treated as dead code: Django migration history remains intact, the auth suite retains a regression assertion that `/api/clinics/enter/` is absent, and Appointment validation still rejects obsolete `visit_type` payloads explicitly.
+- email/SMS delivery;
+- trusted-device authority;
+- WebAuthn/passkey security;
+- medical-data storage guarantees.
 
-## Validation
+Real Patient information must not be entered into the public browser demo.
 
-The corrective implementation and subsequent obsolete-auth cleanup were validated through the repository verification workflow:
+## Foundation invariants
 
-- frontend browser-demo tests passed;
-- production frontend build passed;
-- GitHub Pages demo build passed;
-- Django system checks passed;
-- committed-migration check passed;
-- migrations applied successfully to PostgreSQL;
-- all backend tests passed against PostgreSQL;
-- an explicit regression test confirms that a copied bearer session is rejected without its matching trusted-device proof and succeeds with the correct device token;
-- the final GitHub Pages deployment after the cleanup succeeded.
+The following are current product invariants:
 
-## Explicitly deferred to Phase 8
+- no shared clinic password;
+- no active username login;
+- personal identity is global;
+- clinic operational data is clinic-scoped;
+- both Doctors and Assistants may have memberships in multiple clinics;
+- each clinic has at most one active Doctor and one active Assistant;
+- both personal email and phone must be verified before clinic operational data opens;
+- trusted-device authorization is per clinic;
+- verified email/SMS authorization and trusted-device pairing are both valid device-authorization methods;
+- clinic-bound bearer sessions require matching trusted-device proof;
+- the current trusted device cannot be removed;
+- sign-out does not untrust the browser;
+- Doctor membership may open Doctor or Assistant workspace;
+- Assistant membership may open Assistant workspace only;
+- security/account actions do not use the five-second operational Undo;
+- GitHub Pages uses the same production React product UI and substitutes only the browser-local API layer.
 
-The following approved ideas and unanswered questions remain in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) and were not pulled into Phase 0:
+## Relationship to later phases
 
-- forgotten-password recovery;
-- email/SMS recovery protocols and throttling;
-- verified email/SMS authorization of new devices;
-- offline Doctor recovery codes;
-- contact verification and contact editing;
-- passkeys/device-biometric account management;
-- detailed session-management policy;
-- Doctor administration/reset of the Assistant account;
-- replacement-Assistant onboarding and historical-account treatment;
-- multi-clinic Doctor identity and membership;
-- clinic/Doctor ownership changes;
-- broader account/security settings;
-- security event history;
-- other production-hardening rules.
+Phase 0 is the foundation rather than a competing historical authentication design. Detailed account recovery, contact-change, passkey, Assistant-replacement, and multi-clinic administration rules are specified in [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
-## Phase relationship
+Patient, Appointment, queue, consultation, task, and sticky behavior are specified in their corresponding Phase 1–7 documents.
 
-**Phase 0 is complete, including the cleanup pass. Stop here before Phase 8.**
-
-Phase 8 remains not started until the product owner explicitly says **continue**. Its previously approved decisions and unresolved questions must be preserved rather than re-inferred.
+**Phase 0 is complete.**
