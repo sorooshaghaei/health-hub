@@ -1,8 +1,10 @@
 # Phase 2 — Planned appointments
 
-Status: **Implemented and updated to the appointment-only model approved before Phase 3, including later consultation and completion rules.**
+Status: **Implemented and aligned with the current clinic-membership architecture.**
 
-A Patient is the permanent reusable profile. An Appointment is one separate clinic attendance. A Patient may have Appointments on different dates, but may have at most one Appointment on any single clinic date.
+A Patient is a reusable profile inside one clinic. An Appointment is one separate clinic attendance attached to that clinic's Patient record.
+
+Appointment data is always clinic-scoped through the active clinic membership. The same personal Doctor or Assistant account may work in multiple clinics, but Appointment lists, Patient histories, queue state, and Appointment constraints remain completely separate between clinics.
 
 ## Appointment fields
 
@@ -18,9 +20,11 @@ Optional:
 
 Scheduled time is planning information. It does not determine live queue order.
 
-## One Appointment per Patient per date
+## One Appointment per Patient per clinic date
 
-The same Patient cannot have a second Appointment on the same date, regardless of scheduled time or workflow status.
+A Patient may have Appointments on different dates, but may have at most one active Appointment on any single date within that Patient's clinic.
+
+Because Patient records themselves are clinic-scoped, this rule never compares or links Patients across different clinics.
 
 The rule applies to every active Appointment state:
 
@@ -39,9 +43,7 @@ This Patient already has an appointment on this date.
 
 The response identifies the existing Appointment so the Assistant interface can open it instead of offering an override.
 
-Appointment deletion reserves the Patient/date combination during the five-second Undo window. After that window expires, a replacement Appointment may be created. The active-record database constraint protects concurrent requests, while the API and browser demo also enforce the temporary deletion reservation.
-
-The migration does not silently delete or merge existing duplicates. If active duplicates already exist, migration stops and reports that manual resolution is required before the uniqueness constraint can be installed.
+Appointment deletion reserves the Patient/date combination during the five-second Undo window. After that window expires, a replacement Appointment may be created. The active-record database constraint protects concurrent requests, while the API and browser adapter also enforce the temporary deletion reservation.
 
 ## Appointment-only model
 
@@ -49,43 +51,51 @@ Every clinic attendance is represented by an Appointment.
 
 When a Patient arrives without an existing Appointment for today, the Assistant creates a normal same-day Appointment and then checks the Patient in. The frontend defaults the scheduled time to the current local time for a same-day new Appointment.
 
-The database migration fills missing scheduled times in legacy rows, then removes the obsolete `visit_type` field. The browser demo performs the equivalent local-storage migration.
+There is no active alternate Visit type or `visit_type` field in the product.
 
-## Workspace permissions
+## Workspace and membership permissions
 
-### Doctor workspace
+### Doctor membership in Doctor workspace
 
-- view Appointment lists;
-- view Appointment history inside Patient profiles;
+- view Appointment lists for the active clinic;
+- view Appointment history inside Patient profiles for the active clinic;
 - no create, edit, delete, or check-in controls.
 
-### Assistant workspace
+### Assistant membership in Assistant workspace
 
 - create Appointments;
 - edit past and future Appointments subject to workflow locks;
 - delete current or future Appointments only before consultation starts (`PLANNED` or `CHECKED_IN`);
 - create a Patient and Appointment together;
-- Doctor administrator credentials may open this workspace.
+- perform the later check-in, queue, and handoff operations defined by subsequent phases.
+
+### Doctor membership in Assistant workspace
+
+A Doctor membership may open Assistant workspace as administrator and receives the same Patient and Appointment administration controls available in that workspace.
+
+An Assistant membership cannot open Doctor workspace.
 
 ## Patient-first Appointment form
 
 The create and edit forms show the Patient section before date, scheduled time, and visit reason. There is no separate first choice between “existing Patient” and “new Patient.”
 
-The Assistant types directly into the full-name field. After two typed characters, matching active Patients appear in a floating suggestion list over the form. Each suggestion shows:
+The Assistant types directly into the full-name field. After two typed characters, matching active Patients from the current clinic appear in a floating suggestion list over the form. Each suggestion shows:
 
 - full name;
 - phone;
 - gender;
 - date of birth when available.
 
-Selecting a suggestion attaches the Appointment to that Patient and collapses the Patient section into a compact selected-Patient card with **Change** and **Open profile** actions. Patient details are not edited from the Appointment form.
+Selecting a suggestion attaches the Appointment to that clinic's Patient record and collapses the Patient section into a compact selected-Patient card with **Change** and **Open profile** actions. Patient details are not edited from the Appointment form.
 
 When no suggestion is selected, the Assistant continues filling gender, country/phone, optional date of birth, and optional Patient note in the same form. Patient and Appointment creation occurs atomically. The standard duplicate warning and explicit separate-profile action remain active. If the selected Patient already has an Appointment on the chosen date, the form shows the existing Appointment and provides **Open appointment**.
+
+No Patient or Appointment suggestion is sourced from another clinic.
 
 ## Editing and deletion
 
 - past and future Appointment details are editable subject to workflow locks;
-- editing cannot create a second Appointment for the same Patient and date;
+- editing cannot create a second Appointment for the same Patient and clinic date;
 - after check-in, the Patient association and Appointment date are locked;
 - scheduled time and reason remain correctable after check-in, including during and after consultation;
 - current and future Appointments may be deleted only while `PLANNED` or `CHECKED_IN`;
@@ -94,6 +104,20 @@ When no suggestion is selected, the Assistant continues filling gender, country/
 - deletion removes the Appointment from active lists, queue, and Patient history;
 - deletion has a server-enforced five-second Undo;
 - the deleted Appointment reserves its Patient/date until that Undo period expires.
+
+## Clinic-isolation invariant
+
+All Appointment operations resolve through the active clinic membership.
+
+If one personal account belongs to Clinic A and Clinic B:
+
+- Clinic A Appointment lists contain only Clinic A Appointments;
+- Clinic B Appointment lists contain only Clinic B Appointments;
+- Patient histories do not cross clinics;
+- uniqueness checks do not cross clinics;
+- queue and consultation state do not cross clinics.
+
+A physically identical person recorded independently in two clinics remains two separate Patient records with separate Appointment histories.
 
 ## API contract
 
@@ -119,3 +143,5 @@ Create and update payloads do not contain `visit_type`.
 ```
 
 A nested `new_patient` may replace `patient_id` during creation or before check-in.
+
+All endpoints operate only on the active clinic and require the membership/workspace permissions defined above.
