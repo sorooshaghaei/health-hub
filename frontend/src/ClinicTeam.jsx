@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ApiError, DEMO_MODE, apiRequest } from "./api.js";
-import { ErrorMessage } from "./ui.jsx";
+import { Button, ErrorMessage, SelectField } from "./ui.jsx";
 
 export default function ClinicTeam({ user, staffToken }) {
   const [open, setOpen] = useState(false), [assistant, setAssistant] = useState(null), [error, setError] = useState(null), [setup, setSetup] = useState(null), [channel, setChannel] = useState("email"), [busy, setBusy] = useState(false);
@@ -11,7 +11,7 @@ export default function ClinicTeam({ user, staffToken }) {
   }
   useEffect(() => { if (open && !DEMO_MODE) load(); }, [open]);
   if (user.role !== "doctor") return null;
-  if (!open) return <button type="button" onClick={() => setOpen(true)}>Clinic team</button>;
+  if (!open) return <Button type="button" onClick={() => setOpen(true)}>Clinic team</Button>;
 
   async function setupAssistant(replace) {
     setBusy(true); setError(null);
@@ -41,9 +41,9 @@ export default function ClinicTeam({ user, staffToken }) {
     <ErrorMessage error={error} />
     {DEMO_MODE ? <p>Assistant membership management is simplified in the legacy browser demo.</p> : <>
       {assistant ? <div className="phase8-contact-card"><div><strong>{assistant.display_name}</strong><span>{assistant.email} · {assistant.phone}</span></div></div> : <p>No Assistant is currently assigned to this clinic.</p>}
-      <div className="phase8-settings-section"><h3>{assistant ? "Replace Assistant" : "Add Assistant"}</h3><p>A one-time setup code is valid for 24 hours. Replacing the current Assistant deactivates only this clinic membership and preserves historical attribution.</p><button className="primary-button" type="button" disabled={busy} onClick={() => setupAssistant(Boolean(assistant))}>Create one-time setup code</button>{setup && <><div className="pairing-code">{setup.setup_code}</div><p className="security-note">One-time code. Give it directly to the new Assistant.</p></>}</div>
-      {assistant && <div className="phase8-settings-section"><h3>Remove from this clinic</h3><p>This immediately ends the Assistant's membership in this clinic. Their global account and other clinics are unaffected.</p><button type="button" disabled={busy} onClick={removeAssistant}>Remove Assistant from clinic</button></div>}
-      {assistant && <div className="phase8-settings-section"><h3>Help with normal password recovery</h3><p>Recovery is sent to the Assistant's own verified contact. If they have lost every personal recovery method, replace their clinic membership instead; the Doctor cannot take over the global account.</p><select value={channel} onChange={(event) => setChannel(event.target.value)}><option value="email">Verified email</option><option value="sms">Verified SMS</option></select><button type="button" disabled={busy} onClick={recovery}>Send recovery instructions</button></div>}
+      <div className="phase8-settings-section"><h3>{assistant ? "Replace Assistant" : "Add Assistant"}</h3><p>A one-time setup code is valid for 24 hours. Replacing the current Assistant deactivates only this clinic membership and preserves historical attribution.</p><Button variant="primary" type="button" disabled={busy} onClick={() => setupAssistant(Boolean(assistant))}>Create one-time setup code</Button>{setup && <><div className="pairing-code">{setup.setup_code}</div><p className="security-note">One-time code. Give it directly to the new Assistant.</p></>}</div>
+      {assistant && <div className="phase8-settings-section"><h3>Remove from this clinic</h3><p>This immediately ends the Assistant's membership in this clinic. Their global account and other clinics are unaffected.</p><Button variant="danger" type="button" disabled={busy} onClick={removeAssistant}>Remove Assistant from clinic</Button></div>}
+      {assistant && <div className="phase8-settings-section"><h3>Help with normal password recovery</h3><p>Recovery is sent to the Assistant's own verified contact. If they have lost every personal recovery method, replace their clinic membership instead; the Doctor cannot take over the global account.</p><SelectField label="Recovery channel" value={channel} onChange={(event) => setChannel(event.target.value)}><option value="email">Verified email</option><option value="sms">Verified SMS</option></SelectField><Button type="button" disabled={busy} onClick={recovery}>Send recovery instructions</Button></div>}
     </>}
   </section></div>;
   return createPortal(modal, document.body);
