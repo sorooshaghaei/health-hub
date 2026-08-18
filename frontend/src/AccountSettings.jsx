@@ -4,33 +4,136 @@ import { ApiError, DEMO_MODE, apiRequest } from "./api.js";
 import { createPasskey, getPasskey } from "./webauthn.js";
 import { ErrorMessage, Field } from "./ui.jsx";
 
-function errorOf(error, fallback) { return error instanceof ApiError ? error : new ApiError(error?.message || fallback); }
+function errorOf(error, fallback) {
+  return error instanceof ApiError ? error : new ApiError(error?.message || fallback);
+}
 
-export default function AccountSettings({ user, staffToken, onUserChange }) {
-  const [open, setOpen] = useState(false); const [tab, setTab] = useState("profile"); const [error, setError] = useState(null);
+export default function AccountSettings({ user, staffToken, onUserChange, onAccountDeleted }) {
+  const [open, setOpen] = useState(false), [tab, setTab] = useState("profile"), [error, setError] = useState(null);
   const [profile, setProfile] = useState({ first_name: user.first_name ?? "", last_name: user.last_name ?? "" });
-  const [contact, setContact] = useState({ kind: "email", value: "", password: "", code: "", requested: false, devCode: "" });
+  const [contact, setContact] = useState({ kind: "email", value: "", password: "", code: "", requested: false, devCode: "", passkeyReauthenticated: false });
   const [password, setPassword] = useState({ channel: "email", code: "", password: "", confirm: "", requested: false, devCode: "" });
-  const [passkeys, setPasskeys] = useState([]); const [removePassword, setRemovePassword] = useState(""); const [recovery, setRecovery] = useState({ remaining: 0, codes: [] });
+  const [passkeys, setPasskeys] = useState([]), [removePassword, setRemovePassword] = useState("");
+  const [recovery, setRecovery] = useState({ remaining: 0, codes: [] });
+  const [deletion, setDeletion] = useState({ clinics: [], password: "", confirmation: "", passkeyReauthenticated: false, loading: false, deleting: false });
+
   useEffect(() => { setProfile({ first_name: user.first_name ?? "", last_name: user.last_name ?? "" }); }, [user]);
-  useEffect(() => { if (!open) return; if (tab === "passkeys" && !DEMO_MODE) apiRequest("/api/passkeys/", { staffToken }).then((p) => setPasskeys(p.passkeys ?? [])).catch((e) => setError(errorOf(e, "Passkeys could not be loaded."))); if (tab === "recovery" && user.has_doctor_membership && !DEMO_MODE) apiRequest("/api/staff/recovery-codes/", { staffToken }).then(setRecovery).catch((e) => setError(errorOf(e, "Recovery codes could not be loaded."))); }, [open, tab, staffToken, user.has_doctor_membership]);
+  useEffect(() => {
+    if (!open) return;
+    if (tab === "passkeys" && !DEMO_MODE) apiRequest("/api/passkeys/", { staffToken }).then((payload) => setPasskeys(payload.passkeys ?? [])).catch((reason) => setError(errorOf(reason, "Passkeys could not be loaded.")));
+    if (tab === "recovery" && user.role === "doctor" && !DEMO_MODE) apiRequest("/api/staff/recovery-codes/", { staffToken }).then(setRecovery).catch((reason) => setError(errorOf(reason, "Recovery codes could not be loaded.")));
+    if (tab === "delete" && user.role === "doctor") {
+      setDeletion((current) => ({ ...current, loading: true }));
+      apiRequest("/api/staff/account/", { staffToken })
+        .then((payload) => setDeletion((current) => ({ ...current, clinics: payload.clinics ?? [], loading: false })))
+        .catch((reason) => { setDeletion((current) => ({ ...current, loading: false })); setError(errorOf(reason, "Account deletion details could not be loaded.")); });
+    }
+  }, [open, tab, staffToken, user.role]);
 
-  async function saveProfile(event) { event.preventDefault(); setError(null); try { if (DEMO_MODE) { const store=JSON.parse(localStorage.getItem("health-hub.demo-store.v1")||"{}"); const session=store.sessions?.[staffToken]; const account=store.staff?.find((x)=>x.id===session?.user_id); if(account){Object.assign(account,profile);localStorage.setItem("health-hub.demo-store.v1",JSON.stringify(store));} onUserChange({...user,...profile,display_name:`${profile.first_name} ${profile.last_name}`.trim()}); return;} const payload=await apiRequest("/api/staff/profile/",{method:"PATCH",staffToken,data:profile}); onUserChange(payload.user); } catch(e){setError(errorOf(e,"Profile could not be updated."));} }
-  async function reauthPasskey(){setError(null);try{const begin=await apiRequest("/api/passkeys/auth/options/",{method:"POST",data:{identity:user.email}});const credential=await getPasskey(begin.public_key);await apiRequest("/api/passkeys/reauthenticate/",{method:"POST",staffToken,data:{credential}});}catch(e){setError(errorOf(e,"Passkey reauthentication failed."));}}
-  async function requestContact(event){event.preventDefault();setError(null);try{const payload=await apiRequest(`/api/staff/${contact.kind}/change/request/`,{method:"POST",staffToken,data:{value:contact.value,...(contact.password?{current_password:contact.password}:{})}});setContact((c)=>({...c,requested:true,devCode:payload.development_code??""}));}catch(e){setError(errorOf(e,"Contact change could not be started."));}}
-  async function confirmContact(event){event.preventDefault();setError(null);try{const payload=await apiRequest(`/api/staff/${contact.kind}/change/confirm/`,{method:"POST",staffToken,data:{code:contact.code}});onUserChange(payload.user);setContact({kind:contact.kind,value:"",password:"",code:"",requested:false,devCode:""});}catch(e){setError(errorOf(e,"Contact change could not be confirmed."));}}
-  async function requestPassword(event){event.preventDefault();setError(null);try{if(DEMO_MODE){setPassword((x)=>({...x,requested:true,code:"demo"}));return;}const p=await apiRequest("/api/staff/password/change/request/",{method:"POST",staffToken,data:{channel:password.channel}});setPassword((x)=>({...x,requested:true,devCode:p.development_code??""}));}catch(e){setError(errorOf(e,"Password verification could not be sent."));}}
-  async function confirmPassword(event){event.preventDefault();setError(null);try{if(DEMO_MODE){if(password.password!==password.confirm||password.password.length<8)throw new Error("Passwords must match and contain at least 8 characters.");const store=JSON.parse(localStorage.getItem("health-hub.demo-store.v1")||"{}");const session=store.sessions?.[staffToken];const account=store.staff?.find((x)=>x.id===session?.user_id);if(account)account.password_hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(password.password)).then((d)=>Array.from(new Uint8Array(d),(b)=>b.toString(16).padStart(2,"0")).join(""));localStorage.setItem("health-hub.demo-store.v1",JSON.stringify(store));setPassword({channel:"email",code:"",password:"",confirm:"",requested:false,devCode:""});return;}await apiRequest("/api/staff/password/change/confirm/",{method:"POST",staffToken,data:{code:password.code,password:password.password,password_confirm:password.confirm}});setPassword({channel:"email",code:"",password:"",confirm:"",requested:false,devCode:""});}catch(e){setError(errorOf(e,"Password could not be changed."));}}
-  async function addPasskey(){setError(null);try{const begin=await apiRequest("/api/passkeys/register/options/",{method:"POST",staffToken});const credential=await createPasskey(begin.public_key);const passkey=await apiRequest("/api/passkeys/register/complete/",{method:"POST",staffToken,data:{credential,name:"Passkey"}});setPasskeys((p)=>[passkey,...p]);}catch(e){setError(errorOf(e,"Passkey could not be added."));}}
-  async function removePasskey(id){setError(null);try{await apiRequest(`/api/passkeys/${id}/`,{method:"DELETE",staffToken,data:removePassword?{current_password:removePassword}:{}});setPasskeys((p)=>p.filter((x)=>x.id!==id));}catch(e){setError(errorOf(e,"Passkey could not be removed."));}}
-  async function regenerateCodes(){setError(null);try{const payload=await apiRequest("/api/staff/recovery-codes/",{method:"POST",staffToken});setRecovery(payload);}catch(e){setError(errorOf(e,"Recovery codes could not be generated."));}}
+  async function saveProfile(event) {
+    event.preventDefault(); setError(null);
+    try { const payload = await apiRequest("/api/staff/profile/", { method: "PATCH", staffToken, data: profile }); onUserChange(payload.user); }
+    catch (reason) { setError(errorOf(reason, "Profile could not be updated.")); }
+  }
 
-  if(!open)return <button type="button" onClick={()=>setOpen(true)}>Account</button>;
-  const modal=<div className="device-modal-backdrop" onMouseDown={(e)=>{if(e.target===e.currentTarget)setOpen(false);}}><section className="device-modal phase8-account-modal" role="dialog" aria-modal="true"><div className="device-modal__header"><div><p className="eyebrow">Personal account</p><h2>Account settings</h2><p>These settings follow you across every clinic you work in.</p></div><button className="device-icon-button" onClick={()=>setOpen(false)}>×</button></div><nav className="phase8-settings-tabs">{["profile","security","passkeys","recovery"].map((name)=><button key={name} className={tab===name?"phase8-settings-tab phase8-settings-tab--active":"phase8-settings-tab"} onClick={()=>{setTab(name);setError(null);}}>{name[0].toUpperCase()+name.slice(1)}</button>)}</nav><ErrorMessage error={error}/>
-    {tab==="profile"&&<div className="phase8-settings-section"><form className="form" onSubmit={saveProfile}><div className="field-row"><Field label="First name" name="first_name" value={profile.first_name} onChange={(e)=>setProfile({...profile,first_name:e.target.value})} required/><Field label="Last name" name="last_name" value={profile.last_name} onChange={(e)=>setProfile({...profile,last_name:e.target.value})} required/></div><button className="primary-button">Save profile</button></form><div className="phase8-contact-card"><strong>Email</strong><span>{user.email} · {user.email_verified?"Verified":"Not verified"}</span></div><div className="phase8-contact-card"><strong>Phone</strong><span>{user.phone} · {user.phone_verified?"Verified":"Not verified"}</span></div>{DEMO_MODE?<p>Verified contact changes are unavailable in the browser-only demo.</p>:<form className="form" onSubmit={contact.requested?confirmContact:requestContact}><label>Change contact</label><select value={contact.kind} onChange={(e)=>setContact({...contact,kind:e.target.value,requested:false})}><option value="email">Email</option><option value="phone">Phone</option></select>{!contact.requested?<><Field label={`New ${contact.kind}`} value={contact.value} onChange={(e)=>setContact({...contact,value:e.target.value})} required/><Field label="Current password (or reauthenticate with passkey)" type="password" value={contact.password} onChange={(e)=>setContact({...contact,password:e.target.value})}/><button type="button" onClick={reauthPasskey}>Use passkey</button><button className="primary-button">Send verification code</button></>:<><Field label="Verification code" value={contact.code} onChange={(e)=>setContact({...contact,code:e.target.value})} required/>{contact.devCode&&<p className="security-note">Development code: {contact.devCode}</p>}<button className="primary-button">Confirm change</button></>}</form>}</div>}
-    {tab==="security"&&<div className="phase8-settings-section"><h3>Change password</h3><p>No current password is required. Confirm the change with one of your verified contacts.</p><form className="form" onSubmit={password.requested?confirmPassword:requestPassword}>{!password.requested?<><label>Verification channel</label><select value={password.channel} onChange={(e)=>setPassword({...password,channel:e.target.value})}><option value="email">Email</option><option value="sms">SMS</option></select><button className="primary-button">Send code</button></>:<><Field label="Verification code" value={password.code} onChange={(e)=>setPassword({...password,code:e.target.value})} required/>{password.devCode&&<p className="security-note">Development code: {password.devCode}</p>}<Field label="New password" type="password" value={password.password} onChange={(e)=>setPassword({...password,password:e.target.value})} required/><Field label="Confirm new password" type="password" value={password.confirm} onChange={(e)=>setPassword({...password,confirm:e.target.value})} required/><button className="primary-button">Change password</button></>}</form><p className="security-note">Changing your password signs out your other sessions but keeps this session and trusted clinic devices.</p></div>}
-    {tab==="passkeys"&&<div className="phase8-settings-section">{DEMO_MODE?<p>Real passkey enrollment is unavailable in the browser-only demo.</p>:<><div className="phase8-settings-row"><div><h3>Passkeys</h3><p>Optional biometric/device sign-in. Up to five passkeys.</p></div><button className="primary-button" type="button" onClick={addPasskey}>Add passkey</button></div><Field label="Current password for removal (or reauthenticate with another passkey)" type="password" value={removePassword} onChange={(e)=>setRemovePassword(e.target.value)}/>{passkeys.map((p)=><div className="phase8-contact-card" key={p.id}><div><strong>{p.name}</strong><span>Added {new Date(p.created_at).toLocaleDateString()}</span></div><button type="button" onClick={()=>removePasskey(p.id)}>Remove</button></div>)}</>}</div>}
-    {tab==="recovery"&&<div className="phase8-settings-section">{DEMO_MODE?<p>Real recovery codes and email/SMS recovery are unavailable in the browser-only demo.</p>:user.has_doctor_membership?<><h3>Doctor offline recovery codes</h3><p>{recovery.remaining??0} unused codes. A new list invalidates every unused old code.</p><button className="primary-button" type="button" onClick={regenerateCodes}>Generate new codes</button>{recovery.codes?.length>0&&<pre className="phase8-recovery-codes">{recovery.codes.join("\n")}</pre>}</>:<><h3>Account recovery</h3><p>Your verified email and phone are available for password recovery. Doctor-only offline recovery codes do not apply to Assistant-only accounts.</p></>}</div>}
+  async function explicitPasskeyReauth(forDeletion = false) {
+    setError(null);
+    try {
+      const begin = await apiRequest("/api/passkeys/auth/options/", { method: "POST", data: { role: user.role, identity: user.email } });
+      const credential = await getPasskey(begin.public_key);
+      await apiRequest("/api/passkeys/reauthenticate/", { method: "POST", staffToken, data: { credential } });
+      if (forDeletion) setDeletion((current) => ({ ...current, passkeyReauthenticated: true }));
+      else setContact((current) => ({ ...current, passkeyReauthenticated: true }));
+    } catch (reason) { setError(errorOf(reason, "Passkey reauthentication failed.")); }
+  }
+
+  async function requestContact(event) {
+    event.preventDefault(); setError(null);
+    try {
+      const payload = await apiRequest(`/api/staff/${contact.kind}/change/request/`, {
+        method: "POST", staffToken,
+        data: { value: contact.value, ...(contact.password ? { current_password: contact.password } : {}) },
+      });
+      setContact((current) => ({ ...current, requested: true, devCode: payload.development_code ?? "" }));
+    } catch (reason) { setError(errorOf(reason, "Contact change could not be started. Reauthenticate with your current password or a passkey first.")); }
+  }
+
+  async function confirmContact(event) {
+    event.preventDefault(); setError(null);
+    try {
+      const payload = await apiRequest(`/api/staff/${contact.kind}/change/confirm/`, { method: "POST", staffToken, data: { code: contact.code } });
+      onUserChange(payload.user);
+      setContact({ kind: contact.kind, value: "", password: "", code: "", requested: false, devCode: "", passkeyReauthenticated: false });
+    } catch (reason) { setError(errorOf(reason, "Contact change could not be confirmed.")); }
+  }
+
+  async function requestPassword(event) {
+    event.preventDefault(); setError(null);
+    try {
+      const payload = await apiRequest("/api/staff/password/change/request/", { method: "POST", staffToken, data: { channel: password.channel } });
+      setPassword((current) => ({ ...current, requested: true, devCode: payload.development_code ?? "" }));
+    } catch (reason) { setError(errorOf(reason, "Password verification could not be sent.")); }
+  }
+
+  async function confirmPassword(event) {
+    event.preventDefault(); setError(null);
+    try {
+      await apiRequest("/api/staff/password/change/confirm/", { method: "POST", staffToken, data: { code: password.code, password: password.password, password_confirm: password.confirm } });
+      setPassword({ channel: "email", code: "", password: "", confirm: "", requested: false, devCode: "" });
+    } catch (reason) { setError(errorOf(reason, "Password could not be changed.")); }
+  }
+
+  async function addPasskey() {
+    setError(null);
+    try {
+      const begin = await apiRequest("/api/passkeys/register/options/", { method: "POST", staffToken });
+      const credential = await createPasskey(begin.public_key);
+      const passkey = await apiRequest("/api/passkeys/register/complete/", { method: "POST", staffToken, data: { credential, name: "Passkey" } });
+      setPasskeys((current) => [passkey, ...current]);
+    } catch (reason) { setError(errorOf(reason, "Passkey could not be added.")); }
+  }
+
+  async function removePasskey(id) {
+    setError(null);
+    try {
+      await apiRequest(`/api/passkeys/${id}/`, { method: "DELETE", staffToken, data: removePassword ? { current_password: removePassword } : {} });
+      setPasskeys((current) => current.filter((item) => item.id !== id));
+    } catch (reason) { setError(errorOf(reason, "Passkey could not be removed.")); }
+  }
+
+  async function regenerateCodes() {
+    setError(null);
+    try { setRecovery(await apiRequest("/api/staff/recovery-codes/", { method: "POST", staffToken })); }
+    catch (reason) { setError(errorOf(reason, "Recovery codes could not be generated.")); }
+  }
+
+  async function deleteDoctorAccount(event) {
+    event.preventDefault(); setError(null); setDeletion((current) => ({ ...current, deleting: true }));
+    try {
+      await apiRequest("/api/staff/account/", {
+        method: "DELETE", staffToken,
+        data: { confirmation: deletion.confirmation, ...(deletion.password ? { current_password: deletion.password } : {}) },
+      });
+      setOpen(false); onAccountDeleted?.();
+    } catch (reason) { setError(errorOf(reason, "Account could not be deleted.")); setDeletion((current) => ({ ...current, deleting: false })); }
+  }
+
+  if (!open) return <button type="button" onClick={() => setOpen(true)}>Account</button>;
+  const tabs = ["profile", "security", "passkeys", "recovery", ...(user.role === "doctor" ? ["delete"] : [])];
+  const modal = <div className="device-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}><section className="device-modal phase8-account-modal" role="dialog" aria-modal="true">
+    <div className="device-modal__header"><div><p className="eyebrow">Personal {user.role === "doctor" ? "Doctor" : "Assistant"} account</p><h2>Account settings</h2><p>Your personal profile, security, passkeys, and trusted devices follow you across your clinics.</p></div><button className="device-icon-button" onClick={() => setOpen(false)}>×</button></div>
+    <nav className="phase8-settings-tabs">{tabs.map((name) => <button key={name} className={tab === name ? "phase8-settings-tab phase8-settings-tab--active" : "phase8-settings-tab"} onClick={() => { setTab(name); setError(null); }}>{name === "delete" ? "Delete account" : name[0].toUpperCase() + name.slice(1)}</button>)}</nav>
+    <ErrorMessage error={error} />
+
+    {tab === "profile" && <div className="phase8-settings-section"><form className="form" onSubmit={saveProfile}><div className="field-row"><Field label="First name" value={profile.first_name} onChange={(event) => setProfile({ ...profile, first_name: event.target.value })} required /><Field label="Last name" value={profile.last_name} onChange={(event) => setProfile({ ...profile, last_name: event.target.value })} required /></div><button className="primary-button">Save profile</button></form><div className="phase8-contact-card"><strong>Email</strong><span>{user.email} · {user.email_verified ? "Verified" : "Not verified"}</span></div><div className="phase8-contact-card"><strong>Phone</strong><span>{user.phone} · {user.phone_verified ? "Verified" : "Not verified"}</span></div><form className="form" onSubmit={contact.requested ? confirmContact : requestContact}><label>Change contact</label><select value={contact.kind} onChange={(event) => setContact({ ...contact, kind: event.target.value, requested: false, passkeyReauthenticated: false })}><option value="email">Email</option><option value="phone">Phone</option></select>{!contact.requested ? <><Field label={`New ${contact.kind}`} value={contact.value} onChange={(event) => setContact({ ...contact, value: event.target.value })} required /><Field label="Current password" type="password" value={contact.password} onChange={(event) => setContact({ ...contact, password: event.target.value })} /><button type="button" onClick={() => explicitPasskeyReauth(false)}>Use passkey instead</button>{contact.passkeyReauthenticated && <p className="device-success">Passkey reauthentication complete for the next 10 minutes.</p>}<button className="primary-button">Send verification code</button></> : <><Field label="Verification code" value={contact.code} onChange={(event) => setContact({ ...contact, code: event.target.value })} required />{contact.devCode && <p className="security-note">Development code: {contact.devCode}</p>}<button className="primary-button">Confirm change</button></>}</form></div>}
+
+    {tab === "security" && <div className="phase8-settings-section"><h3>Change password</h3><p>Confirm a password change through one of your verified contacts.</p><form className="form" onSubmit={password.requested ? confirmPassword : requestPassword}>{!password.requested ? <><label>Verification channel</label><select value={password.channel} onChange={(event) => setPassword({ ...password, channel: event.target.value })}><option value="email">Email</option><option value="sms">SMS</option></select><button className="primary-button">Send code</button></> : <><Field label="Verification code" value={password.code} onChange={(event) => setPassword({ ...password, code: event.target.value })} required />{password.devCode && <p className="security-note">Development code: {password.devCode}</p>}<Field label="New password" type="password" value={password.password} onChange={(event) => setPassword({ ...password, password: event.target.value })} required /><Field label="Confirm new password" type="password" value={password.confirm} onChange={(event) => setPassword({ ...password, confirm: event.target.value })} required /><button className="primary-button">Change password</button></>}</form><p className="security-note">Changing your password signs out your other sessions but keeps trusted devices.</p></div>}
+
+    {tab === "passkeys" && <div className="phase8-settings-section">{DEMO_MODE ? <p>Real passkey enrollment is unavailable in the browser-only demo.</p> : <><div className="phase8-settings-row"><div><h3>Passkeys</h3><p>Optional biometric/device sign-in. Up to five passkeys.</p></div><button className="primary-button" type="button" onClick={addPasskey}>Add passkey</button></div><Field label="Current password for removal (or reauthenticate with another passkey)" type="password" value={removePassword} onChange={(event) => setRemovePassword(event.target.value)} />{passkeys.map((item) => <div className="phase8-contact-card" key={item.id}><div><strong>{item.name}</strong><span>Added {new Date(item.created_at).toLocaleDateString()}</span></div><button type="button" onClick={() => removePasskey(item.id)}>Remove</button></div>)}</>}</div>}
+
+    {tab === "recovery" && <div className="phase8-settings-section">{user.role === "doctor" ? <><h3>Doctor offline recovery codes</h3><p>{recovery.remaining ?? 0} unused codes. A new list invalidates every unused old code.</p><button className="primary-button" type="button" onClick={regenerateCodes}>Generate new codes</button>{recovery.codes?.length > 0 && <pre className="phase8-recovery-codes">{recovery.codes.join("\n")}</pre>}</> : <><h3>Account recovery</h3><p>Your verified email, verified phone, and registered passkeys are your personal recovery methods. Clinic Doctors cannot reset or take over your global Assistant account.</p></>}</div>}
+
+    {tab === "delete" && user.role === "doctor" && <div className="phase8-settings-section"><h3>Delete Doctor account</h3><p>This permanently deletes every clinic owned by this Doctor account and the Patient, appointment, queue, consultation, and task data inside those clinics. Connected Assistant memberships are removed, but Assistant personal accounts are not deleted.</p>{deletion.loading ? <p>Loading affected clinics…</p> : <div className="phase8-clinic-list">{deletion.clinics.map((clinic) => <div className="phase8-contact-card" key={clinic.id}><strong>{clinic.name}</strong><span>Clinic and clinic data will be permanently deleted.</span></div>)}</div>}<form className="form" onSubmit={deleteDoctorAccount}><Field label="Current password" type="password" value={deletion.password} onChange={(event) => setDeletion({ ...deletion, password: event.target.value })} /><button type="button" onClick={() => explicitPasskeyReauth(true)}>Use passkey instead</button>{deletion.passkeyReauthenticated && <p className="device-success">Passkey reauthentication complete for the next 10 minutes.</p>}<Field label="Type DELETE to confirm" value={deletion.confirmation} onChange={(event) => setDeletion({ ...deletion, confirmation: event.target.value })} required /><button className="primary-button" disabled={deletion.deleting}>{deletion.deleting ? "Deleting…" : "Permanently delete account and clinics"}</button></form></div>}
   </section></div>;
-  return <>{createPortal(modal,document.body)}<button type="button" onClick={()=>setOpen(true)}>Account</button></>;
+  return <>{createPortal(modal, document.body)}<button type="button" onClick={() => setOpen(true)}>Account</button></>;
 }
