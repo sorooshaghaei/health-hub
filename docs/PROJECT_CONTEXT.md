@@ -10,11 +10,11 @@ This is the handoff entry point for a new chat or development session.
 - Clarify product/workflow changes with the product owner before implementing them.
 - Do not re-ask decisions already explicit in the current phase specifications.
 - Reconcile specification, implementation, tests, browser adapter, and handoff documentation together.
-- Do not begin Phase 9 until Phase 8 validation/consistency audit is complete and Phase 9 behavior is explicitly clarified.
+- Phase 8 is complete and validated. Do not begin Phase 9 until its behavior is explicitly clarified.
 
 ## Current phase status
 
-Phases 0–8 have approved product contracts and implementation alignment on `main`.
+Phases 0–8 have approved product contracts, implementation alignment, and completed validation on `main`.
 
 - Phase 0 — Foundation: reconciled to the final permanent-role/global-device architecture.
 - Phase 1 — Patient records: reconciled.
@@ -24,8 +24,8 @@ Phases 0–8 have approved product contracts and implementation alignment on `ma
 - Phase 5 — Completed consultation behavior: reconciled.
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
-- Phase 8 — Authentication/administration/security: approved architecture implemented and documentation reconciled; final validation/consistency audit is the remaining boundary before Phase 9.
-- Phase 9 — not started.
+- Phase 8 — Authentication/administration/security: implemented, documentation reconciled, source-audited, and validated.
+- Phase 9 — not started; clarification required before implementation.
 
 ## Final identity architecture
 
@@ -332,6 +332,6 @@ It does not claim real security infrastructure. Real Patient information must ne
 
 ## Next action
 
-Complete Phase 8 validation and the repository-wide consistency audit. Then stop.
+Phase 8 is complete. Stop before implementation work on Phase 9.
 
 Phase 9 has not started and requires its own clarification pass before implementation.
