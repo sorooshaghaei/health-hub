@@ -47,8 +47,8 @@ The Phase 0–8 implementation already exists. Before Phase 9, the product owner
 | 1 | Patient records | **Specification corrected; implementation already aligned** |
 | 2 | Planned appointments | **Specification corrected; implementation already aligned** |
 | 3 | Check-in and live queue | **Specification corrected; implementation aligned** |
-| 4 | Doctor room call and consultation handoff | Next clarification target |
-| 5 | Completed consultation behavior | Awaiting reconciliation |
+| 4 | Doctor room call and consultation handoff | **Specification corrected; implementation already aligned; regression coverage strengthened** |
+| 5 | Completed consultation behavior | Next clarification target |
 | 6 | Shared tasks | Awaiting reconciliation |
 | 7 | Private sticky | Awaiting reconciliation |
 | 8 | Account recovery, administration, multi-clinic identity, security | Awaiting final reconciliation |
@@ -56,7 +56,7 @@ The Phase 0–8 implementation already exists. Before Phase 9, the product owner
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
 
-Do not treat Phase 9 as the next implementation phase until Phase 4–8 reconciliation and the final repository-wide consistency audit are complete.
+Do not treat Phase 9 as the next implementation phase until Phase 5–8 reconciliation and the final repository-wide consistency audit are complete.
 
 ## Phase 0 — Foundation
 
@@ -140,15 +140,35 @@ See [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md).
 
 ## Phase 4 — Room ready and consultation handoff
 
-Existing implementation is present, but its specification is the next item to reconcile with the final membership, clinic-isolation, and clinic-timezone architecture.
+```text
+CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
+```
 
-Do not change Phase 4 behavior until the product owner answers the Phase 4 clarification questions.
+Current approved contract:
+
+- Room ready requires a Doctor membership in Doctor workspace;
+- Room ready is not exposed in Doctor administrator access to Assistant workspace;
+- Assistant workspace performs With doctor and its Undo;
+- Doctor membership in Assistant workspace receives those Assistant-side handoff controls;
+- consultation/current-Patient/Room-ready state is completely clinic-scoped;
+- the clinic operational timezone determines the active consultation day;
+- one pending Room-ready call maximum per clinic;
+- Room ready may be called with an empty queue;
+- Room ready has five-second Undo before Assistant-side notification;
+- after that period, Assistant workspace receives one short sound plus persistent visual indication;
+- first waiting Patient is suggested, but any checked-in Patient may be chosen;
+- With doctor consumes the pending call, preserves queue sequence, and has five-second Undo;
+- the next Room ready changes the current `WITH_DOCTOR` Appointment to `DOCTOR_FINISHED`, displayed as **Completed**;
+- no Checkout workflow exists;
+- authenticated three-second polling remains the synchronization mechanism.
+
+The existing implementation already matched these rules. Reconciliation strengthened backend regression coverage so Doctor workspace is denied With doctor, Doctor-in-Assistant-workspace is allowed With doctor, and Room ready remains Doctor-workspace-only.
 
 See [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md).
 
 ## Phase 5 — Completion
 
-Existing implementation uses `DOCTOR_FINISHED` as final **Completed** state with no Checkout workflow. Reconcile the specification after Phase 4 is closed.
+Existing implementation uses `DOCTOR_FINISHED` as final **Completed** state with no Checkout workflow. Reconcile its final-state/history/edit/deletion semantics after Phase 4.
 
 See [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md).
 
@@ -168,7 +188,7 @@ See [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md).
 
 The global account/membership architecture, email/phone login, verified contacts, trusted-device authorization, recovery, passkeys, Assistant administration, multi-clinic support, and Pages UI parity are implemented.
 
-Phase 8 must still be reconciled after Phases 4–7 because older wording includes rules superseded during this pass, including trusted-device removal. Remaining Phase 8 security/recovery ambiguities must be clarified rather than silently inferred.
+Phase 8 must still be reconciled after Phases 5–7 because older wording includes rules superseded during this pass, including trusted-device removal. Remaining Phase 8 security/recovery ambiguities must be clarified rather than silently inferred.
 
 See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
@@ -201,4 +221,4 @@ Review the complete Doctor/Assistant workflows, remove unfinished UI, confirm no
 
 ## Current work
 
-**Phase 0–3 reconciliation is complete. Phase 4 clarification is next.**
+**Phase 0–4 reconciliation is complete. Phase 5 clarification is next.**
