@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
 import { formatDate, formatTime } from "./patientForm.jsx";
@@ -231,8 +231,10 @@ export default function ScheduleWorkspace({
   refreshVersion = 0,
   readOnly = false,
 }) {
-  const today = useMemo(() => localDateValue(), []);
-  const [selectedDate, setSelectedDate] = useState(today);
+  const initialToday = localDateValue();
+  const [today, setToday] = useState(initialToday);
+  const todayRef = useRef(initialToday);
+  const [selectedDate, setSelectedDate] = useState(initialToday);
   const [visits, setVisits] = useState([]);
   const [queue, setQueue] = useState([]);
   const [roomState, setRoomState] = useState({
@@ -279,6 +281,12 @@ export default function ScheduleWorkspace({
     try {
       const payload = await apiRequest("/api/visits/room-state/", { staffToken });
       setRoomState(payload);
+      if (payload.date && payload.date !== todayRef.current) {
+        const previousToday = todayRef.current;
+        todayRef.current = payload.date;
+        setToday(payload.date);
+        setSelectedDate((current) => current === previousToday ? payload.date : current);
+      }
     } catch (requestError) {
       if (!quiet) setError(requestError instanceof ApiError ? requestError : new ApiError("Room status could not be loaded."));
     }
@@ -299,7 +307,7 @@ export default function ScheduleWorkspace({
     loadRoomState();
     const timer = globalThis.setInterval(() => refreshAll({ quiet: true }), 3_000);
     return () => globalThis.clearInterval(timer);
-  }, [staffToken, refreshVersion, selectedDate]);
+  }, [staffToken, refreshVersion, selectedDate, today]);
 
   useEffect(() => {
     if (readOnly || !roomState.room_call?.available) return;
