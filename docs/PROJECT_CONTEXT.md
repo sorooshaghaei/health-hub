@@ -2,167 +2,151 @@
 
 This is the handoff entry point for a new chat or development session.
 
-## Repository and workflow
+## Repository and working protocol
 
 - Repository: `sorooshaghaei/health-hub`
 - Working branch: `main`
 - Work directly on `main`; do not create branches or pull requests unless explicitly instructed.
-- Implement one approved phase or corrective pass at a time.
-- Ask before choosing an unapproved field, state, screen, action, permission, algorithm, dependency, or workflow.
-- Update documentation, validate, commit, report, and stop after each approved unit.
-- Continue only after the product owner explicitly says **continue**.
+- Before implementing a product or workflow change, clarify it with the product owner first.
+- Do not re-ask decisions that are already explicit in the current phase specifications.
+- Work one approved phase or corrective pass at a time.
+- Update documentation and implementation together when a clarified rule changes behavior.
+- Validate before treating an implementation correction as closed.
 
-## Current phase status
+## Current correction pass
 
-- Phase 0 — Foundation/trusted-device authentication: complete.
-- Phase 1 — Patient records: complete.
-- Phase 2 — Appointments: complete.
-- Phase 3 — Check-in/live queue: complete.
-- Phase 4 — Room ready/consultation handoff: complete.
-- Phase 5 — Completed consultation behavior: complete.
-- Phase 6 — Shared tasks: complete.
-- Phase 7 — Private sticky: complete.
-- Phase 8 — Account recovery, administration, multi-clinic identity, and security: **complete, including the GitHub Pages demo-parity corrective pass**.
-- Phase 9 — Sensitive attachment architecture: not started.
-- Phase 10 — Production hardening: not started.
-- Phase 11 — First stable release: not started.
+The Phase 0–8 implementation exists, but the project is undergoing a line-by-line documentation and implementation alignment pass before Phase 9.
 
-The initial Phase 8 implementation validation passed on code commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. A later corrective pass fixed the Pages build so it no longer opens the legacy separate `DemoApp` authentication flow. The Pages build now renders the same production Phase 8 React UI and uses only a browser-local API adapter underneath it. A regression test explicitly requires **Email or phone** login and rejects the old username contract.
+Alignment completed so far:
+
+- Phase 0 — Foundation: specification corrected to the final account/membership/device architecture; current-device removal rule implemented.
+- Phase 1 — Patient records: specification corrected to membership/workspace and multi-clinic terminology; implementation already matched.
+- Phase 2 — Appointments: specification corrected to current clinic-scoped architecture; implementation already matched.
+- Phase 3 — Check-in/live queue: specification corrected and clinic operational timezone implemented.
+
+Next clarification target: **Phase 4 — Room ready and consultation handoff**.
+
+Do not begin Phase 9 while this Phase 0–8 reconciliation is still in progress.
 
 ## Product baseline
 
-Health Hub is a deliberately simple clinic workflow application for Doctor and Assistant roles using React/Vite, Django REST Framework, and PostgreSQL. The GitHub Pages build uses the same production frontend through a browser-only API adapter and is not a medical-data backend.
+Health Hub is a deliberately simple clinic workflow application for Doctor and Assistant roles.
+
+Technology:
+
+- React/Vite frontend;
+- Django REST Framework backend;
+- PostgreSQL primary database;
+- GitHub Pages uses the same production React UI through a browser-local API/storage adapter.
 
 Clinic operational data is tenant-scoped. Personal staff identity is global.
 
-## Final account/security architecture after Phase 8
+## Personal account and clinic membership model
 
-### Global personal accounts
-
-`StaffUser` is the person's global account. The following follow the person across clinics:
+`StaffUser` is the person's global personal account. It owns:
 
 - first/last name;
 - unique email;
 - unique phone;
 - password;
-- verified-contact state;
+- contact-verification state;
 - passkeys;
-- Doctor offline recovery codes;
-- private sticky.
+- eligible Doctor recovery codes;
+- global private sticky.
 
-There is no production or active-demo username login. Staff sign in with email or phone + password, or a registered passkey in production.
+There is no active username login and no shared clinic password. Staff sign in with email or phone + password, or a registered passkey where supported.
 
-### Clinic memberships
-
-`StaffMembership` contains clinic-specific identity:
+`StaffMembership` is clinic-specific. It owns:
 
 - clinic;
 - Doctor or Assistant role;
 - active/inactive membership state;
-- task-attention seen state.
+- membership-scoped task-attention seen state.
 
-Each clinic has at most one active Doctor and one active Assistant. Both Doctors and Assistants may belong to multiple clinics. A Doctor can be Doctor in multiple clinics simultaneously.
+Each clinic has at most one active Doctor membership and one active Assistant membership. Both Doctors and Assistants may belong to multiple clinics.
 
-Clinic Patient/Appointment/queue/room-call/task/trusted-device data never becomes global.
+The same physical Patient appearing in two clinics remains two independent clinic Patient records. Patient, Appointment, queue, room-call, task, and trusted-device data never become global.
 
-### Workspace rule
+## Workspace authorization
 
-Account identity, clinic membership, and active workspace are separate:
+Account identity, clinic membership, and workspace are separate.
 
-- Doctor membership → Doctor workspace;
-- Doctor membership → Assistant workspace for administrator intervention;
-- Assistant membership → Assistant workspace;
+- Doctor membership → Doctor workspace.
+- Doctor membership → Assistant workspace for administrator intervention.
+- Assistant membership → Assistant workspace.
 - Assistant membership cannot open Doctor workspace.
 
-Doctor workspace remains clinically focused. Doctor may edit approved Patient information but does not create/delete Patients or administer Appointments there. Assistant workspace owns Patient/Appointment administration, check-in, queue, and handoff operations. Doctor inside Assistant workspace receives those administrative controls.
+Doctor workspace is clinically focused. It may edit approved Patient information but does not create/delete Patients or administer Appointments.
 
-Task authoring is based on the active clinic membership's Doctor role, not on workspace. Private sticky is stricter: it appears only when the active workspace equals that membership's own role. Doctor administrator access to Assistant workspace shows no private sticky.
+Assistant workspace owns Patient/Appointment administration, check-in, queue, and consultation handoff. A Doctor membership opened in Assistant workspace receives those Assistant-side administrative controls.
 
-### Verified contacts
+## Verified contacts and trusted devices
 
-Phone is required for new accounts. Both personal email and phone must be verified before clinic operational data opens. This is enforced server-side at the active-membership permission boundary.
+Phone is required for new personal accounts. Both personal email and phone must be verified before clinic operational data opens.
 
-Default verification rules:
+Trusted-device authorization is per clinic. A new browser may be authorized through either:
 
-- six-digit codes;
-- 10-minute expiry;
-- 60-second resend minimum;
-- five failed attempts maximum.
+- a code sent to the signed-in person's verified email or verified phone/SMS; or
+- the six-digit pairing flow approved from another already trusted device for that clinic.
 
-Clinic-level email and phone were removed. Individual contacts own authentication/recovery.
+Trusted devices remain trusted until removed.
 
-### Trusted devices
+Current approved device-management rule:
 
-Device trust is per clinic.
+- other trusted devices may be removed;
+- **the current trusted device cannot be removed**;
+- signing out does not remove device trust.
 
-A browser becomes trusted for a clinic through either:
+A clinic-bound staff session requires the bearer session plus proof of the matching trusted device. A copied bearer token alone cannot open clinic operational data.
 
-- the signed-in person's verified email/SMS; or
-- the existing six-digit pairing code approved from a trusted clinic device.
+## Session policy
 
-Trusted devices stay trusted until removed. Both roles can review/remove them. Phase 8 permits deleting the last trusted device because verified-contact authorization can create a new one later.
-
-A clinic-bound API session requires bearer token + proof of the matching trusted device. A copied bearer alone cannot open clinic data.
-
-A global personal session before clinic selection has no clinic/device binding and cannot open clinic operational APIs.
-
-### Session policy
+Current default session policy:
 
 - 12-hour absolute lifetime;
 - 2-hour inactivity timeout;
 - no Remember Me;
-- sign-out deletes session only, not device trust.
+- browser close does not itself revoke an otherwise valid server session;
+- explicit sign-out deletes the staff session but keeps device trust.
 
-Selecting a clinic binds the session to membership + device + workspace. Switching clinic first clears the active clinic binding.
+A global personal session before clinic selection cannot open clinic operational APIs.
 
-### Recovery and security changes
+## Clinic operational timezone
 
-Forgot-password recovery uses verified email or SMS. A successful recovery grant lasts up to 30 minutes; a newer grant supersedes older outstanding grants. Successful reset revokes all sessions for that person only and leaves trusted devices intact.
+Each clinic stores one operational IANA timezone, for example `Europe/Paris`.
 
-Normal password change uses a verified email/SMS code, preserves the current session, revokes the person's other sessions, and keeps device trust.
+When a clinic is created, the frontend automatically captures the creating browser's timezone and sends it with clinic creation. There is no required timezone field in the normal creation UI.
 
-Email/phone changes require recent password or passkey reauthentication, verify the new contact, and send a best-effort notice to the old contact.
+The stored clinic timezone is authoritative for clinic-day logic, including:
 
-Security/account actions do not use the five-second Undo rule.
+- what counts as **today**;
+- today's Appointment list;
+- check-in eligibility;
+- live queue membership;
+- Room-ready/consultation day boundaries.
 
-### Passkeys
+A Doctor travelling with a laptop does not move the clinic into another operational day merely because that browser changes timezone.
 
-Passkeys are optional; password login remains available. Up to five passkeys may be registered. Server-side WebAuthn challenge/credential verification is implemented using the Python `webauthn` dependency. Passkeys may sign in or reauthenticate sensitive operations.
+The backend activates the selected clinic timezone for clinic-scoped requests and resets timezone state between requests. The browser demo preserves the same captured clinic timezone in local demonstration storage.
 
-### Doctor offline recovery codes
+Migration `accounts.0008_clinic_timezone` adds the persisted clinic timezone field.
 
-Doctors can generate 10 one-time offline recovery codes. Generating a new set invalidates all unused old codes. Codes recover only that Doctor's global account; they are not Assistant credentials.
-
-### Assistant replacement
-
-Doctor manages the Assistant slot for the active clinic.
-
-Replacement deactivates only the old Assistant's membership for that clinic and ends sessions tied to it. It does not erase the person's global account, sticky, contacts, passkeys, or other clinic memberships, and it does not change Patient/Appointment/queue/task data.
-
-Historical task/comment authorship stays attached to the original person. The Doctor receives a one-time setup code for the replacement. The replacement may create or attach a personal account, then must verify both contacts and authorize a trusted browser before clinic data opens.
-
-There is no Doctor replacement/ownership transfer in Phase 8.
-
-### Browser demo
-
-The GitHub Pages demo must use the same production React product UI; it must not expose a separate demo sign-in/application flow.
-
-The Pages environment sets production UI mode and routes only the API layer to the browser adapter. Therefore the visible account flow, clinic picker, workspace selection, account settings, device/team controls, and login form are the same components used by the real web app. Login is **Email or phone**; username is not an active demo credential.
-
-The browser adapter locally simulates account/membership/device state and reuses the existing Patient/Appointment/queue/task demo engine. It does not fake production security infrastructure: no real email/SMS delivery, no real trusted-device authority, and no fake WebAuthn/passkey security. Browser storage is demonstration state only and must never contain real Patient information.
-
-See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md) for the detailed implemented contract and demo-parity invariant.
-
-## Implemented clinic workflow
+## Implemented clinic workflow through Phase 3
 
 ### Patients
 
 - reusable clinic-scoped Patient profile;
-- full name, `Man`/`Woman`, country/calling code, phone, optional date of birth, optional shared Patient note;
+- full name;
+- `Man` / `Woman`;
+- country/calling code + phone;
 - Iran `+98` default;
-- automatic search by name, phone, or DOB;
+- optional date of birth;
+- optional shared Patient note;
+- automatic search by normalized name, phone, or DOB;
 - one duplicate warning;
-- Doctor may edit; Assistant workspace creates/deletes;
+- Doctor workspace may edit approved Patient fields;
+- Assistant workspace may create/edit/delete Patients;
+- Doctor membership in Assistant workspace receives the same Patient administration controls;
 - current/future Appointments block Patient deletion;
 - Patient deletion has five-second Undo.
 
@@ -170,50 +154,46 @@ See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINIST
 
 - Patient, date, scheduled time, optional reason;
 - one active Appointment maximum per Patient per clinic date;
-- same-day unplanned arrival is a normal same-day Appointment with frontend time defaulting to current time, then check-in;
-- Assistant workspace creates/edits/deletes; Doctor workspace is read-only for Appointment administration;
+- each clinic's Appointment history is independent;
+- unplanned same-day arrival is represented by a normal same-day Appointment, then check-in;
+- Assistant workspace creates/edits/deletes Appointments subject to workflow locks;
+- Doctor workspace is read-only for Appointment administration;
 - deletion has five-second Undo.
 
-### Queue and consultation
+### Check-in and queue
 
 ```text
-PLANNED → CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
+PLANNED → CHECKED_IN
 ```
 
-- only today's Appointments check in;
-- queue order is original persisted check-in sequence;
-- Doctor **Room ready** is a one-time call with five-second Undo before Assistant notification;
-- Assistant sends any checked-in Patient **With doctor**, also with five-second Undo;
-- `DOCTOR_FINISHED` is final and displayed as **Completed**;
-- no Checkout state/action exists.
+- only an Appointment whose date equals the clinic's operational today may check in;
+- check-in timestamp records the actual check-in action;
+- queue order is the original persisted check-in sequence;
+- Assistant queue shows Patient phone; Doctor queue omits it;
+- Patient and Appointment date are locked after check-in;
+- scheduled time, reason, and Patient profile information remain correctable;
+- queue position does not change because of those corrections;
+- check-in and eligible destructive actions use the five-second server-enforced Undo;
+- live queue refresh uses the existing three-second authenticated polling.
 
-### Shared tasks
+## Existing Phase 4–8 implementation
 
-```text
-OPEN → DONE
-```
+The repository already contains the Phase 4–8 features: Room ready/consultation handoff, Completed consultation behavior, shared tasks, private sticky, and Phase 8 account/recovery/security architecture.
 
-- Doctor membership creates tasks for Assistant;
-- optional due date and Patient link;
-- both staff may comment on their own comments;
-- Done/delete/comment-delete actions have five-second Undo;
-- task attention dots are clinic-membership scoped after Phase 8.
+However, their phase documents are being reviewed sequentially in the current reconciliation pass. When an older Phase 4–8 document conflicts with an explicitly corrected Phase 0–3 rule above, do not silently choose one: continue the phase-by-phase clarification process with the product owner.
 
-### Private sticky
+The Phase 8 Pages parity correction remains an invariant: production and GitHub Pages render the same React product UI. Pages substitutes only the browser-local API/security storage layer and must not expose a separate username/demo application.
 
-- one global plain-text scratchpad per personal account;
-- autosaves and persists;
-- minimized strip / draggable-resizable desktop / full-screen mobile editor;
-- shown only when active workspace equals the person's own active membership role.
+## Browser demo security boundary
 
-## Important implementation notes
+The public GitHub Pages demo is demonstration storage only. It does not provide or claim real production:
 
-- `accounts.0005_trusted_device_auth` is the earlier Phase 0 trusted-device migration and deliberately reset incompatible pre-release auth data under explicit pre-release approval.
-- `accounts.0006_phase8_global_accounts` migrates old per-clinic staff identity to global account + membership architecture and adds verification/passkey/recovery/setup models.
-- `accounts.0007_alter_staffuser_options` aligns final Django user-model migration state.
-- `backend/health_hub/test_runner.py` adapts only historical Phase 1–7 test-fixture syntax during `manage.py test`; it does not alter production API semantics.
-- `frontend/src/demoPhase8Api.js` is the browser-only Phase 8 API adapter used by GitHub Pages while the Pages UI remains the production React application.
-- Production account APIs require the new Phase 8 fields and flows.
+- email/SMS delivery;
+- trusted-device authority;
+- WebAuthn/passkey verification;
+- medical-data storage guarantees.
+
+Do not enter real Patient information into the public demo.
 
 ## Phase specifications
 
@@ -227,12 +207,8 @@ OPEN → DONE
 - [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md)
 - [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
 
-## Current work
-
-**Phases 0–8 are complete, including the Phase 8 browser-demo parity correction. Phase 9 has not started.**
-
 ## Next action
 
-Stop before Phase 9. Wait for the product owner to explicitly say **continue**.
+Continue with **Phase 4 clarification**. Do not implement Phase 4 corrections until its behavior is fully approved.
 
-When Phase 9 starts, clarify the sensitive-attachment architecture before implementation, including storage, access controls, encryption, limits, file types, malware scanning, retention/deletion, backups, audit requirements, Patient-information boundaries, and deployment/privacy implications.
+After Phase 8 reconciliation is complete, perform a final repository-wide documentation/code consistency audit before considering Phase 9.
