@@ -87,6 +87,19 @@ The first account screen is intentionally simple:
 
 The chosen role is part of authentication. A Doctor account presented as Assistant, or an Assistant account presented as Doctor, is rejected rather than silently redirected to another role.
 
+## Phase 8 UI invariants
+
+Authentication and account-administration controls use the shared UI components rather than browser-default form controls.
+
+- **Back** is the only absolutely positioned authentication navigation control.
+- **Forgot password?** is a normal text link below the relevant sign-in/role content and must never reuse `.back-button`.
+- Recovery uses the shared checkbox and select-field controls, stacked vertically with normal form spacing. The checkbox label provides at least a 44px touch target.
+- On screens up to 900px wide, the large desktop authentication introduction collapses to a compact roughly 100–140px header. The current screen title remains visible; the long decorative description is hidden.
+- On mobile/tablet workspace headers, the separate header actions collapse into one menu. Existing functionality remains available there, including clinic switching, Doctor/Assistant workspace switching when applicable, Account, Clinic team, trusted devices, and Sign out.
+- Desktop workspace header behavior remains unchanged.
+
+These are shared production/Pages UI rules; the browser demo must not maintain a separate layout.
+
 ## New Doctor onboarding
 
 The new-Doctor sequence is:
