@@ -1,6 +1,6 @@
 # Phase 4 — Doctor room call and consultation handoff
 
-Status: **Implemented and aligned with the current membership, clinic, and timezone architecture.**
+Status: **Implemented and aligned with the current account-role, clinic-membership, and timezone architecture.**
 
 Phase 4 keeps the Doctor–Assistant handoff explicit and minimal. The Doctor signals that the room is ready; the Assistant-side workspace chooses and sends a checked-in Patient. The two actions are separate so the application matches the physical clinic workflow and remains safe when the two workspaces are open on different computers.
 
@@ -17,15 +17,15 @@ PLANNED → CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 
 There is no separate Doctor **Finished**, **Checkout**, **Pause**, **Return to queue**, or automatic-next-patient action.
 
-## Membership and workspace permissions
+## Account-role and workspace permissions
 
-Phase 4 permissions come from the active clinic membership together with the active workspace.
+The permanent account role supplies Doctor/Assistant authority. The active clinic membership supplies the clinic boundary, and the active workspace determines which Phase 4 action is available.
 
-- a Doctor membership in Doctor workspace may use **Room ready**;
-- an Assistant membership in Assistant workspace may use **With doctor** and its Undo;
-- a Doctor membership opened in Assistant workspace as administrator may use the same Assistant-side **With doctor** and Undo controls;
-- a Doctor membership in Assistant workspace cannot use **Room ready**;
-- an Assistant membership cannot open Doctor workspace.
+- a Doctor account in Doctor workspace may use **Room ready**;
+- an Assistant account in Assistant workspace may use **With doctor** and its Undo;
+- a Doctor account opened in Assistant workspace as administrator may use the same Assistant-side **With doctor** and Undo controls;
+- a Doctor account in Assistant workspace cannot use **Room ready**;
+- an Assistant account cannot open Doctor workspace.
 
 **Room ready is therefore strictly a Doctor-workspace clinical action.** Doctor administrator access to Assistant workspace does not duplicate that control.
 
@@ -176,7 +176,7 @@ POST /api/visits/<visit-id>/undo-with-doctor/
 - Assistant workspace receives no room call during the Doctor's five-second Undo period;
 - after that period, Assistant workspace receives the pending call and suggested first Appointment for the active clinic.
 
-**Room ready** and its Undo require a Doctor membership in Doctor workspace. **With doctor** and its Undo require Assistant workspace; that workspace may be opened by the clinic's Assistant membership or by its Doctor membership using administrator access.
+**Room ready** and its Undo require a Doctor account in Doctor workspace with an active membership in the clinic. **With doctor** and its Undo require Assistant workspace; that workspace may be opened by the clinic's Assistant account or by its Doctor account using administrator access.
 
 ## Notes boundary
 
@@ -184,7 +184,7 @@ The shared Patient note shown on the consultation card is part of the Patient pr
 
 ## Phase 4 invariants
 
-- Room ready is available only to a Doctor membership in Doctor workspace;
+- Room ready is available only to a Doctor account in Doctor workspace with an active clinic membership;
 - Doctor administrator access to Assistant workspace may perform Assistant-side handoff but cannot use Room ready there;
 - consultation and Room-ready state are strictly clinic-scoped;
 - the clinic operational timezone determines the active consultation day;
