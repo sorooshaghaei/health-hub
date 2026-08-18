@@ -3,7 +3,6 @@ import uuid
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 
 
@@ -11,38 +10,45 @@ class StaffUserManager(BaseUserManager):
     use_in_migrations = True
 
     def create_user(self, email=None, password=None, **extra_fields):
-        # `clinic`, `role`, and `username` are accepted only so pre-Phase-8
-        # internal fixtures/migrations can construct equivalent memberships.
+        # `clinic` and `username` remain accepted only for historical test
+        # fixtures. Production registration creates the personal account first
+        # and attaches clinic memberships explicitly afterwards.
         legacy_clinic = extra_fields.pop("clinic", None)
-        legacy_role = extra_fields.pop("role", "")
         extra_fields.pop("username", None)
         legacy_attention = extra_fields.pop("task_attention_seen_at", None)
+        role = extra_fields.pop("role", None)
         if not email:
             raise ValueError("An email address is required.")
+        if role not in {StaffUser.Role.DOCTOR, StaffUser.Role.ASSISTANT}:
+            raise ValueError("A permanent Doctor or Assistant role is required.")
         email = self.normalize_email(email).lower()
-        user = self.model(email=email, **extra_fields)
+        user = self.model(email=email, role=role, **extra_fields)
         user.set_password(password)
-        if legacy_clinic is not None and legacy_role:
-            # This path is not used by production account-registration views.
-            # It exists to preserve older direct model fixtures while the API
-            # exercises the new explicit email/phone verification flow.
+        if legacy_clinic is not None:
             now = timezone.now()
             user.email_verified_at = user.email_verified_at or now
             user.phone_verified_at = user.phone_verified_at or now
         user.save(using=self._db)
-        if legacy_clinic is not None and legacy_role:
-            StaffMembership.objects.create(
+        if legacy_clinic is not None:
+            membership = StaffMembership.objects.create(
                 user=user,
                 clinic=legacy_clinic,
-                role=legacy_role,
                 task_attention_seen_at=legacy_attention or timezone.now(),
             )
+            if role == StaffUser.Role.DOCTOR and legacy_clinic.owner_doctor_id is None:
+                legacy_clinic.owner_doctor = user
+                legacy_clinic.save(update_fields=["owner_doctor"])
+            if role == StaffUser.Role.ASSISTANT:
+                user.dormant_since = None
+                user.save(update_fields=["dormant_since"])
+            return user
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("role", StaffUser.Role.DOCTOR)
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
@@ -54,6 +60,13 @@ class Clinic(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=160)
     timezone = models.CharField(max_length=64, default="UTC")
+    owner_doctor = models.ForeignKey(
+        "StaffUser",
+        on_delete=models.CASCADE,
+        related_name="owned_clinics",
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -66,7 +79,13 @@ class Clinic(models.Model):
 
 class TrustedDevice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name="trusted_devices")
+    user = models.ForeignKey(
+        "StaffUser",
+        on_delete=models.CASCADE,
+        related_name="trusted_devices",
+        null=True,
+        blank=True,
+    )
     token_hash = models.CharField(max_length=64, unique=True)
     browser = models.CharField(max_length=80)
     operating_system = models.CharField(max_length=80)
@@ -81,7 +100,11 @@ class TrustedDevice(models.Model):
 
 class DevicePairingRequest(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name="device_pairing_requests")
+    user = models.ForeignKey(
+        "StaffUser",
+        on_delete=models.CASCADE,
+        related_name="device_pairing_requests",
+    )
     request_token_hash = models.CharField(max_length=64, unique=True)
     code_hash = models.CharField(max_length=64, unique=True)
     browser = models.CharField(max_length=80)
@@ -100,15 +123,19 @@ class DevicePairingRequest(models.Model):
 
 class StaffUser(AbstractUser):
     username = None
-    email = models.EmailField("email address", unique=True)
-    phone = models.CharField(max_length=32, unique=True, null=True, blank=True)
-    email_verified_at = models.DateTimeField(null=True, blank=True)
-    phone_verified_at = models.DateTimeField(null=True, blank=True)
-    private_note = models.TextField(blank=True, default="")
 
     class Role(models.TextChoices):
         DOCTOR = "doctor", "Doctor"
         ASSISTANT = "assistant", "Assistant"
+
+    email = models.EmailField("email address", unique=True)
+    phone = models.CharField(max_length=32, unique=True, null=True, blank=True)
+    role = models.CharField(max_length=16, choices=Role.choices)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+    phone_verified_at = models.DateTimeField(null=True, blank=True)
+    private_note = models.TextField(blank=True, default="")
+    dormant_since = models.DateTimeField(null=True, blank=True)
+    anonymized_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -116,6 +143,8 @@ class StaffUser(AbstractUser):
 
     @property
     def display_name(self):
+        if self.anonymized_at is not None:
+            return "Former Assistant"
         return self.get_full_name().strip() or self.email
 
     @property
@@ -124,14 +153,7 @@ class StaffUser(AbstractUser):
 
     @property
     def has_doctor_membership(self):
-        return self.memberships.filter(role=self.Role.DOCTOR, is_active=True).exists()
-
-    # Compatibility accessors for pre-Phase-8 internal tests and historical
-    # code paths. New application code must use StaffMembership explicitly.
-    @property
-    def role(self):
-        membership = self.memberships.filter(is_active=True).order_by("joined_at").first()
-        return membership.role if membership else ""
+        return self.role == self.Role.DOCTOR and self.memberships.filter(is_active=True).exists()
 
     @property
     def clinic(self):
@@ -165,24 +187,31 @@ class StaffMembership(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(StaffUser, on_delete=models.CASCADE, related_name="memberships")
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name="staff_memberships")
-    role = models.CharField(max_length=16, choices=StaffUser.Role.choices)
     is_active = models.BooleanField(default=True)
     task_attention_seen_at = models.DateTimeField(default=timezone.now)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["clinic__name", "role"]
+        ordering = ["clinic__name", "joined_at"]
         constraints = [
-            models.UniqueConstraint(fields=["clinic", "role"], condition=Q(is_active=True), name="one_active_staff_role_per_clinic"),
             models.UniqueConstraint(fields=["user", "clinic"], name="one_membership_per_user_clinic"),
         ]
 
     @property
+    def role(self):
+        # Compatibility/readability only. Role authority lives exclusively on
+        # the global personal account.
+        return self.user.role
+
+    @property
     def is_clinic_admin(self):
-        return self.role == StaffUser.Role.DOCTOR
+        return (
+            self.user.role == StaffUser.Role.DOCTOR
+            and self.clinic.owner_doctor_id == self.user_id
+        )
 
     def __str__(self):
-        return f"{self.user.display_name} · {self.get_role_display()} · {self.clinic.name}"
+        return f"{self.user.display_name} · {self.user.get_role_display()} · {self.clinic.name}"
 
 
 class PasskeyCredential(models.Model):
@@ -212,7 +241,7 @@ class StaffSession(models.Model):
     trusted_device = models.ForeignKey(TrustedDevice, on_delete=models.CASCADE, related_name="staff_sessions", null=True, blank=True)
     workspace_role = models.CharField(max_length=16, choices=StaffUser.Role.choices, blank=True, default="")
     auth_method = models.CharField(max_length=16, choices=AuthMethod.choices, default=AuthMethod.PASSWORD)
-    reauthenticated_at = models.DateTimeField(default=timezone.now)
+    reauthenticated_at = models.DateTimeField(null=True, blank=True, default=None)
     reauth_passkey = models.ForeignKey(PasskeyCredential, on_delete=models.SET_NULL, related_name="reauthenticated_sessions", null=True, blank=True)
     token_hash = models.CharField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -307,7 +336,7 @@ class PasskeyChallenge(models.Model):
 class AssistantSetupToken(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name="assistant_setup_tokens")
-    created_by = models.ForeignKey(StaffUser, on_delete=models.PROTECT, related_name="created_assistant_setup_tokens")
+    created_by = models.ForeignKey(StaffUser, on_delete=models.CASCADE, related_name="created_assistant_setup_tokens")
     code_hash = models.CharField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
