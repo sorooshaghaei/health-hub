@@ -42,7 +42,7 @@ test("mobile workspace actions are consolidated into one menu including workspac
   assert.ok(workspace.indexOf("<ClinicTeam", panel) > panel);
   assert.ok(workspace.indexOf("<TrustedDevices", panel) > panel);
   assert.ok(workspace.indexOf("onSignOut()", panel) > panel);
-  assert.match(styles, /\.user-menu--desktop \{ display: none; \}/);
+  assert.match(styles, /\.workspace-header__clinic, \.user-menu--desktop \{ display: none; \}/);
   assert.match(styles, /\.workspace-mobile-menu \{ display: block; \}/);
 });
 
