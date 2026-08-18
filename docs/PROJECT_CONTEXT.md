@@ -14,7 +14,7 @@ This is the handoff entry point for a new chat or development session.
 
 ## Current reconciliation status
 
-The Phase 0–8 implementation already exists. The repository is being corrected line by line so outdated pre-Phase-8 structure is removed and replaced with the final architecture.
+The Phase 0–8 implementation already exists. The repository is being corrected line by line so outdated pre-Phase-8 assumptions are removed and replaced with the final architecture.
 
 Completed reconciliation:
 
@@ -24,11 +24,12 @@ Completed reconciliation:
 - Phase 3 — Check-in/live queue: corrected; persisted clinic operational timezone implemented.
 - Phase 4 — Room ready/consultation handoff: corrected; implementation already aligned; permission regression coverage strengthened.
 - Phase 5 — Completed consultation behavior: corrected; implementation already aligned.
-- Phase 6 — Shared tasks: corrected to membership-scoped permissions/attention/history semantics; implementation aligned and terminology/regression coverage updated.
+- Phase 6 — Shared tasks: corrected to membership-scoped permissions/attention/history semantics; implementation terminology aligned and coverage strengthened.
+- Phase 7 — Private sticky: corrected to global-account/membership privacy semantics; minimized private-text preview removed; coverage strengthened.
 
-Next clarification target: **Phase 7 — Private sticky**.
+Next clarification target: **Phase 8 — Accounts, recovery, administration, and security**.
 
-Phase 8 still requires final reconciliation after Phase 7. Phase 9 has not started.
+Phase 9 has not started.
 
 ## Product architecture
 
@@ -109,7 +110,7 @@ A travelling staff browser does not change the clinic's operational day.
 
 Migration: `accounts.0008_clinic_timezone`.
 
-## Reconciled workflow through Phase 6
+## Reconciled workflow through Phase 7
 
 ### Phase 1 — Patients
 
@@ -204,6 +205,23 @@ OPEN → DONE
 - task/attention refresh uses authenticated three-second polling;
 - no task sound, popup, OS notification, email/SMS, comment alert, or due-date alert.
 
+### Phase 7 — Private sticky
+
+- one global plain-text sticky belongs to each personal `StaffUser` account;
+- the same sticky follows that person across clinic memberships;
+- Doctor membership + Doctor workspace shows that person's sticky;
+- Assistant membership + Assistant workspace shows that person's sticky;
+- Doctor membership + Assistant administrator workspace shows **no sticky**;
+- the Doctor can never read the Assistant's sticky;
+- Assistant replacement/deactivation never transfers or deletes the former Assistant's personal sticky;
+- one plain-text value only; autosave; blank text is valid;
+- no title, multiple notes, Delete/Trash, Undo, history, rich text, Patient link, task conversion, reminders, attachments, or notifications;
+- desktop: fixed viewport sticky, movable minimized strip, movable/resizable expanded editor;
+- mobile: movable minimized strip, full-screen expanded editor;
+- no Close button;
+- minimized strip always displays **Private note**, never private text content;
+- sticky content persists globally, but UI position/size/minimized state is not stored on the server and resets to the default presentation when reopened.
+
 ## Browser demo invariant
 
 GitHub Pages renders the same production React product UI and substitutes only the browser-local API/storage layer.
@@ -212,17 +230,18 @@ It must not expose a separate username/demo application. Browser storage is demo
 
 The demo does not claim real email/SMS delivery, trusted-device authority, WebAuthn security, or medical-data guarantees.
 
-## Phase 7–8 work still to reconcile
-
-### Phase 7 — Private sticky
-
-Existing implementation provides one global plain-text private scratchpad per personal account with workspace privacy. Its membership/workspace wording must be reconciled next before any behavior is changed.
-
-### Phase 8 — Accounts, recovery, administration, security
+## Phase 8 work still to reconcile
 
 Implemented architecture includes global accounts, memberships, email/phone login, verified contacts, trusted devices, recovery, passkeys, Assistant membership management, multi-clinic support, and Pages UI parity.
 
-Phase 8 still requires explicit final decisions on remaining ambiguities identified during the audit, including Assistant emergency recovery semantics, reauthentication requirements for contact changes, and whether general auth throttling belongs in Phase 8 or Phase 10. Do not silently infer these.
+Phase 8 still requires explicit final decisions on remaining ambiguities identified during the audit, including:
+
+- Assistant emergency recovery semantics when the Assistant has lost access to both verified email and phone;
+- whether recent login itself satisfies contact-change reauthentication or a fresh password/passkey prompt is required;
+- whether general authentication/login throttling belongs in Phase 8 or Phase 10;
+- correction of stale wording such as the superseded trusted-device removal rule and the login/verification wording.
+
+Do not silently infer these decisions.
 
 ## Phase specifications
 
@@ -238,6 +257,6 @@ Phase 8 still requires explicit final decisions on remaining ambiguities identif
 
 ## Next action
 
-Continue with **Phase 7 clarification**. Do not implement Phase 7 corrections until its behavior is fully approved.
+Continue with **Phase 8 clarification**. Do not implement unresolved Phase 8 behavior until its decisions are fully approved.
 
 After Phase 8 reconciliation, perform a final repository-wide code/document consistency audit before considering Phase 9.
