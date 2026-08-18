@@ -22,10 +22,13 @@ def fixture_phone(email):
 
 def patched_generic(client, method, path, data="", content_type="application/octet-stream", secure=False, **extra):
     authorization = extra.get("HTTP_AUTHORIZATION", "")
-    if authorization.startswith("Bearer ") and "HTTP_X_DEVICE_TOKEN" not in extra:
+    if authorization.startswith("Bearer "):
         raw_session = authorization.split(" ", 1)[1]
         raw_device = LEGACY_SESSION_DEVICES.get(raw_session)
         if raw_device:
+            # Historical tests often pass the old shared clinic device token.
+            # Replace it with the translated personal-account device only for
+            # sessions created by this test adapter.
             extra["HTTP_X_DEVICE_TOKEN"] = raw_device
     return ORIGINAL_GENERIC(
         client,
