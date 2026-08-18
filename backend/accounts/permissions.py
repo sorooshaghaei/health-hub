@@ -7,9 +7,16 @@ from .models import StaffUser
 
 
 def active_membership(request, *, require_verified=True):
-    membership = getattr(getattr(request, "auth", None), "membership", None)
-    if membership is None or membership.user_id != getattr(request.user, "id", None) or not membership.is_active:
+    auth = getattr(request, "auth", None)
+    membership = getattr(auth, "membership", None)
+    if (
+        membership is None
+        or membership.user_id != getattr(request.user, "id", None)
+        or not membership.is_active
+    ):
         raise PermissionDenied("Choose a clinic before opening clinic data.")
+    if auth.trusted_device_id is None or auth.trusted_device.user_id != request.user.id:
+        raise PermissionDenied("Use a trusted device before opening clinic data.")
     if require_verified and not request.user.contacts_verified:
         raise PermissionDenied("Verify both email and phone before opening clinic data.")
     try:
@@ -24,7 +31,8 @@ def active_clinic(request, *, require_verified=True):
 
 
 def active_membership_role(request, *, require_verified=True):
-    return active_membership(request, require_verified=require_verified).role
+    active_membership(request, require_verified=require_verified)
+    return request.user.role
 
 
 def active_workspace_role(request):
@@ -38,6 +46,9 @@ def require_assistant_workspace(request):
 
 
 def require_doctor_workspace(request):
-    membership = active_membership(request)
-    if membership.role != StaffUser.Role.DOCTOR or active_workspace_role(request) != StaffUser.Role.DOCTOR:
+    active_membership(request)
+    if (
+        request.user.role != StaffUser.Role.DOCTOR
+        or active_workspace_role(request) != StaffUser.Role.DOCTOR
+    ):
         raise PermissionDenied("Open the Doctor workspace to signal that the room is ready.")
