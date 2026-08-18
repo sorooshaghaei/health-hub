@@ -15,6 +15,28 @@ export function ErrorMessage({ error }) {
   return <div className="alert alert--error" role="alert">{error.message}</div>;
 }
 
+export function Button({ variant = "secondary", compact = false, className = "", ...props }) {
+  const variantClass = variant === "primary" ? "primary-button" : variant === "danger" ? "danger-button" : variant === "text" ? "text-button" : "secondary-button";
+  const compactClass = compact && variant === "primary" ? " primary-button--compact" : "";
+  return <button className={`${variantClass}${compactClass}${className ? ` ${className}` : ""}`} {...props} />;
+}
+
+export function TextLink({ className = "", ...props }) {
+  return <button type="button" className={`text-link${className ? ` ${className}` : ""}`} {...props} />;
+}
+
+export function Checkbox({ label, hint, className = "", ...props }) {
+  return (
+    <label className={`checkbox-field${className ? ` ${className}` : ""}`}>
+      <input type="checkbox" {...props} />
+      <span className="checkbox-field__copy">
+        <strong>{label}</strong>
+        {hint && <small>{hint}</small>}
+      </span>
+    </label>
+  );
+}
+
 export function Field({ label, hint, ...props }) {
   return (
     <label className="field">
