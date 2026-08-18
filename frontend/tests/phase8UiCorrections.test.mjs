@@ -24,11 +24,13 @@ test("recovery uses reusable stacked checkbox and select controls", async () => 
   assert.match(styles, /\.checkbox-field \{[^}]*min-height: 44px/);
 });
 
-test("mobile authentication replaces the oversized hero with a compact header", async () => {
+test("mobile authentication replaces the oversized hero with a compact titled header", async () => {
   const styles = await source("../src/styles.css");
+  const phase8 = await source("../src/phase8.css");
   assert.match(styles, /@media \(max-width: 900px\)[\s\S]*?\.auth-intro \{ min-height: 128px;/);
-  assert.match(styles, /\.auth-intro > div \{ display: none; \}/);
   assert.match(styles, /\.auth-panel \{ min-height: 0;/);
+  assert.match(phase8, /\.auth-intro>div\{display:block;text-align:right;min-width:0\}/);
+  assert.match(phase8, /\.auth-intro h1\{max-width:300px;margin:0;font-size:clamp\(20px,4vw,28px\)/);
 });
 
 test("mobile workspace actions are consolidated into one menu including workspace switching", async () => {
