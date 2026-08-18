@@ -24,8 +24,9 @@ Alignment completed so far:
 - Phase 2 — Appointments: specification corrected to current clinic-scoped architecture; implementation already matched.
 - Phase 3 — Check-in/live queue: specification corrected and clinic operational timezone implemented.
 - Phase 4 — Room ready/consultation handoff: specification corrected to membership/workspace, clinic isolation, clinic timezone, and final Completed semantics; implementation already matched and permission regression coverage was strengthened.
+- Phase 5 — Completed consultation behavior: specification corrected to final-state, visibility, editing/deletion, clinic isolation, and clinic-timezone rules; implementation already matched.
 
-Next clarification target: **Phase 5 — Completed consultation behavior**.
+Next clarification target: **Phase 6 — Shared tasks**.
 
 Do not begin Phase 9 while this Phase 0–8 reconciliation is still in progress.
 
@@ -132,7 +133,7 @@ The backend activates the selected clinic timezone for clinic-scoped requests an
 
 Migration `accounts.0008_clinic_timezone` adds the persisted clinic timezone field.
 
-## Implemented clinic workflow through Phase 4
+## Implemented clinic workflow through Phase 5
 
 ### Patients
 
@@ -193,15 +194,27 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 - after the Undo period, Assistant workspace receives one short sound plus persistent visual indication;
 - first waiting Patient is suggested but any checked-in Patient may be selected;
 - With doctor preserves the original queue sequence and has its own five-second Undo;
-- the current `WITH_DOCTOR` Appointment becomes `DOCTOR_FINISHED` / **Completed** when the Doctor next uses Room ready;
-- no Checkout workflow exists;
 - synchronization remains authenticated three-second polling.
 
-## Existing Phase 5–8 implementation
+### Completed consultation
 
-The repository already contains Phase 5–8 features: final Completed consultation behavior, shared tasks, private sticky, and Phase 8 account/recovery/security architecture.
+`DOCTOR_FINISHED` is the final Appointment state and is displayed as **Completed**.
 
-Their phase documents are being reviewed sequentially in the current reconciliation pass. When an older Phase 5–8 document conflicts with an explicitly corrected Phase 0–4 rule above, do not silently choose one: continue the phase-by-phase clarification process with the product owner.
+- the next Room ready completes the current `WITH_DOCTOR` Appointment and creates the next Room-ready call in the same Doctor action;
+- no Checkout state, action, form, queue, or timestamp exists;
+- the five-second Undo on Room ready is the only way to reverse completion;
+- once that Undo period expires, the Appointment cannot return to `WITH_DOCTOR`;
+- Completed Appointments leave the waiting queue and Doctor consultation card but remain in their date list and Patient history;
+- Patient and Appointment date remain locked after completion;
+- scheduled time, reason, and Patient profile details remain correctable through existing Edit flows;
+- Completed Appointments cannot be deleted;
+- completion and history are clinic-scoped and use the clinic operational timezone for the clinic-day boundary.
+
+## Existing Phase 6–8 implementation
+
+The repository already contains Phase 6–8 features: shared tasks, private sticky, and Phase 8 account/recovery/security architecture.
+
+Their phase documents are being reviewed sequentially in the current reconciliation pass. When an older Phase 6–8 document conflicts with an explicitly corrected Phase 0–5 rule above, do not silently choose one: continue the phase-by-phase clarification process with the product owner.
 
 The Phase 8 Pages parity correction remains an invariant: production and GitHub Pages render the same React product UI. Pages substitutes only the browser-local API/security storage layer and must not expose a separate username/demo application.
 
@@ -230,6 +243,6 @@ Do not enter real Patient information into the public demo.
 
 ## Next action
 
-Continue with **Phase 5 clarification**. Do not implement Phase 5 corrections until its behavior is fully approved.
+Continue with **Phase 6 clarification**. Do not implement Phase 6 corrections until its behavior is fully approved.
 
 After Phase 8 reconciliation is complete, perform a final repository-wide documentation/code consistency audit before considering Phase 9.
