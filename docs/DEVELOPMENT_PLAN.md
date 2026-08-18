@@ -51,7 +51,7 @@ Security/account actions do not use five-second Undo.
 | 5 | Completed consultation behavior | **Complete and reconciled** |
 | 6 | Shared tasks | **Complete and reconciled** |
 | 7 | Private sticky | **Complete and reconciled** |
-| 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented and documentation reconciled; final validation/audit required before Phase 9** |
+| 8 | Authentication, administration, recovery, multi-clinic identity | **Complete, reconciled, and validated** |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
@@ -238,4 +238,4 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 
 ## Current work
 
-**Phase 8 implementation/document reconciliation is complete. Perform final validation and repository-wide consistency audit, then stop. Phase 9 requires a new clarification pass.**
+**Phase 8 is complete and validated. Stop before Phase 9 implementation. The next step is a new Phase 9 clarification pass.**
