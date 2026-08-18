@@ -12,7 +12,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 The Phase 0–8 implementation exists. Before Phase 9, the project is undergoing a line-by-line specification/implementation reconciliation to remove outdated pre-Phase-8 assumptions.
 
-**Phase 0–6 reconciliation is complete. Phase 7 is next. Phase 9 has not started.**
+**Phase 0–7 reconciliation is complete. Phase 8 is next. Phase 9 has not started.**
 
 Detailed source-of-truth documents:
 
@@ -150,6 +150,22 @@ OPEN → DONE
 - New Task uses a compact modal;
 - no task sound/push/email/SMS/comment/due-date notification;
 - authenticated three-second polling.
+
+### Private sticky
+
+- one global plain-text scratchpad per personal account;
+- the same sticky follows the person across clinic memberships;
+- visible only when the active workspace matches that person's active membership role;
+- Doctor administrator access to Assistant workspace shows no sticky;
+- the Doctor never gains access to the Assistant's sticky;
+- Assistant replacement/deactivation does not transfer or delete the former Assistant's sticky;
+- autosave while typing; empty text is valid;
+- no multiple notes, title, Delete/Trash, Undo, history, rich text, Patient links, task conversion, reminders, attachments, or notifications;
+- desktop minimized strip is movable and the expanded sticky is movable/resizable;
+- mobile minimized strip is movable and the expanded editor is full-screen;
+- no Close action;
+- minimized strip always shows **Private note** and never previews private text;
+- content persists globally, while sticky position/size/minimized state is not stored on the server.
 
 ## Browser demo
 
