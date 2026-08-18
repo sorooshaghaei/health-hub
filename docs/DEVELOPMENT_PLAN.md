@@ -48,15 +48,15 @@ The Phase 0–8 implementation already exists. Before Phase 9, the product owner
 | 2 | Planned appointments | **Specification corrected; implementation already aligned** |
 | 3 | Check-in and live queue | **Specification corrected; implementation aligned** |
 | 4 | Doctor room call and consultation handoff | **Specification corrected; implementation already aligned; regression coverage strengthened** |
-| 5 | Completed consultation behavior | Next clarification target |
-| 6 | Shared tasks | Awaiting reconciliation |
+| 5 | Completed consultation behavior | **Specification corrected; implementation already aligned** |
+| 6 | Shared tasks | Next clarification target |
 | 7 | Private sticky | Awaiting reconciliation |
 | 8 | Account recovery, administration, multi-clinic identity, security | Awaiting final reconciliation |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
 
-Do not treat Phase 9 as the next implementation phase until Phase 5–8 reconciliation and the final repository-wide consistency audit are complete.
+Do not treat Phase 9 as the next implementation phase until Phase 6–8 reconciliation and the final repository-wide consistency audit are complete.
 
 ## Phase 0 — Foundation
 
@@ -168,7 +168,24 @@ See [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md).
 
 ## Phase 5 — Completion
 
-Existing implementation uses `DOCTOR_FINISHED` as final **Completed** state with no Checkout workflow. Reconcile its final-state/history/edit/deletion semantics after Phase 4.
+`DOCTOR_FINISHED` is the final state and is displayed as **Completed**.
+
+Current approved contract:
+
+- there is no `CHECKED_OUT` state or Checkout workflow;
+- the next Room ready completes the current `WITH_DOCTOR` Appointment and creates the next Room-ready call in the same action;
+- `doctor_finished_at` records consultation completion;
+- five-second Undo Room ready is the only reversal of completion;
+- after that window expires, a Completed Appointment cannot be reopened or returned to `WITH_DOCTOR`;
+- Completed Appointments disappear from the waiting queue and current Doctor card but remain in the date Appointment list and Patient history;
+- Patient and Appointment date remain locked after completion;
+- scheduled time, reason, and Patient profile details remain correctable through existing Edit flows;
+- corrections do not reopen the Appointment;
+- Appointments cannot be deleted after consultation has started, including Completed Appointments;
+- completion/history are clinic-scoped and the clinic operational timezone governs their clinic-day boundary;
+- Phase 5 adds no new state, endpoint, notification, model, or migration.
+
+The existing implementation already matched these rules.
 
 See [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md).
 
@@ -188,7 +205,7 @@ See [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md).
 
 The global account/membership architecture, email/phone login, verified contacts, trusted-device authorization, recovery, passkeys, Assistant administration, multi-clinic support, and Pages UI parity are implemented.
 
-Phase 8 must still be reconciled after Phases 5–7 because older wording includes rules superseded during this pass, including trusted-device removal. Remaining Phase 8 security/recovery ambiguities must be clarified rather than silently inferred.
+Phase 8 must still be reconciled after Phases 6–7 because older wording includes rules superseded during this pass, including trusted-device removal. Remaining Phase 8 security/recovery ambiguities must be clarified rather than silently inferred.
 
 See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
@@ -221,4 +238,4 @@ Review the complete Doctor/Assistant workflows, remove unfinished UI, confirm no
 
 ## Current work
 
-**Phase 0–4 reconciliation is complete. Phase 5 clarification is next.**
+**Phase 0–5 reconciliation is complete. Phase 6 clarification is next.**
