@@ -4,7 +4,7 @@ import AccountSettings from "./AccountSettings.jsx";
 import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
 import PatientWorkspace from "./PatientWorkspace.jsx";
 import { getPasskey } from "./webauthn.js";
-import { Brand, ErrorMessage, Field } from "./ui.jsx";
+import { Brand, Button, Checkbox, ErrorMessage, Field, SelectField, TextLink } from "./ui.jsx";
 import "./deviceAccess.css";
 import "./phase8.css";
 
@@ -52,7 +52,7 @@ function RoleChoice({ onChoose, onRecovery }) {
         <span className="role-card__content"><strong>Assistant</strong><span>Join clinics using a Doctor setup code.</span></span><span>→</span>
       </button>
     </div>
-    <button className="back-button" type="button" onClick={onRecovery}>Forgot password?</button>
+    <div className="auth-form-links"><TextLink onClick={onRecovery}>Forgot password?</TextLink></div>
   </AuthShell>;
 }
 
@@ -67,7 +67,7 @@ function RoleEntry({ role, onLogin, onCreate, onBack, onRecovery }) {
         <span className="choice-card__icon">+</span><span><strong>Create {label} account</strong><small>Both email and phone will be verified.</small></span><span>→</span>
       </button>
     </div>
-    <button className="back-button" type="button" onClick={onRecovery}>Forgot password?</button>
+    <div className="auth-form-links"><TextLink onClick={onRecovery}>Forgot password?</TextLink></div>
   </AuthShell>;
 }
 
@@ -90,10 +90,10 @@ function LoginForm({ role, onSubmit, onPasskey, onBack, onRecovery }) {
       <ErrorMessage error={error} />
       <Field label="Email or phone" name="identity" value={form.identity} onChange={update} autoComplete="username" required />
       <Field label="Password" name="password" type="password" value={form.password} onChange={update} autoComplete="current-password" required />
-      <button className="primary-button" disabled={busy}>{busy ? "Please wait…" : "Sign in"}</button>
-      <button type="button" disabled={busy || !form.identity.trim()} onClick={passkey}>Use passkey instead</button>
-      <button className="back-button" type="button" onClick={onRecovery}>Forgot password?</button>
+      <Button variant="primary" disabled={busy}>{busy ? "Please wait…" : "Sign in"}</Button>
+      <Button className="auth-secondary-action" type="button" disabled={busy || !form.identity.trim()} onClick={passkey}>Use passkey instead</Button>
     </form>
+    <div className="auth-form-links"><TextLink onClick={onRecovery}>Forgot password?</TextLink></div>
   </AuthShell>;
 }
 
@@ -118,7 +118,7 @@ function AccountCreateForm({ role, onSubmit, onBack }) {
       <Field label="Personal phone" name="phone" value={form.phone} onChange={update} placeholder="+33…" autoComplete="tel" required />
       <Field label="Password" name="password" type="password" value={form.password} onChange={update} autoComplete="new-password" required />
       <Field label="Confirm password" name="password_confirm" type="password" value={form.password_confirm} onChange={update} autoComplete="new-password" required />
-      <button className="primary-button" disabled={busy}>{busy ? "Creating…" : `Create ${label} account`}</button>
+      <Button variant="primary" disabled={busy}>{busy ? "Creating…" : `Create ${label} account`}</Button>
     </form>
   </AuthShell>;
 }
@@ -152,11 +152,11 @@ function VerificationGate({ user, staffToken, onUser, onDone }) {
     <ErrorMessage error={error} />
     <div className="phase8-verification-grid">
       <div className="phase8-contact-card"><div><strong>Email</strong><span>{user.email} · {user.email_verified ? "Verified" : "Verification required"}</span></div>
-        {!user.email_verified && (!email.sent ? <button type="button" disabled={busy} onClick={() => request("email")}>Send code</button> : <div className="phase8-inline-actions"><input value={email.code} onChange={(event) => setEmail({ ...email, code: event.target.value })} placeholder="6-digit code" /><button type="button" disabled={busy} onClick={() => confirm("email", email)}>Verify</button></div>)}
+        {!user.email_verified && (!email.sent ? <Button compact type="button" disabled={busy} onClick={() => request("email")}>Send code</Button> : <div className="phase8-inline-actions"><input value={email.code} onChange={(event) => setEmail({ ...email, code: event.target.value })} placeholder="6-digit code" /><Button compact type="button" disabled={busy} onClick={() => confirm("email", email)}>Verify</Button></div>)}
       </div>
       {email.dev && <p className="security-note">Development code: {email.dev}</p>}
       <div className="phase8-contact-card"><div><strong>Phone</strong><span>{user.phone} · {user.phone_verified ? "Verified" : "Verification required"}</span></div>
-        {!user.phone_verified && (!phone.sent ? <button type="button" disabled={busy} onClick={() => request("phone")}>Send SMS code</button> : <div className="phase8-inline-actions"><input value={phone.code} onChange={(event) => setPhone({ ...phone, code: event.target.value })} placeholder="6-digit code" /><button type="button" disabled={busy} onClick={() => confirm("phone", phone)}>Verify</button></div>)}
+        {!user.phone_verified && (!phone.sent ? <Button compact type="button" disabled={busy} onClick={() => request("phone")}>Send SMS code</Button> : <div className="phase8-inline-actions"><input value={phone.code} onChange={(event) => setPhone({ ...phone, code: event.target.value })} placeholder="6-digit code" /><Button compact type="button" disabled={busy} onClick={() => confirm("phone", phone)}>Verify</Button></div>)}
       </div>
       {phone.dev && <p className="security-note">Development code: {phone.dev}</p>}
     </div>
@@ -190,14 +190,13 @@ function DeviceAuthorization({ staffToken, onAuthorized, onBack }) {
   return <AuthShell title="Verify this new device." description="Choose either verified email or SMS. After one successful code, this browser is trusted for your account across all of your clinics." onBack={onBack}>
     <ErrorMessage error={error} />
     <div className="phase8-settings-section">
-      <label>Verification channel</label>
-      <select value={channel} onChange={(event) => { setChannel(event.target.value); setSent(false); setCode(""); }}>
+      <SelectField label="Verification channel" value={channel} onChange={(event) => { setChannel(event.target.value); setSent(false); setCode(""); }}>
         <option value="email">Verified email</option><option value="sms">Verified SMS</option>
-      </select>
-      {!sent ? <button className="primary-button" type="button" disabled={busy} onClick={send}>Send verification code</button> : <>
+      </SelectField>
+      {!sent ? <Button variant="primary" type="button" disabled={busy} onClick={send}>Send verification code</Button> : <>
         <Field label="Verification code" value={code} onChange={(event) => setCode(event.target.value)} required />
         {dev && <p className="security-note">Development code: {dev}</p>}
-        <button className="primary-button" type="button" disabled={busy} onClick={confirm}>Trust this browser</button>
+        <Button variant="primary" type="button" disabled={busy} onClick={confirm}>Trust this browser</Button>
       </>}
     </div>
   </AuthShell>;
@@ -212,7 +211,7 @@ function ClinicCreateForm({ title = "Create your clinic.", onSubmit, onBack }) {
     try { await onSubmit(name); } catch (reason) { setError(asError(reason, "Clinic could not be created.")); } finally { setBusy(false); }
   }
   return <AuthShell title={title} description="Only a Doctor account can create a clinic. Your current browser becomes trusted automatically if this is your first clinic." onBack={onBack}>
-    <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Clinic name" value={name} onChange={(event) => setName(event.target.value)} required /><button className="primary-button" disabled={busy}>{busy ? "Creating…" : "Create clinic"}</button></form>
+    <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Clinic name" value={name} onChange={(event) => setName(event.target.value)} required /><Button variant="primary" disabled={busy}>{busy ? "Creating…" : "Create clinic"}</Button></form>
   </AuthShell>;
 }
 
@@ -225,7 +224,7 @@ function AssistantJoinForm({ onSubmit, onBack, additional = false }) {
     try { await onSubmit(code); } catch (reason) { setError(asError(reason, "Clinic could not be joined.")); } finally { setBusy(false); }
   }
   return <AuthShell title={additional ? "Join another clinic." : "Join your clinic."} description="Enter the one-time setup code created by that clinic's Doctor. The code is valid for 24 hours." onBack={onBack}>
-    <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Assistant setup code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="ABCDE-12345" required /><button className="primary-button" disabled={busy}>{busy ? "Joining…" : "Join clinic"}</button></form>
+    <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Assistant setup code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="ABCDE-12345" required /><Button variant="primary" disabled={busy}>{busy ? "Joining…" : "Join clinic"}</Button></form>
   </AuthShell>;
 }
 
@@ -238,8 +237,8 @@ function ClinicPicker({ user, onChoose, onCreate, onJoin, onSettings, onSignOut 
       </button>)}
     </div>
     <div className="phase8-inline-actions">
-      {user.role === "doctor" ? <button type="button" onClick={onCreate}>Create another clinic</button> : <button type="button" onClick={onJoin}>Join another clinic</button>}
-      <button type="button" onClick={onSettings}>Account settings</button><button type="button" onClick={onSignOut}>Sign out</button>
+      {user.role === "doctor" ? <Button type="button" onClick={onCreate}>Create another clinic</Button> : <Button type="button" onClick={onJoin}>Join another clinic</Button>}
+      <Button type="button" onClick={onSettings}>Account settings</Button><Button type="button" onClick={onSignOut}>Sign out</Button>
     </div>
   </AuthShell>;
 }
@@ -251,9 +250,14 @@ function RecoveryFlow({ onBack, onComplete }) {
   async function reset(event) { event.preventDefault(); setBusy(true); setError(null); try { await apiRequest("/api/recovery/reset/", { method: "POST", data: { recovery_token: recoveryToken, password, password_confirm: confirm } }); onComplete(); } catch (reason) { setError(asError(reason, "Password could not be reset.")); } finally { setBusy(false); } }
   return <AuthShell title="Recover your personal account." description="Use verified email or SMS. Doctor accounts may alternatively use one unused offline recovery code." onBack={onBack}>
     <ErrorMessage error={error} />
-    {step === "request" && <form className="form" onSubmit={request}><Field label="Email or phone" value={identity} onChange={(event) => setIdentity(event.target.value)} required /><label><input type="checkbox" checked={offline} onChange={(event) => { setOffline(event.target.checked); setCode(""); }} /> Use a Doctor offline recovery code</label>{offline ? <Field label="Offline recovery code" value={code} onChange={(event) => setCode(event.target.value)} required /> : <><label>Recovery channel</label><select value={channel} onChange={(event) => setChannel(event.target.value)}><option value="email">Email</option><option value="sms">SMS</option></select></>}<button className="primary-button" disabled={busy}>Continue</button></form>}
-    {step === "confirm" && <form className="form" onSubmit={verify}><p className="security-note">If the account and chosen verified channel exist, a code has been sent.</p><Field label="Recovery code" value={code} onChange={(event) => setCode(event.target.value)} required /><button className="primary-button" disabled={busy}>Verify code</button></form>}
-    {step === "reset" && <form className="form" onSubmit={reset}><Field label="New password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /><Field label="Confirm new password" type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} required /><button className="primary-button" disabled={busy}>Reset password</button></form>}
+    {step === "request" && <form className="form recovery-form" onSubmit={request}>
+      <Field label="Email or phone" value={identity} onChange={(event) => setIdentity(event.target.value)} required />
+      <Checkbox label="Use a Doctor offline recovery code" checked={offline} onChange={(event) => { setOffline(event.target.checked); setCode(""); }} />
+      {offline ? <Field label="Offline recovery code" value={code} onChange={(event) => setCode(event.target.value)} required /> : <SelectField label="Recovery channel" value={channel} onChange={(event) => setChannel(event.target.value)}><option value="email">Email</option><option value="sms">SMS</option></SelectField>}
+      <Button variant="primary" disabled={busy}>Continue</Button>
+    </form>}
+    {step === "confirm" && <form className="form" onSubmit={verify}><p className="security-note">If the account and chosen verified channel exist, a code has been sent.</p><Field label="Recovery code" value={code} onChange={(event) => setCode(event.target.value)} required /><Button variant="primary" disabled={busy}>Verify code</Button></form>}
+    {step === "reset" && <form className="form" onSubmit={reset}><Field label="New password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /><Field label="Confirm new password" type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} required /><Button variant="primary" disabled={busy}>Reset password</Button></form>}
   </AuthShell>;
 }
 
