@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiRequest } from "./api.js";
 import { TaskCard, TaskForm } from "./TaskParts.jsx";
 
-export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegisterUndo, onOpenPatient, refreshVersion }) {
+export default function TaskWorkspace({ user, staffToken, doctorMembership, onRegisterUndo, onOpenPatient, refreshVersion }) {
   const [openTasks, setOpen] = useState([]), [completedTasks, setDone] = useState([]), [patients, setPatients] = useState([]);
   const [view, setView] = useState("open"), [expanded, setExpanded] = useState(null), [formTask, setFormTask] = useState(undefined);
   const [drafts, setDrafts] = useState({}), [editing, setEditing] = useState(null), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [error, setError] = useState(null);
@@ -16,9 +16,9 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
     finally { if (!quiet) setLoading(false); }
   }, [staffToken]);
   const loadPatients = useCallback(async () => {
-    if (!doctorAccount) return;
+    if (!doctorMembership) return;
     try { setPatients((await apiRequest("/api/patients/", { staffToken })).patients); } catch { /* optional selector */ }
-  }, [doctorAccount, staffToken]);
+  }, [doctorMembership, staffToken]);
   useEffect(() => { load(); loadPatients(); const timer = setInterval(() => load(true), 3000); return () => clearInterval(timer); }, [load, loadPatients, refreshVersion]);
   useEffect(() => { if (expanded && ![...openTasks, ...completedTasks].some((t) => t.id === expanded)) setExpanded(null); }, [expanded, openTasks, completedTasks]);
 
@@ -27,7 +27,7 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
     try { return await work(); } catch (e) { setError(e instanceof ApiError ? e : new ApiError(message)); return null; } finally { setSaving(false); }
   }
   async function saveTask(data) {
-    if (!doctorAccount) return;
+    if (!doctorMembership) return;
     const editingTask = formTask || null;
     const saved = await act(() => apiRequest(editingTask ? `/api/tasks/${editingTask.id}/` : "/api/tasks/", { method: editingTask ? "PATCH" : "POST", data, staffToken }), "Task could not be saved.");
     if (saved) { setFormTask(undefined); setExpanded(saved.id); setView(saved.status === "done" ? "history" : "open"); await load(true); }
@@ -37,7 +37,7 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
     if (p) { onRegisterUndo({ id: `task-done:${task.id}:${Date.now()}`, kind: "task_done", resourceId: task.id, message: `${task.title} marked done.`, undoUntil: p.undo_until }); setExpanded(null); await load(true); }
   }
   async function deleteTask(task) {
-    if (!doctorAccount) return;
+    if (!doctorMembership) return;
     const p = await act(() => apiRequest(`/api/tasks/${task.id}/`, { method: "DELETE", staffToken }), "Task could not be deleted.");
     if (p) { onRegisterUndo({ id: `task-delete:${task.id}:${Date.now()}`, kind: "task_delete", resourceId: task.id, message: `${task.title} deleted.`, undoUntil: p.undo_until }); setExpanded(null); await load(true); }
   }
@@ -58,11 +58,11 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
   const commentProps = (task) => ({ draft: drafts[task.id] ?? "", setDraft: (v) => setDrafts((d) => ({ ...d, [task.id]: v })), editing, setEditing, saveEdit: saveComment, add: () => addComment(task.id), remove: deleteComment, saving });
 
   return <section className="task-workspace">
-    <div className="task-toolbar"><div><p className="eyebrow">Shared work</p><h2>Tasks</h2><p>Doctor-created tasks for the Assistant.</p></div>{doctorAccount && formTask === undefined && <button className="primary-button" type="button" onClick={() => setFormTask(null)}>New task</button>}</div>
+    <div className="task-toolbar"><div><p className="eyebrow">Shared work</p><h2>Tasks</h2><p>Doctor-created tasks for the Assistant.</p></div>{doctorMembership && formTask === undefined && <button className="primary-button" type="button" onClick={() => setFormTask(null)}>New task</button>}</div>
     <div className="task-view-tabs" role="tablist" aria-label="Task views"><button className={view === "open" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" onClick={() => setView("open")}>Open <span>{openTasks.length}</span></button><button className={view === "history" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" onClick={() => setView("history")}>History <span>{completedTasks.length}</span></button></div>
     {error && !creating && <div className="task-error" role="alert">{error.message}</div>}
-    {doctorAccount && formTask && <TaskForm key={formTask.id} task={formTask} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} />}
-    {loading ? <div className="task-loading"><div className="loader" aria-label="Loading tasks" /></div> : list.length ? <div className="task-list">{list.map((task) => <TaskCard key={task.id} task={task} user={user} doctor={doctorAccount} expanded={expanded === task.id} toggle={() => setExpanded((id) => id === task.id ? null : task.id)} done={markDone} edit={setFormTask} remove={deleteTask} openPatient={onOpenPatient} comments={commentProps(task)} />)}</div> : <div className="task-empty"><strong>{view === "history" ? "No completed tasks yet." : "No open tasks."}</strong><p>{view === "history" ? "Done tasks will remain available here." : doctorAccount ? "Create a task for the Assistant when something needs follow-up." : "The Doctor has not assigned any tasks."}</p></div>}
-    {doctorAccount && creating && <div className="task-modal" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setFormTask(undefined); }}><div className="task-modal__dialog" role="dialog" aria-modal="true" aria-label="New task">{error && <div className="task-error" role="alert">{error.message}</div>}<TaskForm key="new" task={null} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} /></div></div>}
+    {doctorMembership && formTask && <TaskForm key={formTask.id} task={formTask} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} />}
+    {loading ? <div className="task-loading"><div className="loader" aria-label="Loading tasks" /></div> : list.length ? <div className="task-list">{list.map((task) => <TaskCard key={task.id} task={task} user={user} doctor={doctorMembership} expanded={expanded === task.id} toggle={() => setExpanded((id) => id === task.id ? null : task.id)} done={markDone} edit={setFormTask} remove={deleteTask} openPatient={onOpenPatient} comments={commentProps(task)} />)}</div> : <div className="task-empty"><strong>{view === "history" ? "No completed tasks yet." : "No open tasks."}</strong><p>{view === "history" ? "Done tasks will remain available here." : doctorMembership ? "Create a task for the Assistant when something needs follow-up." : "The Doctor has not assigned any tasks."}</p></div>}
+    {doctorMembership && creating && <div className="task-modal" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setFormTask(undefined); }}><div className="task-modal__dialog" role="dialog" aria-modal="true" aria-label="New task">{error && <div className="task-error" role="alert">{error.message}</div>}<TaskForm key="new" task={null} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} /></div></div>}
   </section>;
 }
