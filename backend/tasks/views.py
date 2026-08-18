@@ -66,10 +66,12 @@ def task_attention_required(request):
     membership = request.auth.membership
     clinic = clinic_for_staff(request)
     seen_at = membership.task_attention_seen_at
-    if membership.role == StaffUser.Role.ASSISTANT:
+    if request.user.role == StaffUser.Role.ASSISTANT:
         return SharedTask.objects.filter(clinic=clinic, created_at__gt=seen_at).exists()
-    if membership.role == StaffUser.Role.DOCTOR:
-        assistant_ids = clinic.staff_memberships.filter(role=StaffUser.Role.ASSISTANT).values_list("user_id", flat=True)
+    if request.user.role == StaffUser.Role.DOCTOR:
+        assistant_ids = clinic.staff_memberships.filter(
+            user__role=StaffUser.Role.ASSISTANT,
+        ).values_list("user_id", flat=True)
         return SharedTask.objects.filter(clinic=clinic, status=SharedTask.Status.DONE, completed_at__gt=seen_at, completed_by_id__in=assistant_ids).exists()
     return False
 
