@@ -98,7 +98,7 @@ class SharedTaskApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return response.data
 
-    def test_only_doctor_account_creates_tasks_in_either_workspace(self):
+    def test_only_doctor_membership_creates_tasks_in_either_workspace(self):
         forbidden = self.client.post(
             "/api/tasks/",
             {"title": "Assistant cannot create"},
@@ -121,7 +121,7 @@ class SharedTaskApiTests(APITestCase):
         )
         self.assertEqual(shared.data["completed_tasks"], [])
 
-    def test_task_attention_dot_is_role_specific_and_clears_when_tasks_are_seen(self):
+    def test_task_attention_dot_is_membership_specific_and_clears_when_tasks_are_seen(self):
         assistant_initial = self.client.get(
             "/api/tasks/attention/", **self.auth(self.assistant_token)
         )
@@ -247,6 +247,11 @@ class SharedTaskApiTests(APITestCase):
             **self.auth(self.doctor_token),
         )
         self.assertEqual(doctor_done.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            self.client.get(
+                "/api/tasks/attention/", **self.auth(self.doctor_token)
+            ).data["attention_required"]
+        )
 
         stored = SharedTask.objects.get(pk=task["id"])
         stored.completed_at = timezone.now() - timedelta(seconds=6)
