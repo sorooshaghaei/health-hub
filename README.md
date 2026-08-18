@@ -22,7 +22,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 - Private sticky: [`docs/PHASE_7_PRIVATE_NOTES.md`](docs/PHASE_7_PRIVATE_NOTES.md)
 - Account/recovery/security: [`docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
 
-The Phase 0–8 implementation exists. Before Phase 9, the project is undergoing a line-by-line documentation and implementation reconciliation. Phase 0–3 have been reconciled; Phase 4 is next.
+The Phase 0–8 implementation exists. Before Phase 9, the project is undergoing a line-by-line documentation and implementation reconciliation. **Phase 0–4 have been reconciled; Phase 5 is next.**
 
 ## Account and clinic model
 
@@ -48,6 +48,8 @@ Before clinic operational data opens, both personal email and phone must be veri
 Doctor workspace is clinically focused. It can edit approved Patient information but does not create/delete Patients or administer Appointments.
 
 Assistant workspace owns Patient/Appointment administration, check-in, queue, and consultation handoff. A Doctor membership opened in Assistant workspace receives the same Assistant-side administrative controls.
+
+For consultation handoff specifically, **Room ready** exists only in Doctor workspace. **With doctor** is an Assistant-workspace action, including when that workspace is opened by the Doctor membership as administrator.
 
 ## Trusted devices
 
@@ -84,7 +86,7 @@ The stored clinic timezone determines clinic-day behavior including:
 
 Travelling with a laptop does not move the clinic into another operational day simply because that browser changes timezone.
 
-## Clinic workflow reconciled through Phase 3
+## Clinic workflow reconciled through Phase 4
 
 ### Patients
 
@@ -127,11 +129,32 @@ PLANNED → CHECKED_IN
 - check-in has five-second Undo;
 - live queue uses authenticated three-second polling.
 
-## Existing Phase 4–8 implementation
+### Room ready and consultation handoff
 
-Room ready/consultation handoff, Completed consultation behavior, shared tasks, private sticky, and Phase 8 recovery/security/multi-clinic functionality are already implemented.
+```text
+CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
+```
 
-Their specifications are being reconciled sequentially with the final account/membership/device/timezone architecture. The next clarification target is Phase 4. Do not infer unresolved Phase 4–8 behavior from older wording when it conflicts with the corrected Phase 0–3 documents.
+- Room ready requires a Doctor membership in Doctor workspace;
+- Doctor administrator access to Assistant workspace cannot use Room ready;
+- Assistant workspace may use With doctor, including Doctor administrator access there;
+- consultation state and Room-ready state are independent per clinic;
+- the clinic operational timezone determines the active consultation day;
+- one pending Room-ready call maximum per clinic;
+- Room ready may remain pending even when the queue is empty;
+- Room ready has five-second Undo before Assistant notification;
+- after the Undo period, Assistant workspace receives one short sound plus persistent visual indication;
+- first waiting Patient is suggested, but any checked-in Patient may be selected;
+- With doctor preserves the original queue order and has five-second Undo;
+- the next Room ready completes the current `WITH_DOCTOR` Appointment as `DOCTOR_FINISHED`, displayed as **Completed**;
+- there is no Checkout workflow;
+- synchronization uses authenticated three-second polling.
+
+## Existing Phase 5–8 implementation
+
+Completed consultation behavior, shared tasks, private sticky, and Phase 8 recovery/security/multi-clinic functionality are already implemented.
+
+Their specifications are being reconciled sequentially with the final account/membership/device/timezone architecture. The next clarification target is Phase 5. Do not infer unresolved Phase 5–8 behavior from older wording when it conflicts with the corrected Phase 0–4 documents.
 
 The Pages parity rule remains fixed: GitHub Pages renders the same production React product UI and substitutes only the browser-local API/storage layer. It must not expose a separate username/demo application.
 
@@ -212,7 +235,7 @@ npm run build:demo
 
 ## Important current migration
 
-`accounts.0008_clinic_timezone` adds the persisted clinic operational timezone used by Phase 3 day-boundary logic.
+`accounts.0008_clinic_timezone` adds the persisted clinic operational timezone used by Phase 3/4 day-boundary logic.
 
 ## API surface
 
