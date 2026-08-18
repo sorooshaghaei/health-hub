@@ -10,7 +10,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 ## Current status
 
-**Phases 0–8 are implemented and specification-aligned on `main`. Phase 8 is at its final validation/consistency-audit boundary. Phase 9 has not started.**
+**Phases 0–8 are implemented, specification-aligned, and validated on `main`. Phase 8 is complete. Phase 9 has not started and requires clarification before implementation.**
 
 Source-of-truth documents:
 
