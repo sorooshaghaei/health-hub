@@ -1,38 +1,33 @@
 from django.test import override_settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
+
+from accounts.models import StaffUser
+from accounts.services import issue_staff_session, issue_trusted_device
 
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class DeviceSessionBindingTests(APITestCase):
     def setUp(self):
-        clinic = self.client.post(
-            "/api/clinics/",
-            {
-                "name": "North Clinic",
-                "email": "clinic@example.com",
-                "phone": "+33 1 00 00 00 00",
-            },
-            format="json",
-        ).data
-        self.device_token = clinic["device_token"]
-        doctor = self.client.post(
-            "/api/staff/register/",
-            {
-                "role": "doctor",
-                "username": "doctor.one",
-                "email": "doctor@example.com",
-                "first_name": "Test",
-                "last_name": "Doctor",
-                "password": "Strong-staff-password-123",
-                "password_confirm": "Strong-staff-password-123",
-            },
-            format="json",
-            HTTP_X_DEVICE_TOKEN=self.device_token,
-        ).data
-        self.session_token = doctor["session_token"]
+        self.user = StaffUser.objects.create_user(
+            role=StaffUser.Role.DOCTOR,
+            email="doctor@example.com",
+            phone="+33611111111",
+            password="Strong-staff-password-123",
+            email_verified_at=timezone.now(),
+            phone_verified_at=timezone.now(),
+        )
+        self.device_token, device = issue_trusted_device(
+            self.user,
+            "Mozilla/5.0 Chrome/151.0.0.0",
+        )
+        self.session_token, _ = issue_staff_session(
+            self.user,
+            trusted_device=device,
+        )
 
-    def test_bearer_session_cannot_be_replayed_without_its_trusted_device(self):
+    def test_bearer_session_cannot_be_replayed_without_its_global_trusted_device(self):
         copied_session_client = APIClient()
         without_device = copied_session_client.get(
             "/api/staff/me/",
