@@ -3,12 +3,13 @@ from .view_helpers import *  # noqa: F401,F403
 
 class DevicePairingApproveView(APIView):
     def post(self, request):
-        membership = active_membership(request)
+        if request.auth.trusted_device_id is None:
+            raise PermissionDenied("Use a trusted device to approve another browser.")
         serializer = DevicePairingCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
             pairing = approve_device_pairing(
-                membership.clinic,
+                request.user,
                 serializer.validated_data["code"],
             )
         except InvalidDevicePairing as exc:
@@ -24,23 +25,15 @@ class DevicePairingApproveView(APIView):
 
 class DeviceContactAuthorizationRequestView(APIView):
     def post(self, request):
-        serializer = DevicePairingStartSerializer(data=request.data)
+        if not request.user.contacts_verified:
+            raise PermissionDenied("Verify both email and phone before trusting a browser.")
+        serializer = VerificationRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        channel_serializer = VerificationRequestSerializer(data=request.data)
-        channel_serializer.is_valid(raise_exception=True)
-        try:
-            membership = request.user.memberships.select_related("clinic").get(
-                clinic_id=serializer.validated_data["clinic_id"],
-                is_active=True,
-            )
-        except StaffMembership.DoesNotExist:
-            raise PermissionDenied("This account does not belong to that clinic.")
         try:
             challenge, development_code = issue_verification_challenge(
                 request.user,
                 purpose=VerificationChallenge.Purpose.DEVICE_AUTHORIZE,
-                channel=channel_serializer.validated_data["channel"],
-                clinic=membership.clinic,
+                channel=serializer.validated_data["channel"],
             )
         except (
             InvalidVerificationChallenge,
@@ -59,30 +52,22 @@ class DeviceContactAuthorizationRequestView(APIView):
 
 class DeviceContactAuthorizationConfirmView(APIView):
     def post(self, request):
-        clinic_serializer = DevicePairingStartSerializer(data=request.data)
-        clinic_serializer.is_valid(raise_exception=True)
-        code_serializer = VerificationConfirmSerializer(data=request.data)
-        code_serializer.is_valid(raise_exception=True)
-        try:
-            membership = request.user.memberships.select_related("clinic").get(
-                clinic_id=clinic_serializer.validated_data["clinic_id"],
-                is_active=True,
-            )
-        except StaffMembership.DoesNotExist:
-            raise PermissionDenied("This account does not belong to that clinic.")
+        serializer = VerificationConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
             verify_latest_challenge(
                 request.user,
                 purpose=VerificationChallenge.Purpose.DEVICE_AUTHORIZE,
-                code=code_serializer.validated_data["code"],
-                clinic=membership.clinic,
+                code=serializer.validated_data["code"],
             )
         except InvalidVerificationChallenge as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         raw_device_token, device = issue_trusted_device(
-            membership.clinic,
+            request.user,
             user_agent(request),
         )
+        request.auth.trusted_device = device
+        request.auth.save(update_fields=["trusted_device"])
         response = Response(
             {
                 "device_token": raw_device_token,
@@ -90,21 +75,16 @@ class DeviceContactAuthorizationConfirmView(APIView):
                     device,
                     context={"current_device_id": device.id},
                 ).data,
+                "user": serialize_user(request),
             },
             status=status.HTTP_201_CREATED,
         )
-        return set_device_cookie(
-            response,
-            membership.clinic_id,
-            raw_device_token,
-            request,
-        )
+        return set_device_cookie(response, raw_device_token, request)
 
 
 class TrustedDeviceListView(APIView):
     def get(self, request):
-        membership = active_membership(request)
-        devices = membership.clinic.trusted_devices.all()
+        devices = request.user.trusted_devices.all()
         return Response(
             {
                 "devices": TrustedDeviceSerializer(
@@ -118,12 +98,8 @@ class TrustedDeviceListView(APIView):
 
 class TrustedDeviceDeleteView(APIView):
     def delete(self, request, device_id):
-        membership = active_membership(request)
         try:
-            device = TrustedDevice.objects.get(
-                pk=device_id,
-                clinic=membership.clinic,
-            )
+            device = request.user.trusted_devices.get(pk=device_id)
         except TrustedDevice.DoesNotExist:
             return Response(
                 {"detail": "Trusted device not found."},
