@@ -7,28 +7,29 @@ Health Hub is developed directly on `main`, one approved phase or corrective pas
 For each approved unit:
 
 1. read `PROJECT_CONTEXT.md` and the relevant phase specification;
-2. resolve only genuinely unapproved product behavior;
-3. implement only the approved scope;
-4. validate backend, frontend, browser adapter, migrations, tests, and documentation;
-5. commit directly to `main`;
-6. report exact changes and stop;
-7. continue only after the product owner explicitly says **continue**.
+2. ask the product owner about unresolved behavior before implementation;
+3. update the phase specification to the approved current contract;
+4. align implementation when the approved contract changes behavior;
+5. validate backend, frontend, browser adapter, migrations, tests, and documentation;
+6. commit directly to `main`;
+7. report the result and move to the next phase only after the current one is clear.
 
 Do not create branches, pull requests, speculative features, duplicate workflows, or unapproved dependencies.
 
 ## Product baseline
 
-- clinic workflow with Doctor and Assistant roles;
 - global personal staff accounts with clinic memberships;
+- clinic workflow with Doctor and Assistant membership roles;
 - at most one active Doctor and one active Assistant per clinic;
 - Doctor membership may open Doctor or Assistant workspace;
 - Assistant membership may open Assistant workspace only;
 - Doctor workspace clinically focused;
 - Assistant workspace owns Patient/Appointment administration;
+- clinic operational data strictly tenant-scoped;
 - React/Vite frontend;
 - Django REST Framework backend;
 - PostgreSQL primary database;
-- GitHub Pages renders the same production React UI and substitutes only a browser-local API adapter.
+- GitHub Pages renders the same production React UI and substitutes only a browser-local API/storage adapter.
 
 ## Global action rule
 
@@ -36,65 +37,76 @@ Discrete operational/destructive workflow actions use the approved five-second s
 
 Security/account actions do not use five-second Undo.
 
-## Phase status
+## Reconciliation status
 
-| Phase | Scope | Status |
+The Phase 0–8 implementation already exists. Before Phase 9, the product owner requested a line-by-line correction of all Phase 0–8 specifications and corresponding implementation differences.
+
+| Phase | Scope | Reconciliation status |
 | --- | --- | --- |
-| 0 | Foundation | Implemented; trusted-device authentication correction complete |
-| 1 | Patient records | Implemented |
-| 2 | Planned appointments | Implemented; one Appointment per Patient per clinic date |
-| 3 | Check-in and live waiting queue | Implemented |
-| 4 | Doctor room call and consultation handoff | Implemented |
-| 5 | Completed consultation behavior | Implemented |
-| 6 | Shared tasks | Implemented |
-| 7 | Private sticky | Implemented |
-| 8 | Account recovery, administration, multi-clinic identity, and security | **Implemented and validated; Pages UI parity correction complete** |
+| 0 | Foundation | **Specification corrected; implementation aligned** |
+| 1 | Patient records | **Specification corrected; implementation already aligned** |
+| 2 | Planned appointments | **Specification corrected; implementation already aligned** |
+| 3 | Check-in and live queue | **Specification corrected; implementation aligned** |
+| 4 | Doctor room call and consultation handoff | Next clarification target |
+| 5 | Completed consultation behavior | Awaiting reconciliation |
+| 6 | Shared tasks | Awaiting reconciliation |
+| 7 | Private sticky | Awaiting reconciliation |
+| 8 | Account recovery, administration, multi-clinic identity, security | Awaiting final reconciliation |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
 
+Do not treat Phase 9 as the next implementation phase until Phase 4–8 reconciliation and the final repository-wide consistency audit are complete.
+
 ## Phase 0 — Foundation
 
-Implemented foundation includes:
+Current approved foundation:
 
-- trusted clinic devices instead of shared clinic password;
-- automatic trust of the first browser for a new clinic;
-- six-digit trusted-device pairing;
-- device list/removal;
-- bearer session + matching device proof for clinic APIs;
-- no `/api/clinics/enter/` shared-password flow;
-- browser demo bypass of real device authority.
-
-Phase 8 later extended this foundation with global accounts, verified contacts, new-device email/SMS authorization, recovery, passkeys, and multi-clinic membership.
+- no shared clinic password;
+- no active username login;
+- global personal accounts;
+- clinic-specific Doctor/Assistant memberships;
+- trusted-device authorization per clinic;
+- first browser automatically trusted when a clinic is created;
+- verified email/SMS authorization and six-digit trusted-device pairing are both supported for another browser;
+- clinic-bound bearer session requires matching trusted-device proof;
+- other trusted devices may be removed;
+- **the current trusted device cannot be removed**;
+- sign-out ends the staff session but does not untrust the browser;
+- production and Pages use the same React product UI.
 
 See [`PHASE_0_FOUNDATION.md`](PHASE_0_FOUNDATION.md).
 
 ## Phase 1 — Patient records
 
-Implemented:
+Current approved contract:
 
-- reusable clinic-scoped Patient profiles;
-- approved identity/contact fields and shared Patient note;
-- duplicate warning;
-- search;
-- Doctor edit permission;
-- Assistant-workspace creation/deletion;
-- deletion blocking for current/future Appointments;
-- five-second deletion Undo.
+- reusable Patient records are clinic-scoped;
+- the same physical person in two clinics remains two independent Patient records;
+- full name, `Man`/`Woman`, country/calling code, phone, optional DOB, optional shared Patient note;
+- Iran `+98` default;
+- automatic search and one duplicate warning;
+- Doctor workspace may edit approved Patient information;
+- Assistant workspace may create/edit/delete Patients;
+- Doctor membership in Assistant workspace receives the same Patient administration controls;
+- current/future Appointments block Patient deletion;
+- deletion has five-second Undo.
 
 See [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
 
 ## Phase 2 — Appointments
 
-Implemented:
+Current approved contract:
 
 - Patient, date, scheduled time, optional reason;
-- one active Appointment maximum per Patient per clinic date;
+- one active Appointment maximum per clinic Patient per clinic date;
 - Patient-first create/edit UI;
-- same-day normal Appointment for an unplanned arrival;
-- Assistant-workspace administration;
-- Doctor-workspace read-only appointment access;
-- five-second deletion Undo.
+- unplanned same-day arrival is represented by a normal same-day Appointment followed by check-in;
+- Appointment data/history are independent between clinics;
+- Assistant workspace administers Appointments;
+- Doctor workspace is read-only for Appointment administration;
+- approved edit locks apply after check-in;
+- deletion has five-second Undo.
 
 See [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md).
 
@@ -104,83 +116,59 @@ See [`PHASE_2_VISITS.md`](PHASE_2_VISITS.md).
 PLANNED → CHECKED_IN
 ```
 
-Implemented today-only check-in, persisted check-in ordering, live queue, approved field locks/corrections, and five-second check-in Undo.
+Current approved contract:
+
+- each clinic stores one operational IANA timezone;
+- timezone is captured automatically from the browser when the clinic is created;
+- no manual timezone field is required in the normal clinic-creation UI;
+- the stored clinic timezone determines operational **today**;
+- today's Appointment list, check-in eligibility, queue membership, and consultation-day boundaries use that clinic timezone;
+- a travelling staff browser does not change the clinic's operational day;
+- queue data and queue sequence are independent per clinic;
+- Assistant workspace performs check-in and queue operations;
+- Doctor membership in Assistant workspace has the same Assistant-side controls;
+- Doctor workspace views the queue read-only;
+- queue ordering is the original persisted check-in sequence;
+- Assistant queue shows Patient phone; Doctor queue omits phone;
+- after check-in, Patient and Appointment date are locked while scheduled time/reason/Patient profile corrections remain allowed;
+- check-in has server-enforced five-second Undo;
+- live refresh uses authenticated three-second polling.
+
+Implementation alignment added persisted `Clinic.timezone`, migration `accounts.0008_clinic_timezone`, request-scoped clinic timezone activation/reset, frontend browser-timezone capture, Pages/demo timezone parity, and regression coverage.
 
 See [`PHASE_3_QUEUE.md`](PHASE_3_QUEUE.md).
 
 ## Phase 4 — Room ready and consultation handoff
 
-```text
-CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
-```
+Existing implementation is present, but its specification is the next item to reconcile with the final membership, clinic-isolation, and clinic-timezone architecture.
 
-Implemented one-time Doctor **Room ready** call, delayed Assistant notification after the Doctor Undo window, Assistant Patient selection, **With doctor**, queue restoration Undo, and clinic-scoped transactional protection.
+Do not change Phase 4 behavior until the product owner answers the Phase 4 clarification questions.
 
 See [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md).
 
 ## Phase 5 — Completion
 
-`DOCTOR_FINISHED` is final and displayed as **Completed**. There is no Checkout state/action/timestamp. Existing Room-ready Undo is the only short reversal of completion.
+Existing implementation uses `DOCTOR_FINISHED` as final **Completed** state with no Checkout workflow. Reconcile the specification after Phase 4 is closed.
 
 See [`PHASE_5_COMPLETION.md`](PHASE_5_COMPLETION.md).
 
 ## Phase 6 — Shared tasks
 
-```text
-OPEN → DONE
-```
-
-Implemented Doctor-to-Assistant tasks, optional due date/Patient link, comments, five-second Done/delete/comment-delete Undo, History, and attention dots. Phase 8 moved task-attention seen state to clinic membership so clinics remain independent.
+Existing implementation uses `OPEN → DONE`, Doctor-to-Assistant task workflow, comments, History, attention indicators, and five-second Undo for approved discrete actions. Reconcile membership terminology and attention-state scope when Phase 6 is reached.
 
 See [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md).
 
 ## Phase 7 — Private sticky
 
-Implemented one private persistent global scratchpad per personal account, plain text/autosave, minimized/drag/resizable responsive UI, and strict workspace privacy. After Phase 8 it follows the person across clinics but appears only when the active workspace equals the person's membership role.
+Existing implementation provides one global plain-text private scratchpad per personal account with strict workspace privacy. Reconcile membership/workspace terminology when Phase 7 is reached.
 
 See [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md).
 
 ## Phase 8 — Account recovery, administration, and security
 
-**Implemented and validated, including the Pages demo-parity corrective pass.**
+The global account/membership architecture, email/phone login, verified contacts, trusted-device authorization, recovery, passkeys, Assistant administration, multi-clinic support, and Pages UI parity are implemented.
 
-Final Phase 8 architecture:
-
-- global `StaffUser` personal identity;
-- `StaffMembership` for clinic + Doctor/Assistant role;
-- both Doctors and Assistants may belong to multiple clinics;
-- one active Doctor and one active Assistant slot per clinic;
-- email/phone login instead of username;
-- phone required;
-- both email and phone verified before clinic data access;
-- Clinic email/phone removed;
-- login-first → clinic selection → device authorization → workspace selection;
-- trusted-device authorization separately per clinic;
-- new device by verified email/SMS or existing trusted-device pairing;
-- last trusted device may be removed;
-- clinic-bound bearer sessions still require matching trusted-device proof;
-- 12-hour absolute session / 2-hour inactivity timeout / no Remember Me;
-- forgotten-password email/SMS recovery with 30-minute single-use grant;
-- reset revokes the recovered person's sessions only and leaves device trust;
-- normal password change verified by email/SMS, preserving current session and revoking other sessions;
-- email/phone change requires password/passkey reauthentication and verification of the new contact;
-- optional WebAuthn passkeys, maximum five;
-- Doctor-only set of 10 one-time offline recovery codes; regeneration invalidates unused old codes;
-- Doctor can initiate Assistant recovery;
-- Assistant replacement deactivates only the old clinic membership and uses a one-time replacement setup code;
-- former Assistant keeps global account/sticky/passkeys/other memberships;
-- historical task authorship remains attached to the original person;
-- no Doctor replacement/ownership transfer;
-- GitHub Pages uses the same production Phase 8 React screens rather than a separate `DemoApp` login/application;
-- Pages login is **Email or phone** and the old username contract is rejected;
-- only the API/security layer is browser-local in Pages; real email/SMS, device authority, and WebAuthn are not fabricated.
-
-Migrations:
-
-- `accounts.0006_phase8_global_accounts`;
-- `accounts.0007_alter_staffuser_options`.
-
-The original Phase 8 code validation passed on commit `78bd2753c7b8b2c049576be8454ae512e311e6a0`. The browser-demo parity corrective pass added dedicated frontend regression coverage and was revalidated through the same Verify foundation workflow before Phase 8 was closed again.
+Phase 8 must still be reconciled after Phases 4–7 because older wording includes rules superseded during this pass, including trusted-device removal. Remaining Phase 8 security/recovery ambiguities must be clarified rather than silently inferred.
 
 See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
@@ -203,18 +191,14 @@ Before implementation, explicitly approve at least:
 - Patient-information/privacy boundaries;
 - production deployment constraints.
 
-Do not implement attachment behavior before these decisions are resolved and the product owner explicitly says **continue**.
-
 ## Phase 10 — Production hardening
 
-Review validation, authorization, constraints, race conditions, error states, accessibility, security headers, secrets, backups, deployment, logging, privacy, retention, and production recovery/communications configuration.
+Review validation, authorization, constraints, race conditions, error states, accessibility, security headers, secrets, backups, deployment, logging, privacy, retention, production communication providers, and production recovery behavior.
 
 ## Phase 11 — First stable release
 
-Review complete Doctor/Assistant workflows, remove unfinished UI, confirm no unapproved behavior, verify browser-demo parity, finalize deployment documentation, and release only after product-owner approval.
+Review the complete Doctor/Assistant workflows, remove unfinished UI, confirm no unapproved behavior, verify browser-demo parity, finalize deployment documentation, and release only after product-owner approval.
 
 ## Current work
 
-**Phases 0–8 are complete, including the Phase 8 Pages demo-parity correction. Phase 9 has not started.**
-
-Stop here. The next implementation work begins only after the product owner explicitly says **continue** and Phase 9's attachment/security questions are resolved.
+**Phase 0–3 reconciliation is complete. Phase 4 clarification is next.**
