@@ -1,4 +1,5 @@
 import re
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -12,13 +13,23 @@ from .services import normalize_staff_phone
 class ClinicSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Clinic
-        fields = ["id", "name"]
+        fields = ["id", "name", "timezone"]
 
 
 class ClinicCreateSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField(max_length=64, required=False, default="UTC")
+
     class Meta:
         model = Clinic
-        fields = ["name"]
+        fields = ["name", "timezone"]
+
+    def validate_timezone(self, value):
+        value = value.strip()
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise serializers.ValidationError("Enter a valid IANA timezone, such as Europe/Paris.")
+        return value
 
 
 class TrustedDeviceSerializer(serializers.ModelSerializer):
