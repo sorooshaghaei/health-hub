@@ -27,6 +27,9 @@ class ConsultationFlowApiTests(APITestCase):
         self.doctor_token = self.register_staff(
             "doctor", "doctor.one", "doctor@example.com"
         )
+        self.doctor_assistant_token = self.login_staff(
+            "assistant", "doctor.one"
+        )
 
     def register_staff(self, role, username, email):
         response = self.client.post(
@@ -44,6 +47,20 @@ class ConsultationFlowApiTests(APITestCase):
             HTTP_X_DEVICE_TOKEN=self.device_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        return response.data["session_token"]
+
+    def login_staff(self, role, username):
+        response = self.client.post(
+            "/api/staff/login/",
+            {
+                "role": role,
+                "username": username,
+                "password": "Strong-staff-password-123",
+            },
+            format="json",
+            HTTP_X_DEVICE_TOKEN=self.device_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         return response.data["session_token"]
 
     def auth(self, token):
@@ -248,6 +265,10 @@ class ConsultationFlowApiTests(APITestCase):
             "/api/visits/room-ready/",
             **self.auth(self.assistant_token),
         )
+        doctor_admin_ready = self.client.post(
+            "/api/visits/room-ready/",
+            **self.auth(self.doctor_assistant_token),
+        )
         self.client.post(
             "/api/visits/room-ready/",
             **self.auth(self.doctor_token),
@@ -257,9 +278,9 @@ class ConsultationFlowApiTests(APITestCase):
             f"/api/visits/{patient['id']}/with-doctor/",
             **self.auth(self.doctor_token),
         )
-        self.client.post(
+        doctor_admin_send = self.client.post(
             f"/api/visits/{patient['id']}/with-doctor/",
-            **self.auth(self.assistant_token),
+            **self.auth(self.doctor_assistant_token),
         )
         deleted = self.client.delete(
             f"/api/visits/{patient['id']}/",
@@ -267,6 +288,9 @@ class ConsultationFlowApiTests(APITestCase):
         )
 
         self.assertEqual(assistant_ready.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(doctor_admin_ready.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(doctor_send.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(doctor_admin_send.status_code, status.HTTP_200_OK)
+        self.assertEqual(doctor_admin_send.data["status"], Visit.Status.WITH_DOCTOR)
         self.assertEqual(deleted.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(deleted.data["code"], "consultation_started")
