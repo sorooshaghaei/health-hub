@@ -14,7 +14,6 @@ from django.utils.crypto import salted_hmac
 from .delivery import deliver_verification_code
 from .models import (
     AssistantSetupToken,
-    Clinic,
     DevicePairingRequest,
     RecoveryCode,
     RecoveryGrant,
@@ -105,11 +104,11 @@ def device_details_from_user_agent(user_agent):
     return browser, operating_system
 
 
-def issue_trusted_device(clinic, user_agent):
+def issue_trusted_device(user, user_agent):
     raw_token = secrets.token_urlsafe(32)
     browser, operating_system = device_details_from_user_agent(user_agent)
     device = TrustedDevice.objects.create(
-        clinic=clinic,
+        user=user,
         token_hash=hash_secret(raw_token),
         browser=browser,
         operating_system=operating_system,
@@ -117,18 +116,23 @@ def issue_trusted_device(clinic, user_agent):
     return raw_token, device
 
 
-def resolve_trusted_device_token(raw_token):
+def resolve_trusted_device_token(raw_token, *, user=None):
     if not raw_token:
-        raise InvalidTrustedDevice("A trusted clinic device is required.")
+        raise InvalidTrustedDevice("A trusted device is required.")
     try:
-        return TrustedDevice.objects.select_related("clinic").get(
+        device = TrustedDevice.objects.select_related("user").get(
             token_hash=hash_secret(raw_token)
         )
     except TrustedDevice.DoesNotExist:
-        raise InvalidTrustedDevice("This browser is not trusted for a clinic.")
+        raise InvalidTrustedDevice("This browser is not trusted for this account.")
+    if device.user_id is None:
+        raise InvalidTrustedDevice("This browser is not trusted for this account.")
+    if user is not None and device.user_id != user.id:
+        raise InvalidTrustedDevice("This browser is trusted for another account.")
+    return device
 
 
-def create_device_pairing_request(clinic, user_agent):
+def create_device_pairing_request(user, user_agent):
     now = timezone.now()
     DevicePairingRequest.objects.filter(expires_at__lte=now).delete()
     browser, operating_system = device_details_from_user_agent(user_agent)
@@ -143,7 +147,7 @@ def create_device_pairing_request(clinic, user_agent):
 
     request_token = secrets.token_urlsafe(32)
     pairing = DevicePairingRequest.objects.create(
-        clinic=clinic,
+        user=user,
         request_token_hash=hash_secret(request_token),
         code_hash=code_hash,
         browser=browser,
@@ -153,14 +157,14 @@ def create_device_pairing_request(clinic, user_agent):
     return pairing, code, request_token
 
 
-def approve_device_pairing(clinic, code):
+def approve_device_pairing(user, code):
     now = timezone.now()
     code_hash = hash_short_code(code, namespace="pairing")
     expired = False
     with transaction.atomic():
         try:
             pairing = DevicePairingRequest.objects.select_for_update().get(
-                clinic=clinic,
+                user=user,
                 code_hash=code_hash,
             )
         except DevicePairingRequest.DoesNotExist:
@@ -179,15 +183,15 @@ def approve_device_pairing(clinic, code):
     return pairing
 
 
-def claim_device_pairing(request_token):
+def claim_device_pairing(user, request_token):
     now = timezone.now()
     expired = False
     with transaction.atomic():
         try:
             pairing = (
                 DevicePairingRequest.objects.select_for_update()
-                .select_related("clinic")
-                .get(request_token_hash=hash_secret(request_token))
+                .select_related("user")
+                .get(user=user, request_token_hash=hash_secret(request_token))
             )
         except DevicePairingRequest.DoesNotExist:
             raise InvalidDevicePairing("Device pairing request is invalid or expired.")
@@ -199,7 +203,7 @@ def claim_device_pairing(request_token):
         else:
             raw_token = secrets.token_urlsafe(32)
             device = TrustedDevice.objects.create(
-                clinic=pairing.clinic,
+                user=user,
                 token_hash=hash_secret(raw_token),
                 browser=pairing.browser,
                 operating_system=pairing.operating_system,
@@ -212,6 +216,13 @@ def claim_device_pairing(request_token):
     raise InvalidDevicePairing("Device pairing request is invalid or expired.")
 
 
+def allowed_workspace(user, workspace_role):
+    return workspace_role == user.role or (
+        user.role == StaffUser.Role.DOCTOR
+        and workspace_role == StaffUser.Role.ASSISTANT
+    )
+
+
 def issue_staff_session(
     user,
     trusted_device=None,
@@ -221,29 +232,17 @@ def issue_staff_session(
     auth_method=StaffSession.AuthMethod.PASSWORD,
     reauth_passkey=None,
 ):
-    # `trusted_device` + `workspace_role` positional support keeps older
-    # internal fixtures working while new code passes StaffMembership explicitly.
-    if membership is None and trusted_device is not None:
-        membership = user.memberships.filter(
-            clinic_id=trusted_device.clinic_id,
-            is_active=True,
-        ).first()
-        if membership is None:
-            raise ValueError("This device is not trusted for this staff account's clinic.")
+    if trusted_device is not None and trusted_device.user_id != user.id:
+        raise ValueError("This device is not trusted for this personal account.")
     if membership is not None:
         if membership.user_id != user.id or not membership.is_active:
             raise ValueError("This membership does not belong to this account.")
-        if trusted_device is None or trusted_device.clinic_id != membership.clinic_id:
-            raise ValueError("This device is not trusted for the selected clinic.")
-        workspace_role = workspace_role or membership.role
-        allowed = workspace_role == membership.role or (
-            membership.role == StaffUser.Role.DOCTOR
-            and workspace_role == StaffUser.Role.ASSISTANT
-        )
-        if not allowed:
+        if trusted_device is None:
+            raise ValueError("A trusted device is required before clinic data can open.")
+        workspace_role = workspace_role or user.role
+        if not allowed_workspace(user, workspace_role):
             raise ValueError("This account cannot open the requested workspace.")
     else:
-        trusted_device = None
         workspace_role = ""
 
     raw_token = secrets.token_urlsafe(32)
@@ -255,8 +254,10 @@ def issue_staff_session(
         trusted_device=trusted_device,
         workspace_role=workspace_role,
         auth_method=auth_method,
-        reauthenticated_at=now,
-        reauth_passkey=reauth_passkey,
+        # Normal password/passkey sign-in is authentication, not a fresh
+        # sensitive-operation reauthentication.
+        reauthenticated_at=None,
+        reauth_passkey=None,
         token_hash=hash_secret(raw_token),
         expires_at=expires_at,
     )
@@ -266,13 +267,9 @@ def issue_staff_session(
 def activate_session_clinic(session, membership, trusted_device, workspace_role):
     if membership.user_id != session.user_id or not membership.is_active:
         raise ValueError("This clinic membership is unavailable.")
-    if trusted_device.clinic_id != membership.clinic_id:
-        raise ValueError("This device is not trusted for the selected clinic.")
-    allowed = workspace_role == membership.role or (
-        membership.role == StaffUser.Role.DOCTOR
-        and workspace_role == StaffUser.Role.ASSISTANT
-    )
-    if not allowed:
+    if trusted_device.user_id != session.user_id:
+        raise ValueError("This device is not trusted for this personal account.")
+    if not allowed_workspace(session.user, workspace_role):
         raise ValueError("This account cannot open the requested workspace.")
     session.membership = membership
     session.trusted_device = trusted_device
@@ -283,12 +280,13 @@ def activate_session_clinic(session, membership, trusted_device, workspace_role)
 
 def clear_session_clinic(session):
     session.membership = None
-    session.trusted_device = None
     session.workspace_role = ""
-    session.save(update_fields=["membership", "trusted_device", "workspace_role"])
+    session.save(update_fields=["membership", "workspace_role"])
 
 
 def session_recently_reauthenticated(session):
+    if session.reauthenticated_at is None:
+        return False
     return session.reauthenticated_at >= timezone.now() - timedelta(
         seconds=settings.REAUTH_MAX_AGE
     )
@@ -424,7 +422,7 @@ def resolve_recovery_grant(raw_token):
 
 
 def generate_recovery_codes(user):
-    if not user.has_doctor_membership:
+    if user.role != StaffUser.Role.DOCTOR:
         raise ValueError("Offline recovery codes are available only to Doctors.")
     RecoveryCode.objects.filter(user=user, used_at__isnull=True).delete()
     batch_id = uuid.uuid4()
@@ -447,6 +445,8 @@ def generate_recovery_codes(user):
 
 
 def consume_recovery_code(user, raw_code):
+    if user.role != StaffUser.Role.DOCTOR:
+        return False
     for record in RecoveryCode.objects.filter(user=user, used_at__isnull=True):
         if check_password(str(raw_code).strip().upper(), record.code_hash):
             record.used_at = timezone.now()
@@ -482,7 +482,7 @@ def generate_assistant_setup_code(clinic, created_by):
 def resolve_assistant_setup_code(raw_code, *, consume=False):
     digest = hash_short_code(str(raw_code).strip().upper(), namespace="assistant-setup")
     try:
-        token = AssistantSetupToken.objects.select_related("clinic").get(
+        token = AssistantSetupToken.objects.select_related("clinic", "clinic__owner_doctor").get(
             code_hash=digest,
             used_at__isnull=True,
         )
@@ -495,6 +495,80 @@ def resolve_assistant_setup_code(raw_code, *, consume=False):
         token.used_at = timezone.now()
         token.save(update_fields=["used_at"])
     return token
+
+
+def deactivate_assistant_membership(membership):
+    if membership.user.role != StaffUser.Role.ASSISTANT:
+        raise ValueError("Only Assistant memberships use the dormant lifecycle.")
+    membership.is_active = False
+    membership.save(update_fields=["is_active"])
+    membership.staff_sessions.all().delete()
+    user = membership.user
+    if not user.memberships.filter(is_active=True).exists():
+        user.dormant_since = timezone.now()
+        user.save(update_fields=["dormant_since"])
+    return membership
+
+
+def reactivate_assistant_account(user):
+    if user.role != StaffUser.Role.ASSISTANT:
+        raise ValueError("Only Assistant accounts can join the Assistant slot.")
+    if user.anonymized_at is not None or not user.is_active:
+        raise InvalidAssistantSetup("This Assistant account can no longer be reactivated.")
+    if user.dormant_since is not None:
+        user.dormant_since = None
+        user.save(update_fields=["dormant_since"])
+
+
+def anonymize_dormant_assistants(*, now=None):
+    now = now or timezone.now()
+    cutoff = now - timedelta(days=730)
+    users = StaffUser.objects.filter(
+        role=StaffUser.Role.ASSISTANT,
+        dormant_since__isnull=False,
+        dormant_since__lte=cutoff,
+        anonymized_at__isnull=True,
+    )
+    count = 0
+    for user in users:
+        if user.memberships.filter(is_active=True).exists():
+            user.dormant_since = None
+            user.save(update_fields=["dormant_since"])
+            continue
+        with transaction.atomic():
+            user.staff_sessions.all().delete()
+            user.trusted_devices.all().delete()
+            user.passkeys.all().delete()
+            user.passkey_challenges.all().delete()
+            user.verification_challenges.all().delete()
+            user.recovery_grants.all().delete()
+            user.recovery_codes.all().delete()
+            user.private_note = ""
+            user.phone = None
+            user.email = f"former-assistant-{user.id}@deleted.invalid"
+            user.first_name = ""
+            user.last_name = ""
+            user.email_verified_at = None
+            user.phone_verified_at = None
+            user.is_active = False
+            user.anonymized_at = now
+            user.set_unusable_password()
+            user.save(
+                update_fields=[
+                    "private_note",
+                    "phone",
+                    "email",
+                    "first_name",
+                    "last_name",
+                    "email_verified_at",
+                    "phone_verified_at",
+                    "is_active",
+                    "anonymized_at",
+                    "password",
+                ]
+            )
+        count += 1
+    return count
 
 
 def bytes_to_base64url(value):
@@ -514,4 +588,4 @@ def find_user_by_identity(identity):
     query = Q(email__iexact=value.lower())
     if phone:
         query |= Q(phone=phone)
-    return StaffUser.objects.filter(query, is_active=True).first()
+    return StaffUser.objects.filter(query, is_active=True, anonymized_at__isnull=True).first()
