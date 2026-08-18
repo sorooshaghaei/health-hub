@@ -25,29 +25,33 @@ Only the note content is persistent application data.
 
 The sticky's screen position, size, and minimized/expanded state are not stored on the server. Reopening a workspace starts from the default minimized lower-right presentation.
 
-## Global-account and membership behavior
+## Global-account behavior
 
 The sticky belongs to the personal account, not to a clinic.
 
-Therefore:
+Every account has one permanent Doctor or Assistant role. Therefore:
 
-- the same person sees the same sticky when working through different clinic memberships;
-- if one person is Doctor in one clinic and Assistant in another, the same personal sticky is available when that person is inside their own membership workspace;
-- deactivating or replacing an Assistant membership does not delete or transfer that person's sticky;
-- a replacement Assistant receives only their own personal-account sticky.
+- the same person sees the same sticky while working in any clinic where that account has an active membership;
+- a Doctor account sees the same Doctor sticky across all of that Doctor's clinics when using Doctor workspace;
+- an Assistant account sees the same Assistant sticky across all of that Assistant's clinics when using Assistant workspace;
+- one account is never Doctor in one clinic and Assistant in another;
+- deactivating or replacing an Assistant's membership in one clinic does not delete or transfer that person's sticky;
+- a replacement Assistant has only their own personal-account sticky.
+
+If an Assistant eventually reaches the two-year dormant anonymization threshold defined by Phase 8, the private sticky is part of the personal data removed during anonymization.
 
 ## Privacy and workspace placement
 
-Access is determined by the active clinic membership and active workspace:
+Access is determined by the permanent account role plus the active workspace. An active clinic membership is still required because the sticky is presented inside a clinic workspace.
 
-| Active membership | Active workspace | Sticky result |
+| Permanent account role | Active workspace | Sticky result |
 | --- | --- | --- |
-| Doctor | Doctor | that person's private sticky |
-| Assistant | Assistant | that person's private sticky |
+| Doctor | Doctor | that Doctor's private sticky |
+| Assistant | Assistant | that Assistant's private sticky |
 | Doctor | Assistant administrator workspace | no private sticky |
 | Assistant | Doctor | access is not permitted |
 
-The backend permits private-note reads/writes only when the active workspace role equals the active membership role.
+The backend permits private-note reads/writes only when the active workspace role equals the signed-in account's permanent role.
 
 Consequences:
 
@@ -102,7 +106,7 @@ GET   /api/staff/private-note/
 PATCH /api/staff/private-note/
 ```
 
-Both endpoints require an authenticated clinic-bound staff session whose active workspace matches the active membership role.
+Both endpoints require an authenticated clinic-bound session with an active clinic membership whose active workspace matches the permanent account role.
 
 `PATCH` accepts the complete plain-text `content` value, including an empty string.
 
@@ -112,6 +116,7 @@ The Pages adapter follows the same product rules:
 
 - one private text value per personal demo account;
 - the value follows that account across demo clinic memberships;
+- permanent Doctor/Assistant role is account-scoped;
 - Doctor administrator access to Assistant workspace shows no sticky;
 - minimized UI displays only **Private note**, never note content;
 - layout state is not treated as persistent server data.
