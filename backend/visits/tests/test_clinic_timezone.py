@@ -34,6 +34,7 @@ class ClinicOperationalTimezoneTests(APITestCase):
             password="Strong-staff-password-123",
             first_name="Timezone",
             last_name="Assistant",
+            role=StaffUser.Role.ASSISTANT,
         )
         now = timezone.now()
         self.user.email_verified_at = now
@@ -42,10 +43,9 @@ class ClinicOperationalTimezoneTests(APITestCase):
         self.membership = StaffMembership.objects.create(
             user=self.user,
             clinic=self.clinic,
-            role=StaffUser.Role.ASSISTANT,
         )
         self.device_token, device = issue_trusted_device(
-            self.clinic,
+            self.user,
             "Mozilla/5.0 Chrome/151.0.0.0",
         )
         self.session_token, _ = issue_staff_session(
