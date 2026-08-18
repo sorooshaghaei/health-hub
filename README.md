@@ -22,7 +22,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 - Private sticky: [`docs/PHASE_7_PRIVATE_NOTES.md`](docs/PHASE_7_PRIVATE_NOTES.md)
 - Account/recovery/security: [`docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
 
-The Phase 0–8 implementation exists. Before Phase 9, the project is undergoing a line-by-line documentation and implementation reconciliation. **Phase 0–4 have been reconciled; Phase 5 is next.**
+The Phase 0–8 implementation exists. Before Phase 9, the project is undergoing a line-by-line documentation and implementation reconciliation. **Phase 0–5 have been reconciled; Phase 6 is next.**
 
 ## Account and clinic model
 
@@ -86,7 +86,7 @@ The stored clinic timezone determines clinic-day behavior including:
 
 Travelling with a laptop does not move the clinic into another operational day simply because that browser changes timezone.
 
-## Clinic workflow reconciled through Phase 4
+## Clinic workflow reconciled through Phase 5
 
 ### Patients
 
@@ -146,15 +146,28 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 - after the Undo period, Assistant workspace receives one short sound plus persistent visual indication;
 - first waiting Patient is suggested, but any checked-in Patient may be selected;
 - With doctor preserves the original queue order and has five-second Undo;
-- the next Room ready completes the current `WITH_DOCTOR` Appointment as `DOCTOR_FINISHED`, displayed as **Completed**;
-- there is no Checkout workflow;
 - synchronization uses authenticated three-second polling.
 
-## Existing Phase 5–8 implementation
+### Completed consultation
 
-Completed consultation behavior, shared tasks, private sticky, and Phase 8 recovery/security/multi-clinic functionality are already implemented.
+`DOCTOR_FINISHED` is final and displayed as **Completed**.
 
-Their specifications are being reconciled sequentially with the final account/membership/device/timezone architecture. The next clarification target is Phase 5. Do not infer unresolved Phase 5–8 behavior from older wording when it conflicts with the corrected Phase 0–4 documents.
+- the Doctor's next Room ready completes the current `WITH_DOCTOR` Appointment;
+- no Checkout state/action/form/queue exists;
+- `doctor_finished_at` is the completion timestamp;
+- five-second Undo Room ready is the only reversal;
+- after that window expires, the Appointment cannot return to `WITH_DOCTOR`;
+- Completed Appointments disappear from the live queue and current Doctor card but remain in the selected-date list and Patient history;
+- Patient and Appointment date stay locked;
+- scheduled time, reason, and Patient profile details remain correctable;
+- Completed Appointments cannot be deleted;
+- completion/history are clinic-scoped and follow the clinic operational timezone.
+
+## Existing Phase 6–8 implementation
+
+Shared tasks, private sticky, and Phase 8 recovery/security/multi-clinic functionality are already implemented.
+
+Their specifications are being reconciled sequentially with the final account/membership/device/timezone architecture. The next clarification target is Phase 6. Do not infer unresolved Phase 6–8 behavior from older wording when it conflicts with the corrected Phase 0–5 documents.
 
 The Pages parity rule remains fixed: GitHub Pages renders the same production React product UI and substitutes only the browser-local API/storage layer. It must not expose a separate username/demo application.
 
@@ -235,7 +248,7 @@ npm run build:demo
 
 ## Important current migration
 
-`accounts.0008_clinic_timezone` adds the persisted clinic operational timezone used by Phase 3/4 day-boundary logic.
+`accounts.0008_clinic_timezone` adds the persisted clinic operational timezone used by Phase 3–5 clinic-day logic.
 
 ## API surface
 
