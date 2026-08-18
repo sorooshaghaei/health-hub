@@ -1,3 +1,5 @@
+import { browserTimeZone, dateValueInTimeZone, timeValueInTimeZone } from "./clinicTime.js";
+
 const STORE_KEY = "health-hub.demo-store.v1";
 
 const UNDO_WINDOW_MS = 5000;
@@ -25,13 +27,25 @@ function emptyStore() {
   };
 }
 
+function activeStoreTimeZone() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    return parsed?.clinic?.timezone || null;
+  } catch {
+    return null;
+  }
+}
+
 function localDateValue(date = new Date()) {
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
+  return dateValueInTimeZone(activeStoreTimeZone() || browserTimeZone(), date);
 }
 
 function localTimeValue(date = new Date()) {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+  return timeValueInTimeZone(
+    activeStoreTimeZone() || browserTimeZone(),
+    date,
+    { seconds: true },
+  );
 }
 
 function timeFromIso(value) {
@@ -50,6 +64,10 @@ function migrateStore(parsed) {
     visits: Array.isArray(parsed?.visits) ? parsed.visits : [],
     room_call: parsed?.room_call && typeof parsed.room_call === "object" ? parsed.room_call : null,
   };
+
+  if (store.clinic && !store.clinic.timezone) {
+    store.clinic.timezone = browserTimeZone();
+  }
 
   store.sessions = Object.fromEntries(
     Object.entries(store.sessions).map(([token, session]) => {
@@ -165,7 +183,13 @@ async function hashSecret(value) {
 }
 
 function publicClinic(clinic) {
-  return { id: clinic.id, name: clinic.name, email: clinic.email, phone: clinic.phone };
+  return {
+    id: clinic.id,
+    name: clinic.name,
+    email: clinic.email,
+    phone: clinic.phone,
+    timezone: clinic.timezone || browserTimeZone(),
+  };
 }
 
 function publicUser(user, clinic, workspaceRole = user.role) {
