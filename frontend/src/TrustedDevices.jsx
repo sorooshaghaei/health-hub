@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ApiError, DEMO_MODE, apiRequest } from "./api.js";
-import { ErrorMessage } from "./ui.jsx";
+import { Button, ErrorMessage } from "./ui.jsx";
 import "./deviceAccess.css";
 
 function formatAdded(value) {
@@ -38,5 +38,5 @@ function DeviceModal({ staffToken, onClose }) {
 export default function TrustedDevices({ staffToken }) {
   const [open, setOpen] = useState(false);
   if (DEMO_MODE) return null;
-  return <><button type="button" onClick={() => setOpen(true)}>Devices</button>{open && <DeviceModal staffToken={staffToken} onClose={() => setOpen(false)} />}</>;
+  return <><Button type="button" onClick={() => setOpen(true)}>Devices</Button>{open && <DeviceModal staffToken={staffToken} onClose={() => setOpen(false)} />}</>;
 }
