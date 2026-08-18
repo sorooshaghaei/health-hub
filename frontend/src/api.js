@@ -3,6 +3,8 @@ import { demoPhase8ApiRequest } from "./demoPhase8Api.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 const ACTIVE_DEVICE_TOKEN_KEY = "health-hub.active-device-token";
+const DEMO_AUTH_STORE_KEY = "health-hub.demo-auth.v2";
+const DEMO_OPERATIONAL_STORE_KEY = "health-hub.demo-store.v1";
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 const BROWSER_DEMO_API = import.meta.env.VITE_DEMO_API === "true";
 
@@ -27,11 +29,50 @@ function withClinicTimezone(path, method, data) {
   return { ...data, timezone: browserTimeZone() };
 }
 
+function readDemoStore(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "null");
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function syncDemoClinicTimezone(path, method, requestData, payload) {
+  if (typeof localStorage === "undefined") return payload;
+
+  const authStore = readDemoStore(DEMO_AUTH_STORE_KEY);
+  if (!authStore) return payload;
+
+  if (path === "/api/clinics/" && method === "POST" && payload?.clinic?.id) {
+    const clinic = authStore.clinics?.find((item) => item.id === payload.clinic.id);
+    if (clinic) {
+      clinic.timezone = requestData?.timezone || browserTimeZone();
+      localStorage.setItem(DEMO_AUTH_STORE_KEY, JSON.stringify(authStore));
+    }
+  }
+
+  const operationalStore = readDemoStore(DEMO_OPERATIONAL_STORE_KEY);
+  if (operationalStore?.clinic?.id) {
+    const clinic = authStore.clinics?.find((item) => item.id === operationalStore.clinic.id);
+    if (clinic?.timezone) {
+      operationalStore.clinic.timezone = clinic.timezone;
+      localStorage.setItem(DEMO_OPERATIONAL_STORE_KEY, JSON.stringify(operationalStore));
+    }
+  }
+
+  return payload;
+}
+
 export async function apiRequest(path, { method = "GET", data, deviceToken, staffToken } = {}) {
   const requestData = withClinicTimezone(path, method, data);
   if (BROWSER_DEMO_API) {
-    try { return await demoPhase8ApiRequest(path, { method, data: requestData, deviceToken, staffToken }); }
-    catch (error) { throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0); }
+    try {
+      const payload = await demoPhase8ApiRequest(path, { method, data: requestData, deviceToken, staffToken });
+      return syncDemoClinicTimezone(path, method, requestData, payload);
+    } catch (error) {
+      throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0);
+    }
   }
   const headers = { Accept: "application/json" };
   if (requestData !== undefined) headers["Content-Type"] = "application/json";
