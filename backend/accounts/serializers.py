@@ -64,6 +64,7 @@ class StaffSerializer(serializers.ModelSerializer):
     memberships = serializers.SerializerMethodField()
     has_doctor_membership = serializers.BooleanField(read_only=True)
     device_trusted = serializers.SerializerMethodField()
+    has_trusted_devices = serializers.SerializerMethodField()
 
     class Meta:
         model = StaffUser
@@ -71,7 +72,7 @@ class StaffSerializer(serializers.ModelSerializer):
             "id", "role", "email", "phone", "first_name", "last_name", "display_name",
             "email_verified", "phone_verified", "account_ready", "workspace_role",
             "is_clinic_admin", "clinic", "memberships", "has_doctor_membership",
-            "device_trusted",
+            "device_trusted", "has_trusted_devices",
         ]
 
     def _membership(self):
@@ -113,6 +114,9 @@ class StaffSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         device = getattr(getattr(request, "auth", None), "trusted_device", None)
         return bool(device and device.user_id == obj.id)
+
+    def get_has_trusted_devices(self, obj):
+        return obj.trusted_devices.exists()
 
 
 class StaffRegistrationSerializer(serializers.Serializer):
