@@ -28,7 +28,7 @@ class SharedTask(models.Model):
     )
     created_by = models.ForeignKey(
         StaffUser,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="created_shared_tasks",
     )
     patient = models.ForeignKey(
@@ -122,7 +122,7 @@ class TaskComment(models.Model):
     )
     author = models.ForeignKey(
         StaffUser,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="shared_task_comments",
     )
     body = models.TextField()
