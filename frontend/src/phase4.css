@@ -9,17 +9,18 @@
 }
 
 .consultation-workspace-card {
-  min-height: 180px;
+  min-height: 0;
 }
 
 .room-ready-button,
 .with-doctor-button {
+  min-height: var(--control-height-compact);
   border: 0;
   border-radius: 11px;
   background: var(--green);
   color: white;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -97,7 +98,7 @@
 
 .consultation-card small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .consultation-card strong {
@@ -166,7 +167,7 @@
   background: transparent;
   color: var(--green);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -261,7 +262,7 @@
 
 .consultation-facts dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .consultation-facts dd {

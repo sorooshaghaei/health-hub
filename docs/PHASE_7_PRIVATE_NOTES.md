@@ -23,7 +23,7 @@ The text follows the person across clinics because it belongs to the global pers
 
 Only the note content is persistent application data.
 
-The sticky's screen position, size, and minimized/expanded state are not stored on the server. Reopening a workspace starts from the default minimized lower-right presentation.
+The sticky's screen position, size, and minimized/expanded state are not stored on the server. Reopening a workspace starts from the default minimized lower-right presentation above the reserved Undo-notification lane.
 
 ## Global-account behavior
 
@@ -72,17 +72,18 @@ This avoids exposing personal reminder text on a clinic screen while the sticky 
 
 - the sticky is fixed to the browser viewport rather than document flow;
 - it remains reachable while the page scrolls;
-- default state is a small minimized strip near the lower-right;
-- the minimized strip may be dragged within the viewport;
+- default state is a small minimized strip near the lower-right, above the reserved Undo-notification lane;
+- the minimized strip may be dragged within the available viewport area without entering that lane;
 - maximizing opens the same scratchpad;
-- the expanded sticky may be dragged and resized within the viewport;
-- minimizing returns it to the lower-right default position;
+- the expanded sticky may be dragged and resized within the available viewport area above that lane;
+- minimizing returns it to the lower-right default position above the lane;
+- Undo notifications render above the sticky so their time-sensitive action remains operable;
 - there is no Close button;
 - there is no separate Notes tab or Open-note workflow.
 
 ## Mobile interaction
 
-- the minimized strip sits near the lower edge and remains movable within the viewport;
+- the minimized strip sits above the Undo-notification lane and remains movable within the available viewport area;
 - maximizing opens a full-screen plain-text editor;
 - minimizing returns to the movable strip;
 - there is no Close action.

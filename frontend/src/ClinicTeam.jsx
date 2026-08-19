@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ApiError, DEMO_MODE, apiRequest } from "./api.js";
 import { Button, ErrorMessage, SelectField } from "./ui.jsx";
 
-export default function ClinicTeam({ user, staffToken }) {
+export default function ClinicTeam({ user, staffToken, onOpen }) {
   const [open, setOpen] = useState(false), [assistant, setAssistant] = useState(null), [error, setError] = useState(null), [setup, setSetup] = useState(null), [channel, setChannel] = useState("email"), [busy, setBusy] = useState(false);
   async function load() {
     try { const payload = await apiRequest("/api/clinic/assistant/", { staffToken }); setAssistant(payload.assistant); }
@@ -11,7 +11,7 @@ export default function ClinicTeam({ user, staffToken }) {
   }
   useEffect(() => { if (open && !DEMO_MODE) load(); }, [open]);
   if (user.role !== "doctor") return null;
-  if (!open) return <Button type="button" onClick={() => setOpen(true)}>Clinic team</Button>;
+  if (!open) return <Button type="button" onClick={() => { setOpen(true); onOpen?.(); }}>Clinic team</Button>;
 
   async function setupAssistant(replace) {
     setBusy(true); setError(null);

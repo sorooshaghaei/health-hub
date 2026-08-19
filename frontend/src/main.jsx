@@ -10,6 +10,7 @@ import "./patientProfileRefresh.css";
 import "./appointmentFlowRefresh.css";
 import "./phase6.css";
 import "./phase7.css";
+import "./workspaceUsability.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

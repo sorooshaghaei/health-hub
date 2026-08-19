@@ -95,8 +95,10 @@ Authentication and account-administration controls use the shared UI components 
 - **Forgot password?** is a normal text link below the relevant sign-in/role content and must never reuse `.back-button`.
 - Recovery uses the shared checkbox and select-field controls, stacked vertically with normal form spacing. The checkbox label provides at least a 44px touch target.
 - On screens up to 900px wide, the large desktop authentication introduction collapses to a compact roughly 100–140px header. The current screen title remains visible; the long decorative description is hidden.
-- On mobile/tablet workspace headers, the separate header actions collapse into one menu. Existing functionality remains available there, including clinic switching, Doctor/Assistant workspace switching when applicable, Account, Clinic team, trusted devices, and Sign out.
-- Desktop workspace header behavior remains unchanged.
+- Workspace headers use one account menu at every width for Clinics, Account, Clinic team, trusted devices, and Sign out. This avoids duplicating the same action components in separate desktop and mobile trees.
+- The Doctor/Assistant workspace switch remains directly visible. At widths up to 1200px the secondary clinic/workspace context collapses, leaving the brand, workspace switch when applicable, and account trigger.
+- The clinic name appears once in the wide header and in the account-menu identity. It is not repeated beside the page title with an unlabeled status dot.
+- Doctor access to the Assistant workspace has a persistent **Viewing Assistant workspace as Doctor administrator** banner and a direct **Return to Doctor workspace** action.
 
 These are shared production/Pages UI rules; the browser demo must not maintain a separate layout.
 

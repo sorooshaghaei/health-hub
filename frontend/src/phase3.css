@@ -4,7 +4,15 @@
 }
 
 .live-queue-card {
-  min-height: 180px;
+  min-height: 0;
+}
+
+.live-queue-card.workspace-card--empty .phase3-content {
+  padding-top: 0;
+}
+
+.live-queue-card.workspace-card--empty .schedule-empty {
+  min-height: 100px;
 }
 
 .phase3-content {
@@ -52,7 +60,7 @@
 .queue-fact small,
 .queue-reason small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .queue-fact strong,
@@ -77,7 +85,7 @@
   min-height: 30px;
   padding: 0 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -93,12 +101,13 @@
 }
 
 .check-in-button {
+  min-height: var(--control-height-compact);
   border: 0;
   border-radius: 10px;
   padding: 8px 11px;
   background: var(--green);
   color: white;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -113,7 +122,7 @@
 
 .selected-patient--locked > span:last-child {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -127,7 +136,7 @@
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 50;
+  z-index: 110;
   display: grid;
   gap: 10px;
   width: min(390px, calc(100vw - 32px));
@@ -154,7 +163,7 @@
   padding: 7px 10px;
   background: white;
   color: #20312a;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
   cursor: pointer;
 }

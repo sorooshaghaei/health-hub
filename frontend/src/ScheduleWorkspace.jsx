@@ -490,7 +490,7 @@ export default function ScheduleWorkspace({
         />
       )}
 
-      <article className="workspace-card live-queue-card">
+      <article className={`workspace-card live-queue-card${!queueLoading && !queue.length ? " workspace-card--empty" : ""}`}>
         <div className="card-heading">
           <div>
             <p className="eyebrow">Today · {formatDate(today)}</p>
@@ -522,7 +522,7 @@ export default function ScheduleWorkspace({
         </div>
       </article>
 
-      <article className="workspace-card phase2-card">
+      <article className={`workspace-card phase2-card${mode === "list" && !loading && !visits.length ? " workspace-card--empty" : ""}`}>
         <div className="card-heading">
           <div>
             <p className="eyebrow">{readOnly ? "Appointment overview" : "Daily planning"}</p>

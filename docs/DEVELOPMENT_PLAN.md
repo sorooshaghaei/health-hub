@@ -238,4 +238,12 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 
 ## Current work
 
-**Phase 8 is complete and validated. Stop before Phase 9 implementation. The next step is a new Phase 9 clarification pass.**
+**Phase 8 is complete and validated. An approved five-part post-Phase-8 corrective pass is in progress without redefining the product roadmap:**
+
+1. critical onboarding and Patient-edit data safety;
+2. workspace usability and visual hierarchy;
+3. verification, password, and recovery guidance;
+4. task/settings/dialog accessibility;
+5. shared clinic-aware scheduling.
+
+Only one corrective part is implemented and approved at a time. Phase 9 remains the reserved sensitive-attachment phase and is not part of this corrective pass.

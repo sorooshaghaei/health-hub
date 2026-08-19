@@ -8,7 +8,7 @@ function errorOf(error, fallback) {
   return error instanceof ApiError ? error : new ApiError(error?.message || fallback);
 }
 
-export default function AccountSettings({ user, staffToken, onUserChange, onAccountDeleted }) {
+export default function AccountSettings({ user, staffToken, onOpen, onUserChange, onAccountDeleted }) {
   const [open, setOpen] = useState(false), [tab, setTab] = useState("profile"), [error, setError] = useState(null);
   const [profile, setProfile] = useState({ first_name: user.first_name ?? "", last_name: user.last_name ?? "" });
   const [contact, setContact] = useState({ kind: "email", value: "", password: "", code: "", requested: false, devCode: "", passkeyReauthenticated: false });
@@ -118,7 +118,8 @@ export default function AccountSettings({ user, staffToken, onUserChange, onAcco
     } catch (reason) { setError(errorOf(reason, "Account could not be deleted.")); setDeletion((current) => ({ ...current, deleting: false })); }
   }
 
-  if (!open) return <Button type="button" onClick={() => setOpen(true)}>Account</Button>;
+  function openSettings() { setOpen(true); onOpen?.(); }
+  if (!open) return <Button type="button" onClick={openSettings}>Account</Button>;
   const tabs = ["profile", "security", "passkeys", "recovery", ...(user.role === "doctor" ? ["delete"] : [])];
   const modal = <div className="device-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}><section className="device-modal phase8-account-modal" role="dialog" aria-modal="true">
     <div className="device-modal__header"><div><p className="eyebrow">Personal {user.role === "doctor" ? "Doctor" : "Assistant"} account</p><h2>Account settings</h2><p>Your personal profile, security, passkeys, and trusted devices follow you across your clinics.</p></div><button className="device-icon-button" onClick={() => setOpen(false)}>×</button></div>
@@ -135,5 +136,5 @@ export default function AccountSettings({ user, staffToken, onUserChange, onAcco
 
     {tab === "delete" && user.role === "doctor" && <div className="phase8-settings-section"><h3>Delete Doctor account</h3><p>This permanently deletes every clinic owned by this Doctor account and the Patient, appointment, queue, consultation, and task data inside those clinics. Connected Assistant memberships are removed, but Assistant personal accounts are not deleted.</p>{deletion.loading ? <p>Loading affected clinics…</p> : <div className="phase8-clinic-list">{deletion.clinics.map((clinic) => <div className="phase8-contact-card" key={clinic.id}><strong>{clinic.name}</strong><span>Clinic and clinic data will be permanently deleted.</span></div>)}</div>}<form className="form" onSubmit={deleteDoctorAccount}><Field label="Current password" type="password" value={deletion.password} onChange={(event) => setDeletion({ ...deletion, password: event.target.value })} /><Button type="button" onClick={() => explicitPasskeyReauth(true)}>Use passkey instead</Button>{deletion.passkeyReauthenticated && <p className="device-success">Passkey reauthentication complete for the next 10 minutes.</p>}<Field label="Type DELETE to confirm" value={deletion.confirmation} onChange={(event) => setDeletion({ ...deletion, confirmation: event.target.value })} required /><Button variant="danger" className="phase8-danger-action" disabled={deletion.deleting}>{deletion.deleting ? "Deleting…" : "Permanently delete account and clinics"}</Button></form></div>}
   </section></div>;
-  return <>{createPortal(modal, document.body)}<Button type="button" onClick={() => setOpen(true)}>Account</Button></>;
+  return <>{createPortal(modal, document.body)}<Button type="button" onClick={openSettings}>Account</Button></>;
 }

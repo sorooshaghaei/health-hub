@@ -35,8 +35,8 @@ function DeviceModal({ staffToken, onClose }) {
   </div>, document.body);
 }
 
-export default function TrustedDevices({ staffToken }) {
+export default function TrustedDevices({ staffToken, onOpen }) {
   const [open, setOpen] = useState(false);
   if (DEMO_MODE) return null;
-  return <><Button type="button" onClick={() => setOpen(true)}>Devices</Button>{open && <DeviceModal staffToken={staffToken} onClose={() => setOpen(false)} />}</>;
+  return <><Button type="button" onClick={() => { setOpen(true); onOpen?.(); }}>Devices</Button>{open && <DeviceModal staffToken={staffToken} onClose={() => setOpen(false)} />}</>;
 }

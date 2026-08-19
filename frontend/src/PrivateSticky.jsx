@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiRequest } from "./api.js";
 
 const EDGE_MARGIN = 14;
+const UNDO_LANE_RESERVE = 104;
 const MINIMIZED_WIDTH = 236;
 const MINIMIZED_HEIGHT = 38;
 const MIN_WIDTH = 300;
@@ -22,13 +23,14 @@ function clamp(value, minimum, maximum) {
 
 function defaultExpandedFrame() {
   const viewport = viewportSize();
+  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
   const width = Math.min(440, viewport.width - EDGE_MARGIN * 2);
-  const height = Math.min(460, viewport.height - EDGE_MARGIN * 2);
+  const height = Math.min(460, Math.max(0, availableHeight - EDGE_MARGIN * 2));
   return {
     width,
     height,
     x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
-    y: Math.max(EDGE_MARGIN, viewport.height - height - EDGE_MARGIN),
+    y: Math.max(EDGE_MARGIN, availableHeight - height - EDGE_MARGIN),
   };
 }
 
@@ -37,28 +39,30 @@ function bottomRightPosition() {
   const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
   return {
     x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
-    y: Math.max(EDGE_MARGIN, viewport.height - MINIMIZED_HEIGHT - EDGE_MARGIN),
+    y: Math.max(EDGE_MARGIN, viewport.height - MINIMIZED_HEIGHT - EDGE_MARGIN - UNDO_LANE_RESERVE),
   };
 }
 
 function constrainFrame(frame) {
   const viewport = viewportSize();
+  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
   const width = clamp(frame.width, Math.min(MIN_WIDTH, viewport.width), viewport.width);
-  const height = clamp(frame.height, Math.min(MIN_HEIGHT, viewport.height), viewport.height);
+  const height = clamp(frame.height, Math.min(MIN_HEIGHT, availableHeight), availableHeight);
   return {
     width,
     height,
     x: clamp(frame.x, 0, viewport.width - width),
-    y: clamp(frame.y, 0, viewport.height - height),
+    y: clamp(frame.y, 0, availableHeight - height),
   };
 }
 
 function constrainMinimized(position) {
   const viewport = viewportSize();
   const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
+  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
   return {
     x: clamp(position.x, 0, viewport.width - width),
-    y: clamp(position.y, 0, viewport.height - MINIMIZED_HEIGHT),
+    y: clamp(position.y, 0, availableHeight - MINIMIZED_HEIGHT),
   };
 }
 
@@ -209,10 +213,11 @@ export default function PrivateSticky({ staffToken }) {
     const deltaX = event.clientX - current.startX;
     const deltaY = event.clientY - current.startY;
     const viewport = viewportSize();
+    const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
     if (current.kind === "drag") {
       const next = {
         x: clamp(current.origin.x + deltaX, 0, viewport.width - current.origin.width),
-        y: clamp(current.origin.y + deltaY, 0, viewport.height - current.origin.height),
+        y: clamp(current.origin.y + deltaY, 0, availableHeight - current.origin.height),
       };
       if (minimized) setMinimizedPosition(next);
       else setFrame((value) => ({ ...value, ...next }));
@@ -227,8 +232,8 @@ export default function PrivateSticky({ staffToken }) {
       ),
       height: clamp(
         current.origin.height + deltaY,
-        Math.min(MIN_HEIGHT, viewport.height - current.origin.y),
-        viewport.height - current.origin.y,
+        Math.min(MIN_HEIGHT, availableHeight - current.origin.y),
+        availableHeight - current.origin.y,
       ),
     });
   }
