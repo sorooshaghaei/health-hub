@@ -157,6 +157,8 @@ Password change uses one verified email/SMS code, preserves current session, rev
 
 New-password pairs show Django-aligned requirements, live strength/match feedback, and accessible Show/Hide controls.
 
+Routine Account settings are separated from permanent Doctor-account deletion in a dedicated Danger zone dialog. Account, device, clinic-team, task, and consultation dialogs share focus entry, Tab containment, Escape handling, and opener-focus restoration.
+
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
 Recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes.
@@ -262,7 +264,8 @@ PLANNED → CHECKED_IN
 - queue order is original persisted check-in sequence;
 - Assistant queue shows phone; Doctor queue omits it;
 - check-in has five-second Undo;
-- three-second polling.
+- three-second polling;
+- compact New Task dialog with focus management, complete Open/History tab semantics, and explicitly named comment fields.
 
 ### Consultation
 
@@ -311,7 +314,8 @@ OPEN → DONE
 - visible only when workspace matches permanent account role;
 - Doctor in Assistant administrator workspace gets no sticky;
 - minimized strip always says **Private note**, never content;
-- autosave; no title/multiple notes/history/attachments/etc.;
+- autosave with Saving/Saved feedback; no title/multiple notes/history/attachments/etc.;
+- arrow-key movement/resizing plus Reset for the nonessential desktop layout;
 - layout state not server-persisted.
 
 ## Browser demo invariant

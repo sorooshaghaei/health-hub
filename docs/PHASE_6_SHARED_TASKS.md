@@ -91,7 +91,9 @@ Opening Tasks marks current task activity as seen for the active clinic membersh
 
 Clicking **New task** opens the create form in a compact modal dialog. The Open task list remains visually stable underneath it.
 
-The presentation does not change task fields or permissions.
+The modal uses the shared accessible dialog behavior: focus enters the title field, Tab remains contained, Escape and Cancel close it when a save is not in progress, and focus returns to **New task**. The presentation does not change task fields or permissions.
+
+Open and History expose complete tab semantics, including selected state, associated tab panels, and Left/Right/Home/End keyboard navigation. New- and edit-comment textareas have explicit accessible names rather than relying on placeholder text.
 
 ## Lifecycle
 
@@ -191,6 +193,7 @@ The public browser-only adapter mirrors the same production React task behavior 
 - shared comment ownership/edit/delete rules;
 - comment deletion Undo;
 - clinic-membership-scoped Tasks-tab attention dots and seen state;
-- compact New Task modal behavior.
+- compact, keyboard-accessible New Task modal behavior;
+- fully named comment fields and complete Open/History tab semantics.
 
 The browser demo remains demonstration storage only and must not contain real Patient information.

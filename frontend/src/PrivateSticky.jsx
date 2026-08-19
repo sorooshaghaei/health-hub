@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiRequest } from "./api.js";
+import "./privateStickyAccessibility.css";
 
 const EDGE_MARGIN = 14;
 const UNDO_LANE_RESERVE = 104;
@@ -70,6 +71,7 @@ export default function PrivateSticky({ staffToken }) {
   const [content, setContent] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
+  const [saveStatus, setSaveStatus] = useState("loading");
   const [minimized, setMinimized] = useState(true);
   const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
   const [frame, setFrame] = useState(defaultExpandedFrame);
@@ -92,8 +94,12 @@ export default function PrivateSticky({ staffToken }) {
         latestContent.current = value;
         persistedContent.current = value;
         setContent(value);
+        setSaveStatus("saved");
       } catch {
-        if (!cancelled) setError("Private note could not be loaded.");
+        if (!cancelled) {
+          setError("Private note could not be loaded.");
+          setSaveStatus("error");
+        }
       } finally {
         if (!cancelled) setLoaded(true);
       }
@@ -108,6 +114,7 @@ export default function PrivateSticky({ staffToken }) {
   const flush = useCallback(async () => {
     if (!loaded || saving.current || latestContent.current === persistedContent.current) return;
     saving.current = true;
+    setSaveStatus("saving");
     try {
       while (active.current && latestContent.current !== persistedContent.current) {
         const value = latestContent.current;
@@ -118,9 +125,15 @@ export default function PrivateSticky({ staffToken }) {
         });
         persistedContent.current = value;
       }
-      if (active.current) setError(null);
+      if (active.current) {
+        setError(null);
+        setSaveStatus("saved");
+      }
     } catch {
-      if (active.current) setError("Private note could not be saved. Keep this page open and try again.");
+      if (active.current) {
+        setError("Private note could not be saved. Keep this page open and try again.");
+        setSaveStatus("error");
+      }
     } finally {
       saving.current = false;
     }
@@ -155,6 +168,7 @@ export default function PrivateSticky({ staffToken }) {
     latestContent.current = event.target.value;
     setContent(event.target.value);
     setError(null);
+    setSaveStatus("saving");
   }
 
   function minimize() {
@@ -166,6 +180,37 @@ export default function PrivateSticky({ staffToken }) {
   function maximize() {
     setFrame((current) => constrainFrame(current));
     setMinimized(false);
+  }
+
+  function resetLayout() {
+    setFrame(defaultExpandedFrame());
+    setMinimizedPosition(bottomRightPosition());
+  }
+
+  function moveWithKeyboard(event) {
+    if (event.target.closest("button") || mobile || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    event.preventDefault();
+    const step = event.shiftKey ? 30 : 10;
+    const deltaX = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+    const deltaY = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+    if (minimized) {
+      setMinimizedPosition((current) => constrainMinimized({ x: current.x + deltaX, y: current.y + deltaY }));
+    } else {
+      setFrame((current) => constrainFrame({ ...current, x: current.x + deltaX, y: current.y + deltaY }));
+    }
+  }
+
+  function resizeWithKeyboard(event) {
+    if (mobile || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    event.preventDefault();
+    const step = event.shiftKey ? 30 : 10;
+    const deltaWidth = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+    const deltaHeight = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+    setFrame((current) => constrainFrame({
+      ...current,
+      width: current.width + deltaWidth,
+      height: current.height + deltaHeight,
+    }));
   }
 
   function beginDrag(event) {
@@ -247,6 +292,7 @@ export default function PrivateSticky({ staffToken }) {
   }
 
   const minimizedWidth = Math.min(MINIMIZED_WIDTH, viewportSize().width - EDGE_MARGIN * 2);
+  const statusText = !loaded ? "Loading…" : saveStatus === "saving" ? "Saving…" : saveStatus === "error" ? "Not saved" : "Saved";
   const style = minimized
     ? {
         left: minimizedPosition.x,
@@ -268,13 +314,20 @@ export default function PrivateSticky({ staffToken }) {
       <aside className="private-sticky private-sticky--minimized" style={style} aria-label="Private note">
         <div
           className="private-sticky__bar"
+          tabIndex={mobile ? undefined : 0}
+          aria-label={mobile ? undefined : "Move private note with the arrow keys. Hold Shift for larger steps."}
+          aria-keyshortcuts={mobile ? undefined : "ArrowLeft ArrowRight ArrowUp ArrowDown"}
           onPointerDown={beginDrag}
           onPointerMove={moveInteraction}
           onPointerUp={endInteraction}
           onPointerCancel={endInteraction}
+          onKeyDown={moveWithKeyboard}
         >
           <span className="private-sticky__preview">Private note</span>
-          <button type="button" onClick={maximize} aria-label="Maximize private note">□</button>
+          <span className="private-sticky__header-actions">
+            {!mobile && <button className="private-sticky__reset" type="button" onClick={resetLayout} aria-label="Reset private note position and size">Reset</button>}
+            <button type="button" onClick={maximize} aria-label="Maximize private note">□</button>
+          </span>
         </div>
       </aside>
     );
@@ -284,13 +337,20 @@ export default function PrivateSticky({ staffToken }) {
     <aside className="private-sticky private-sticky--open" style={style} aria-label="Private note">
       <header
         className="private-sticky__header"
+        tabIndex={mobile ? undefined : 0}
+        aria-label={mobile ? undefined : "Move private note with the arrow keys. Hold Shift for larger steps."}
+        aria-keyshortcuts={mobile ? undefined : "ArrowLeft ArrowRight ArrowUp ArrowDown"}
         onPointerDown={beginDrag}
         onPointerMove={moveInteraction}
         onPointerUp={endInteraction}
         onPointerCancel={endInteraction}
+        onKeyDown={moveWithKeyboard}
       >
-        <span>Private note</span>
-        <button type="button" onClick={minimize} aria-label="Minimize private note">—</button>
+        <span className="private-sticky__title">Private note <small aria-live="polite" aria-atomic="true">{statusText}</small></span>
+        <span className="private-sticky__header-actions">
+          {!mobile && <button className="private-sticky__reset" type="button" onClick={resetLayout} aria-label="Reset private note position and size">Reset</button>}
+          <button type="button" onClick={minimize} aria-label="Minimize private note">—</button>
+        </span>
       </header>
       <textarea
         ref={textArea}
@@ -306,11 +366,13 @@ export default function PrivateSticky({ staffToken }) {
         <button
           className="private-sticky__resize"
           type="button"
-          aria-label="Resize private note"
+          aria-label="Resize private note with the arrow keys. Hold Shift for larger steps."
+          aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"
           onPointerDown={beginResize}
           onPointerMove={moveInteraction}
           onPointerUp={endInteraction}
           onPointerCancel={endInteraction}
+          onKeyDown={resizeWithKeyboard}
         />
       )}
     </aside>

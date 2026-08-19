@@ -99,6 +99,8 @@ Authentication and account-administration controls use the shared UI components 
 - The Doctor/Assistant workspace switch remains directly visible. At widths up to 1200px the secondary clinic/workspace context collapses, leaving the brand, workspace switch when applicable, and account trigger.
 - The clinic name appears once in the wide header and in the account-menu identity. It is not repeated beside the page title with an unlabeled status dot.
 - Doctor access to the Assistant workspace has a persistent **Viewing Assistant workspace as Doctor administrator** banner and a direct **Return to Doctor workspace** action.
+- Account settings keeps routine Profile, Security, Passkeys, and Recovery sections together. Permanent Doctor-account deletion is isolated in a visually distinct Danger zone and opens a separate final-review dialog.
+- Account, trusted-device, clinic-team, task-creation, and consultation-detail dialogs share focus entry, Tab containment, Escape handling, and focus restoration. Visual × controls have contextual accessible names.
 
 These are shared production/Pages UI rules; the browser demo must not maintain a separate layout.
 
@@ -380,6 +382,8 @@ The cleanup is implemented as an idempotent backend service plus the `cleanup_do
 Only Doctor accounts have the destructive self-service account-deletion operation.
 
 Before deletion, the UI/API identifies all clinics owned by that Doctor.
+
+The destructive flow is not an ordinary Account settings tab. Account settings links to a separate **Danger zone** review dialog so routine profile/security work and permanent deletion cannot be confused.
 
 Deletion requires:
 

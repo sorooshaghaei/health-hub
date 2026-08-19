@@ -57,5 +57,8 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 - Verification code screens reserve visible space for the resend countdown and a change-contact/channel action; people must never be trapped in a code-entry state.
 - Password pairs show requirements and match/strength feedback while typing, with a separately named Show/Hide control for each field.
 - Mutually exclusive recovery workflows use radio cards rather than checkboxes.
+- Modal surfaces use one accessible dialog behavior for initial focus, contained Tab order, Escape closing, and focus restoration. Icon-only close controls have contextual accessible names.
+- Permanent account deletion is isolated in a Danger zone rather than presented as an ordinary settings tab.
+- Movable utility surfaces provide keyboard movement/resizing or a clearly named layout reset, and autosave state is announced without revealing private content.
 
 The broader visual-direction tokens remain in `frontend/src/design-tokens.css`. Approved live-screen control tokens are integrated in `frontend/src/styles.css` screen by screen.
