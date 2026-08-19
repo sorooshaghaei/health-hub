@@ -6,9 +6,14 @@ async function source(path) {
   return readFile(new URL(path, import.meta.url), "utf8");
 }
 
-test("Forgot password uses a normal text link and never the absolute Back control", async () => {
+test("Forgot password appears only on the actual sign-in form", async () => {
   const app = await source("../src/App.jsx");
-  assert.match(app, /<TextLink onClick=\{onRecovery\}>Forgot password\?<\/TextLink>/);
+  const roleScreens = app.slice(app.indexOf("function RoleChoice"), app.indexOf("function LoginForm"));
+  const loginScreen = app.slice(app.indexOf("function LoginForm"), app.indexOf("function AccountCreateForm"));
+
+  assert.doesNotMatch(roleScreens, /Forgot password\?/);
+  assert.match(loginScreen, /<TextLink onClick=\{onRecovery\}>Forgot password\?<\/TextLink>/);
+  assert.equal(app.match(/Forgot password\?/g)?.length, 1);
   assert.doesNotMatch(app, /className="back-button"[^>]*>Forgot password\?/);
 });
 

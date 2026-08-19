@@ -92,8 +92,8 @@ The chosen role is part of authentication. A Doctor account presented as Assista
 Authentication and account-administration controls use the shared UI components rather than browser-default form controls.
 
 - **Back** is the only absolutely positioned authentication navigation control.
-- **Forgot password?** is a normal text link below the relevant sign-in/role content and must never reuse `.back-button`.
-- Recovery uses the shared checkbox and select-field controls, stacked vertically with normal form spacing. The checkbox label provides at least a 44px touch target.
+- **Forgot password?** appears only on the actual sign-in form. It is a normal text link and never reuses `.back-button`.
+- Recovery uses mutually exclusive radio cards for verified email/SMS versus a Doctor offline code, followed by the shared select-field control where applicable.
 - On screens up to 900px wide, the large desktop authentication introduction collapses to a compact roughly 100–140px header. The current screen title remains visible; the long decorative description is hidden.
 - Workspace headers use one account menu at every width for Clinics, Account, Clinic team, trusted devices, and Sign out. This avoids duplicating the same action components in separate desktop and mobile trees.
 - The Doctor/Assistant workspace switch remains directly visible. At widths up to 1200px the secondary clinic/workspace context collapses, leaving the brand, workspace switch when applicable, and account trigger.

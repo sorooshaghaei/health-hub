@@ -37,7 +37,7 @@ function LoadingScreen() {
   return <div className="loading-screen"><Brand /><div className="loader" aria-label="Loading" /></div>;
 }
 
-function RoleChoice({ onChoose, onRecovery }) {
+function RoleChoice({ onChoose }) {
   return <AuthShell title="How do you use Health Hub?" description="Choose your permanent account role. Doctor and Assistant accounts are separate and cannot change into one another.">
     <div className="panel-heading">
       <p className="eyebrow">Continue</p>
@@ -53,11 +53,10 @@ function RoleChoice({ onChoose, onRecovery }) {
         <span className="role-card__content"><strong>Assistant</strong><span>Join clinics using a Doctor setup code.</span></span><span>→</span>
       </button>
     </div>
-    <div className="auth-form-links"><TextLink onClick={onRecovery}>Forgot password?</TextLink></div>
   </AuthShell>;
 }
 
-function RoleEntry({ role, onLogin, onCreate, onBack, onRecovery }) {
+function RoleEntry({ role, onLogin, onCreate, onBack }) {
   const label = role === "doctor" ? "Doctor" : "Assistant";
   return <AuthShell title={`${label} account`} description={`Continue with your ${label} personal account.`} onBack={onBack}>
     <div className="choice-stack">
@@ -68,7 +67,6 @@ function RoleEntry({ role, onLogin, onCreate, onBack, onRecovery }) {
         <span className="choice-card__icon">+</span><span><strong>Create {label} account</strong><small>Both email and phone will be verified.</small></span><span>→</span>
       </button>
     </div>
-    <div className="auth-form-links"><TextLink onClick={onRecovery}>Forgot password?</TextLink></div>
   </AuthShell>;
 }
 
@@ -472,8 +470,8 @@ export default function ProductionApp() {
   }
 
   if (screen === "loading") return <LoadingScreen />;
-  if (screen === "role") return <RoleChoice onChoose={(value) => { setRole(value); setScreen("role-entry"); }} onRecovery={() => setScreen("recovery")} />;
-  if (screen === "role-entry") return <RoleEntry role={role} onLogin={() => setScreen("login")} onCreate={() => setScreen("create-account")} onBack={() => setScreen("role")} onRecovery={() => setScreen("recovery")} />;
+  if (screen === "role") return <RoleChoice onChoose={(value) => { setRole(value); setScreen("role-entry"); }} />;
+  if (screen === "role-entry") return <RoleEntry role={role} onLogin={() => setScreen("login")} onCreate={() => setScreen("create-account")} onBack={() => setScreen("role")} />;
   if (screen === "login") return <LoginForm role={role} onSubmit={login} onPasskey={passkeyLogin} onBack={() => setScreen("role-entry")} onRecovery={() => setScreen("recovery")} />;
   if (screen === "create-account") return <AccountCreateForm role={role} onSubmit={createAccount} onBack={() => setScreen("role-entry")} />;
   if (screen === "recovery") return <RecoveryFlow onBack={() => setScreen(role ? "role-entry" : "role")} onComplete={() => setScreen(role ? "login" : "role")} />;
