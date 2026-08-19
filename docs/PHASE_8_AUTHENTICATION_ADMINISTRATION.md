@@ -92,11 +92,15 @@ The chosen role is part of authentication. A Doctor account presented as Assista
 Authentication and account-administration controls use the shared UI components rather than browser-default form controls.
 
 - **Back** is the only absolutely positioned authentication navigation control.
-- **Forgot password?** is a normal text link below the relevant sign-in/role content and must never reuse `.back-button`.
-- Recovery uses the shared checkbox and select-field controls, stacked vertically with normal form spacing. The checkbox label provides at least a 44px touch target.
+- **Forgot password?** appears only on the actual sign-in form. It is a normal text link and never reuses `.back-button`.
+- Recovery uses mutually exclusive radio cards for verified email/SMS versus a Doctor offline code, followed by the shared select-field control where applicable.
 - On screens up to 900px wide, the large desktop authentication introduction collapses to a compact roughly 100–140px header. The current screen title remains visible; the long decorative description is hidden.
-- On mobile/tablet workspace headers, the separate header actions collapse into one menu. Existing functionality remains available there, including clinic switching, Doctor/Assistant workspace switching when applicable, Account, Clinic team, trusted devices, and Sign out.
-- Desktop workspace header behavior remains unchanged.
+- Workspace headers use one account menu at every width for Clinics, Account, Clinic team, trusted devices, and Sign out. This avoids duplicating the same action components in separate desktop and mobile trees.
+- The Doctor/Assistant workspace switch remains directly visible. At widths up to 1200px the secondary clinic/workspace context collapses, leaving the brand, workspace switch when applicable, and account trigger.
+- The clinic name appears once in the wide header and in the account-menu identity. It is not repeated beside the page title with an unlabeled status dot.
+- Doctor access to the Assistant workspace has a persistent **Viewing Assistant workspace as Doctor administrator** banner and a direct **Return to Doctor workspace** action.
+- Account settings keeps routine Profile, Security, Passkeys, and Recovery sections together. Permanent Doctor-account deletion is isolated in a visually distinct Danger zone and opens a separate final-review dialog.
+- Account, trusted-device, clinic-team, task-creation, and consultation-detail dialogs share focus entry, Tab containment, Escape handling, and focus restoration. Visual × controls have contextual accessible names.
 
 These are shared production/Pages UI rules; the browser demo must not maintain a separate layout.
 
@@ -138,6 +142,18 @@ Assistant setup codes are:
 - valid for 24 hours by default;
 - tied to one clinic;
 - not global account recovery credentials.
+
+Claiming is idempotent for the Assistant who successfully filled the slot. An
+immediate retry of the same submitted code returns that existing active
+membership and re-enters the Assistant workspace instead of returning a
+conflict or creating a duplicate membership. The used code remains invalid for
+every other account and cannot reactivate a membership after the Assistant is
+removed from the clinic.
+
+The join form prevents duplicate submission while a claim is pending. It also
+always exposes **Back to account** and **Sign out**. **Your clinics** is exposed
+when the Assistant already has at least one membership, so a valid global
+account is never trapped on the setup-code screen.
 
 ## Existing account on a trusted browser
 
@@ -199,6 +215,10 @@ Verification-code defaults are:
 - minimum 60 seconds between resend requests;
 - maximum five failed attempts.
 
+After a code is sent, the interface displays the remaining resend delay and enables **Resend code** when the server-provided window reaches zero. The person may return to change the email, phone, channel, or recovery method without being forced to complete a stale code flow.
+
+The new-account verification screen always provides **Edit email**, **Edit phone**, and **Sign out**. Correcting a contact requires the current password, consumes outstanding verification/change challenges for that contact, and clears only that contact's verification timestamp. The other contact's verification state is preserved. Once both contacts are verified, later contact replacement uses Account settings and the normal sensitive-operation flow.
+
 Verification code material is stored as keyed hashes rather than plaintext in the production backend.
 
 Email delivery uses Django email infrastructure. SMS delivery is supplied through the configured `SMS_SENDER`; production does not pretend a text message was delivered when no provider is configured.
@@ -237,6 +257,8 @@ A normal signed-in password change is confirmed using one verified personal cont
 
 The person chooses verified email or verified SMS, verifies the code, and supplies a new password that passes Django password validation.
 
+New-password forms show the active requirements before submission, update requirement and strength feedback while the person types, confirm whether both entries match, and provide an accessible **Show/Hide** control for each password field. The production backend remains authoritative for minimum length, personal-attribute similarity, common-password, and entirely-numeric checks.
+
 Successful password change:
 
 - preserves the current session;
@@ -250,6 +272,8 @@ Account/security operations do not use the five-second operational Undo mechanis
 Normal forgotten-password recovery is personal and global.
 
 The person chooses verified email or verified SMS. Public recovery requests use a generic response so normal API responses do not disclose whether an account exists.
+
+The recovery form presents mutually exclusive **Email or SMS** and **Doctor offline code** methods as radio cards. The contact-code path provides the same resend countdown plus a **Change email, phone, or method** action.
 
 A verified recovery code creates a short-lived recovery grant, valid for 30 minutes by default. A newer grant invalidates older outstanding grants.
 
@@ -358,6 +382,8 @@ The cleanup is implemented as an idempotent backend service plus the `cleanup_do
 Only Doctor accounts have the destructive self-service account-deletion operation.
 
 Before deletion, the UI/API identifies all clinics owned by that Doctor.
+
+The destructive flow is not an ordinary Account settings tab. Account settings links to a separate **Danger zone** review dialog so routine profile/security work and permanent deletion cannot be confused.
 
 Deletion requires:
 

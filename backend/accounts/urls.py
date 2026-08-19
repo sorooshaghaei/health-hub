@@ -13,7 +13,7 @@ from .views import (
     PasswordChangeConfirmView, PasswordChangeRequestView, PhoneChangeConfirmView, PhoneChangeRequestView,
     ReauthenticatePasswordView, RecoveryCodeConfirmView, RecoveryCodeListView, RecoveryConfirmView,
     RecoveryRequestView, RecoveryResetView, SelectClinicView, StaffAccountDeleteView, StaffLoginView,
-    StaffLogoutView, StaffMeView, StaffPrivateNoteView, StaffProfileView, StaffRegisterView,
+    StaffLogoutView, StaffMeView, StaffPrivateNoteView, StaffProfileView, StaffRegisterView, VerificationContactUpdateView,
     TrustedDeviceDeleteView, TrustedDeviceListView,
 )
 
@@ -33,6 +33,7 @@ urlpatterns = [
     path("staff/verify/email/confirm/", InitialEmailVerificationConfirmView.as_view()),
     path("staff/verify/phone/request/", InitialPhoneVerificationRequestView.as_view()),
     path("staff/verify/phone/confirm/", InitialPhoneVerificationConfirmView.as_view()),
+    path("staff/verification-contact/", VerificationContactUpdateView.as_view()),
     path("staff/email/change/request/", EmailChangeRequestView.as_view()),
     path("staff/email/change/confirm/", EmailChangeConfirmView.as_view()),
     path("staff/phone/change/request/", PhoneChangeRequestView.as_view()),

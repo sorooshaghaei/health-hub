@@ -1,0 +1,7 @@
+[role="dialog"]:focus {
+  outline: none;
+}
+
+[role="dialog"]:focus-visible {
+  box-shadow: 0 0 0 4px rgb(23 100 72 / 0.16), 0 24px 70px rgb(15 23 42 / 0.24);
+}

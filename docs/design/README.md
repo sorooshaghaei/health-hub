@@ -50,5 +50,15 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 - Patient states use clear text labels and are not communicated by color alone
 - Reversal, undo, and confirmation behavior must be approved for each workflow before implementation
 - Frequent actions use direct verbs rather than technical terminology
+- Workspace headings stay within a compact 32–40px scale so operational controls remain above the fold.
+- Standard controls use a 44px minimum height and 12px radius; compact header and row controls use a 38px minimum height and 10px radius; status chips remain pill-shaped and are never used as action buttons.
+- Form controls use at least 15px text on desktop and 16px on mobile. Secondary metadata uses at least 12px, while operational times, queue facts, and statuses use 12–14px according to hierarchy.
+- Empty operational content uses a compact roughly 100–130px state and its containing card grows naturally when records exist.
+- Verification code screens reserve visible space for the resend countdown and a change-contact/channel action; people must never be trapped in a code-entry state.
+- Password pairs show requirements and match/strength feedback while typing, with a separately named Show/Hide control for each field.
+- Mutually exclusive recovery workflows use radio cards rather than checkboxes.
+- Modal surfaces use one accessible dialog behavior for initial focus, contained Tab order, Escape closing, and focus restoration. Icon-only close controls have contextual accessible names.
+- Permanent account deletion is isolated in a Danger zone rather than presented as an ordinary settings tab.
+- Movable utility surfaces provide keyboard movement/resizing or a clearly named layout reset, and autosave state is announced without revealing private content.
 
-The implementation tokens are stored in `frontend/src/design-tokens.css`. They are intentionally separate from the existing stylesheet until the product owner approves integration screen by screen.
+The broader visual-direction tokens remain in `frontend/src/design-tokens.css`. Approved live-screen control tokens are integrated in `frontend/src/styles.css` screen by screen.

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { ApiError, DEMO_MODE, apiRequest } from "./api.js";
+import Dialog from "./Dialog.jsx";
 import { Button, ErrorMessage, SelectField } from "./ui.jsx";
 
-export default function ClinicTeam({ user, staffToken }) {
+export default function ClinicTeam({ user, staffToken, onOpen }) {
   const [open, setOpen] = useState(false), [assistant, setAssistant] = useState(null), [error, setError] = useState(null), [setup, setSetup] = useState(null), [channel, setChannel] = useState("email"), [busy, setBusy] = useState(false);
   async function load() {
     try { const payload = await apiRequest("/api/clinic/assistant/", { staffToken }); setAssistant(payload.assistant); }
@@ -11,7 +11,6 @@ export default function ClinicTeam({ user, staffToken }) {
   }
   useEffect(() => { if (open && !DEMO_MODE) load(); }, [open]);
   if (user.role !== "doctor") return null;
-  if (!open) return <Button type="button" onClick={() => setOpen(true)}>Clinic team</Button>;
 
   async function setupAssistant(replace) {
     setBusy(true); setError(null);
@@ -36,8 +35,8 @@ export default function ClinicTeam({ user, staffToken }) {
     finally { setBusy(false); }
   }
 
-  const modal = <div className="device-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}><section className="device-modal" role="dialog" aria-modal="true">
-    <div className="device-modal__header"><div><p className="eyebrow">Current clinic</p><h2>Clinic team</h2><p>This Doctor controls the Assistant membership for this clinic only. Removing or replacing an Assistant never deletes that person's global Assistant account or their access to other clinics.</p></div><button className="device-icon-button" onClick={() => setOpen(false)}>×</button></div>
+  const modal = <Dialog onClose={() => setOpen(false)} returnFocusSelector="#clinic-team-trigger" ariaLabelledBy="clinic-team-title" ariaDescribedBy="clinic-team-description">
+    <div className="device-modal__header"><div><p className="eyebrow">Current clinic</p><h2 id="clinic-team-title">Clinic team</h2><p id="clinic-team-description">This Doctor controls the Assistant membership for this clinic only. Removing or replacing an Assistant never deletes that person's global Assistant account or their access to other clinics.</p></div><button className="device-icon-button" type="button" onClick={() => setOpen(false)} aria-label="Close clinic team">×</button></div>
     <ErrorMessage error={error} />
     {DEMO_MODE ? <p>Assistant membership management is simplified in the legacy browser demo.</p> : <>
       {assistant ? <div className="phase8-contact-card"><div><strong>{assistant.display_name}</strong><span>{assistant.email} · {assistant.phone}</span></div></div> : <p>No Assistant is currently assigned to this clinic.</p>}
@@ -45,6 +44,9 @@ export default function ClinicTeam({ user, staffToken }) {
       {assistant && <div className="phase8-settings-section"><h3>Remove from this clinic</h3><p>This immediately ends the Assistant's membership in this clinic. Their global account and other clinics are unaffected.</p><Button variant="danger" type="button" disabled={busy} onClick={removeAssistant}>Remove Assistant from clinic</Button></div>}
       {assistant && <div className="phase8-settings-section"><h3>Help with normal password recovery</h3><p>Recovery is sent to the Assistant's own verified contact. If they have lost every personal recovery method, replace their clinic membership instead; the Doctor cannot take over the global account.</p><SelectField label="Recovery channel" value={channel} onChange={(event) => setChannel(event.target.value)}><option value="email">Verified email</option><option value="sms">Verified SMS</option></SelectField><Button type="button" disabled={busy} onClick={recovery}>Send recovery instructions</Button></div>}
     </>}
-  </section></div>;
-  return createPortal(modal, document.body);
+  </Dialog>;
+  return <>
+    <Button id="clinic-team-trigger" type="button" disabled={open} onClick={() => { setOpen(true); onOpen?.(); }}>Clinic team</Button>
+    {open && modal}
+  </>;
 }

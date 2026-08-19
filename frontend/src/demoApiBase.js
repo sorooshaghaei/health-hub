@@ -1,4 +1,5 @@
 import { browserTimeZone, dateValueInTimeZone, timeValueInTimeZone } from "./clinicTime.js";
+import { patientPhoneParts } from "./patientPhoneFormats.js";
 
 const STORE_KEY = "health-hub.demo-store.v1";
 
@@ -82,6 +83,11 @@ function migrateStore(parsed) {
   store.staff = store.staff.map((user) => ({
     ...user,
     private_note: typeof user.private_note === "string" ? user.private_note : "",
+  }));
+
+  store.patients = store.patients.map((patient) => ({
+    ...patient,
+    ...patientPhoneParts(patient),
   }));
 
   const validStatuses = new Set(["planned", "checked_in", "with_doctor", "doctor_finished"]);
@@ -208,12 +214,12 @@ function publicUser(user, clinic, workspaceRole = user.role) {
 }
 
 function publicPatient(patient) {
+  const phone = patientPhoneParts(patient);
   return {
     id: patient.id,
     full_name: patient.full_name,
     gender: patient.gender,
-    country_calling_code: patient.country_calling_code,
-    phone_number: patient.phone_number,
+    ...phone,
     phone_e164: patient.phone_e164,
     date_of_birth: patient.date_of_birth || null,
     patient_note: patient.patient_note || "",

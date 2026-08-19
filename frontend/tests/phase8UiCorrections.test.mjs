@@ -6,22 +6,43 @@ async function source(path) {
   return readFile(new URL(path, import.meta.url), "utf8");
 }
 
-test("Forgot password uses a normal text link and never the absolute Back control", async () => {
+test("Forgot password appears only on the actual sign-in form", async () => {
   const app = await source("../src/App.jsx");
-  assert.match(app, /<TextLink onClick=\{onRecovery\}>Forgot password\?<\/TextLink>/);
+  const roleScreens = app.slice(app.indexOf("function RoleChoice"), app.indexOf("function LoginForm"));
+  const loginScreen = app.slice(app.indexOf("function LoginForm"), app.indexOf("function AccountCreateForm"));
+
+  assert.doesNotMatch(roleScreens, /Forgot password\?/);
+  assert.match(loginScreen, /<TextLink onClick=\{onRecovery\}>Forgot password\?<\/TextLink>/);
+  assert.equal(app.match(/Forgot password\?/g)?.length, 1);
   assert.doesNotMatch(app, /className="back-button"[^>]*>Forgot password\?/);
 });
 
-test("recovery uses reusable stacked checkbox and select controls", async () => {
+test("recovery uses an exclusive recovery-method selector and styled channel control", async () => {
   const app = await source("../src/App.jsx");
   const ui = await source("../src/ui.jsx");
-  const styles = await source("../src/styles.css");
+  const styles = await source("../src/credentialUi.css");
 
-  assert.match(app, /<Checkbox label="Use a Doctor offline recovery code"/);
+  assert.match(app, /<RadioCards legend="Recovery method"/);
+  assert.match(app, /label: "Email or SMS"/);
+  assert.match(app, /label: "Doctor offline code"/);
   assert.match(app, /<SelectField label="Recovery channel"/);
-  assert.match(ui, /export function Checkbox/);
+  assert.match(ui, /export function RadioCards/);
   assert.match(ui, /export function SelectField/);
-  assert.match(styles, /\.checkbox-field \{[^}]*min-height: 44px/);
+  assert.match(styles, /\.radio-card \{/);
+});
+
+test("verification and password forms expose correction, resend, guidance, and reveal controls", async () => {
+  const app = await source("../src/App.jsx");
+  const credentials = await source("../src/credentialUi.jsx");
+
+  assert.match(app, /\/api\/staff\/verification-contact\//);
+  assert.match(app, /Resend code in \$\{countdown\.seconds\}s/);
+  assert.match(app, /<TextLink onClick=\{onSignOut\}>Sign out<\/TextLink>/);
+  assert.match(credentials, /export function PasswordPair/);
+  assert.match(credentials, /At least 8 characters/);
+  assert.match(credentials, /Not entirely numeric/);
+  assert.match(credentials, /Common passwords are rejected when submitted/);
+  assert.match(credentials, /aria-label=\{`\$\{visible \? "Hide" : "Show"\}/);
 });
 
 test("mobile authentication replaces the oversized hero with a compact titled header", async () => {
@@ -32,19 +53,20 @@ test("mobile authentication replaces the oversized hero with a compact titled he
   assert.match(styles, /\.auth-panel \{ min-height: 0;/);
 });
 
-test("mobile workspace actions are consolidated into one menu including workspace switching", async () => {
+test("workspace actions use one account menu while the workspace switch remains direct", async () => {
   const workspace = await source("../src/PatientWorkspaceView.jsx");
   const styles = await source("../src/styles.css");
-  const panel = workspace.indexOf("workspace-mobile-menu__panel");
+  const panel = workspace.indexOf("workspace-account-menu__panel");
 
   assert.ok(panel >= 0);
-  assert.ok(workspace.indexOf("onSwitchWorkspace()", panel) > panel);
+  assert.ok(workspace.indexOf("workspace-switch-button") >= 0);
+  assert.ok(workspace.indexOf("onSwitchClinic()", panel) > panel);
   assert.ok(workspace.indexOf("<AccountSettings", panel) > panel);
   assert.ok(workspace.indexOf("<ClinicTeam", panel) > panel);
   assert.ok(workspace.indexOf("<TrustedDevices", panel) > panel);
   assert.ok(workspace.indexOf("onSignOut()", panel) > panel);
-  assert.match(styles, /\.workspace-header__clinic, \.user-menu--desktop \{ display: none; \}/);
-  assert.match(styles, /\.workspace-mobile-menu \{ display: block; \}/);
+  assert.doesNotMatch(workspace, /user-menu--desktop|workspace-mobile-menu/);
+  assert.match(styles, /@media \(max-width: 1200px\)[\s\S]*?\.workspace-header__context \{ display: none; \}/);
 });
 
 test("Phase 8 account and recovery surfaces avoid native unstyled selects", async () => {
@@ -58,4 +80,19 @@ test("Phase 8 account and recovery surfaces avoid native unstyled selects", asyn
   assert.doesNotMatch(team, /<select\b/);
   assert.match(ui, /export function Button/);
   assert.match(ui, /export function TextLink/);
+});
+
+test("Assistant clinic onboarding always exposes account and sign-out escapes", async () => {
+  const app = await source("../src/App.jsx");
+  const joinForm = app.slice(
+    app.indexOf("function AssistantJoinForm"),
+    app.indexOf("function ClinicPicker"),
+  );
+
+  assert.match(joinForm, /submitting\.current/);
+  assert.match(joinForm, />Back to account<\/TextLink>/);
+  assert.match(joinForm, />Sign out<\/TextLink>/);
+  assert.match(joinForm, /additional && <TextLink onClick=\{onClinics\}>Your clinics<\/TextLink>/);
+  assert.match(app, /onAccount=\{\(\) => openAccountSettings\("join-clinic"\)\}/);
+  assert.match(app, /onBack=\{\(\) => setScreen\(accountSettingsReturnScreen\)\}/);
 });

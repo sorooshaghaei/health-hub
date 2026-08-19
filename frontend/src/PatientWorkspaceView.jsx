@@ -12,33 +12,36 @@ import { PatientProfileForm } from "./patientForm.jsx";
 import { Brand, ErrorMessage } from "./ui.jsx";
 
 export default function PatientWorkspaceView({ user, staffToken, onSignOut, onSwitchClinic, onSwitchWorkspace, onUserChange, onAccountDeleted, controller: c }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients: canCreate, canManageAppointments: canManage, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits } = c;
   const eyebrow = section === "schedule" ? "Appointments and live queue" : section === "tasks" ? "Shared tasks" : "Patient records";
   const workspace = doctorWorkspace ? "Doctor workspace" : "Assistant workspace";
-  const intro = doctorWorkspace ? "Use Room ready, follow the live queue, keep Patient information up to date, and manage tasks for the Assistant." : doctorAccount ? "Manage Patients, appointments, check-in, the queue, consultation handoff, and Assistant tasks through Administrator access." : "Manage Patients, appointments, check-in, the live queue, consultation handoff, and Doctor-created tasks from one workspace.";
+  const intro = doctorWorkspace ? "Follow the queue, prepare the room, update Patient records, and manage tasks." : doctorAccount ? "Manage Assistant-side appointments, queue handoff, Patient records, and tasks." : "Manage appointments, check-in, queue handoff, Patient records, and tasks.";
   const accountLabel = doctorAccount ? assistantWorkspace ? "Doctor · Administrator access" : "Doctor · Administrator" : "Assistant";
   return <div className="workspace">
     <header className="workspace-header">
       <Brand compact />
-      <div className="workspace-header__clinic"><div className="phase8-current-clinic"><span>{user.clinic.name}</span><button type="button" onClick={onSwitchClinic}>Clinics</button></div><strong>{workspace}</strong></div>
-      <div className="user-menu user-menu--desktop"><div><strong>{user.display_name}</strong><span>{accountLabel}</span></div>{doctorAccount && <button type="button" onClick={onSwitchWorkspace}>{assistantWorkspace ? "Doctor workspace" : "Assistant workspace"}</button>}<AccountSettings user={user} staffToken={staffToken} onUserChange={onUserChange} onAccountDeleted={onAccountDeleted}/><ClinicTeam user={user} staffToken={staffToken}/><TrustedDevices staffToken={staffToken}/><button type="button" onClick={onSignOut}>Sign out</button></div>
-      <div className="workspace-mobile-menu">
-        <button className="workspace-menu-trigger" type="button" aria-haspopup="menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)}>
-          <span className="workspace-menu-trigger__label">Menu</span><span aria-hidden="true">⋮</span>
+      <div className="workspace-header__context"><strong>{user.clinic.name}</strong><span>{workspace}</span></div>
+      <div className="workspace-header__actions">
+        {doctorAccount && <button className="workspace-switch-button" type="button" aria-label={assistantWorkspace ? "Return to Doctor workspace" : "Open Assistant workspace"} onClick={onSwitchWorkspace}><span className="workspace-switch-button__full">{assistantWorkspace ? "Return to Doctor workspace" : "Assistant workspace"}</span><span className="workspace-switch-button__compact" aria-hidden="true">{assistantWorkspace ? "Doctor" : "Assistant"}</span></button>}
+        <div className="workspace-account-menu">
+        <button className="workspace-menu-trigger" type="button" aria-controls="workspace-account-actions" aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen((open) => !open)}>
+          <span className="workspace-menu-trigger__label">Account</span><span aria-hidden="true">⋮</span>
         </button>
-        {mobileMenuOpen && <div className="workspace-mobile-menu__panel" role="menu">
-          <div className="workspace-mobile-menu__identity"><strong>{user.display_name}</strong><span>{accountLabel}</span><small>{user.clinic.name}</small></div>
-          <button type="button" role="menuitem" onClick={() => { setMobileMenuOpen(false); onSwitchClinic(); }}>Clinics</button>
-          {doctorAccount && <button type="button" role="menuitem" onClick={() => { setMobileMenuOpen(false); onSwitchWorkspace(); }}>{assistantWorkspace ? "Doctor workspace" : "Assistant workspace"}</button>}
-          <AccountSettings user={user} staffToken={staffToken} onUserChange={onUserChange} onAccountDeleted={onAccountDeleted}/>
-          <ClinicTeam user={user} staffToken={staffToken}/>
-          <TrustedDevices staffToken={staffToken}/>
-          <button type="button" role="menuitem" onClick={() => { setMobileMenuOpen(false); onSignOut(); }}>Sign out</button>
-        </div>}
+        <div className="workspace-account-menu__panel" id="workspace-account-actions" hidden={!accountMenuOpen}>
+          <div className="workspace-account-menu__identity"><strong>{user.display_name}</strong><span>{accountLabel}</span><small>{user.clinic.name}</small></div>
+          <button type="button" onClick={() => { setAccountMenuOpen(false); onSwitchClinic(); }}>Clinics</button>
+          <AccountSettings user={user} staffToken={staffToken} onOpen={() => setAccountMenuOpen(false)} onUserChange={onUserChange} onAccountDeleted={onAccountDeleted}/>
+          <ClinicTeam user={user} staffToken={staffToken} onOpen={() => setAccountMenuOpen(false)}/>
+          <TrustedDevices staffToken={staffToken} onOpen={() => setAccountMenuOpen(false)}/>
+          <button type="button" onClick={() => { setAccountMenuOpen(false); onSignOut(); }}>Sign out</button>
+        </div>
+        </div>
       </div>
     </header>
-    <main className="workspace-main"><section className="workspace-title"><div><p className="eyebrow">{eyebrow}</p><h1>{workspace}</h1><p>{intro}</p></div><div className="status-pill"><span /> {user.clinic.name}</div></section>
+    <main className="workspace-main">
+      {doctorAccount && assistantWorkspace && <aside className="administrator-banner"><strong>Viewing Assistant workspace as Doctor administrator</strong><button type="button" onClick={onSwitchWorkspace}>Return to Doctor workspace</button></aside>}
+      <section className="workspace-title"><div><p className="eyebrow">{eyebrow}</p><h1>{workspace}</h1><p>{intro}</p></div></section>
       <nav className="workspace-tabs" aria-label="Workspace sections"><button className={`workspace-tab${section === "schedule" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("schedule")}>{doctorWorkspace ? "Consultations & queue" : "Schedule & queue"}</button><button className={`workspace-tab${section === "patients" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("patients")}>Patients</button><button className={`workspace-tab${section === "tasks" ? " workspace-tab--active" : ""}`} type="button" onClick={() => setSection("tasks")}>Tasks{taskAttention && <span className="task-attention-dot" aria-label={doctorAccount ? "Completed task activity" : "New task activity"} />}</button></nav>
       <ErrorMessage error={error} />
       {section === "schedule" && <ScheduleWorkspace staffToken={staffToken} requestedVisitId={requestedVisitId} onRequestedVisitHandled={requestedHandled} onRegisterUndo={registerUndo} onOpenPatient={openPatient} refreshVersion={scheduleRefreshVersion} readOnly={!canManage} onVisitChanged={() => selectedPatient && loadPatientVisits(selectedPatient.id)} />}

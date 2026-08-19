@@ -61,6 +61,8 @@ class PatientMatchSerializer(serializers.ModelSerializer):
             "id",
             "full_name",
             "gender",
+            "country_calling_code",
+            "phone_number",
             "phone_e164",
             "date_of_birth",
         ]

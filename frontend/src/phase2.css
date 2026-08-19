@@ -31,7 +31,7 @@ textarea {
 
 .field small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.45;
 }
@@ -48,12 +48,13 @@ textarea {
 }
 
 .workspace-tab {
+  min-height: var(--control-height-compact);
   border: 0;
   border-radius: 10px;
   padding: 10px 18px;
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -64,7 +65,7 @@ textarea {
 }
 
 .phase2-card {
-  min-height: 620px;
+  min-height: 0;
 }
 
 .phase2-content {
@@ -142,10 +143,17 @@ textarea {
 
 .schedule-empty {
   margin: 0;
-  padding: 28px 18px;
+  min-height: 100px;
+  display: grid;
+  place-content: center;
+  padding: 20px 18px;
   color: var(--muted);
   font-size: 13px;
   text-align: center;
+}
+
+.phase2-card.workspace-card--empty .phase2-content {
+  padding-top: 16px;
 }
 
 .visit-row {
@@ -179,7 +187,7 @@ textarea {
 .visit-reason small {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -197,7 +205,7 @@ textarea {
 .visit-reason span {
   margin-top: 4px;
   color: #33423c;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -212,7 +220,7 @@ textarea {
 .history-row__actions .secondary-button,
 .history-row__actions .danger-button {
   padding: 8px 10px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .visit-form {
@@ -343,7 +351,7 @@ textarea {
 .history-row > div > small {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .patient-loading--small {

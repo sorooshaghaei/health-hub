@@ -100,47 +100,74 @@ class AssistantSetupClaimView(APIView):
         serializer = AssistantSetupClaimSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            token = resolve_assistant_setup_code(serializer.validated_data["code"])
+            token = resolve_assistant_setup_code(
+                serializer.validated_data["code"],
+                include_used=True,
+            )
         except InvalidAssistantSetup as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         raw_device_token = None
-        device = request.auth.trusted_device
-        if device is not None and device.user_id != request.user.id:
-            raise PermissionDenied("This browser is not trusted for this account.")
-        if device is None:
-            if request.user.trusted_devices.exists():
-                raise PermissionDenied("Authorize this browser before joining another clinic.")
-            raw_device_token, device = issue_trusted_device(request.user, user_agent(request))
-            request.auth.trusted_device = device
-            request.auth.save(update_fields=["trusted_device"])
-
+        idempotent_retry = False
         try:
             with transaction.atomic():
-                Clinic.objects.select_for_update().get(pk=token.clinic_id)
-                if current_assistant_membership(token.clinic) is not None:
+                token = AssistantSetupToken.objects.select_for_update().select_related(
+                    "clinic",
+                    "clinic__owner_doctor",
+                ).get(pk=token.pk)
+                clinic = Clinic.objects.select_for_update().get(pk=token.clinic_id)
+                current = current_assistant_membership(clinic)
+                if current is not None and current.user_id != request.user.id:
                     return Response(
                         {"detail": "The Assistant slot is already filled."},
                         status=status.HTTP_409_CONFLICT,
                     )
-                membership = request.user.memberships.filter(clinic=token.clinic).first()
-                if membership is not None:
-                    if membership.is_active:
-                        return Response(
-                            {"detail": "This account already belongs to this clinic."},
-                            status=status.HTTP_409_CONFLICT,
+
+                if token.used_at is not None and current is None:
+                    return Response(
+                        {"detail": "Assistant setup code is invalid or expired."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if current is not None:
+                    membership = current
+                    idempotent_retry = True
+                else:
+                    membership = request.user.memberships.filter(clinic=clinic).first()
+                    if membership is not None:
+                        if membership.is_active:
+                            idempotent_retry = True
+                        else:
+                            membership.is_active = True
+                            membership.task_attention_seen_at = timezone.now()
+                            membership.save(update_fields=["is_active", "task_attention_seen_at"])
+                    else:
+                        membership = StaffMembership.objects.create(
+                            user=request.user,
+                            clinic=clinic,
                         )
+
+                device = request.auth.trusted_device
+                if device is not None and device.user_id != request.user.id:
+                    raise PermissionDenied("This browser is not trusted for this account.")
+                if device is None:
+                    if request.user.trusted_devices.exists():
+                        raise PermissionDenied("Authorize this browser before joining another clinic.")
+                    raw_device_token, device = issue_trusted_device(
+                        request.user,
+                        user_agent(request),
+                    )
+                    request.auth.trusted_device = device
+                    request.auth.save(update_fields=["trusted_device"])
+
+                if not membership.is_active:
                     membership.is_active = True
                     membership.task_attention_seen_at = timezone.now()
                     membership.save(update_fields=["is_active", "task_attention_seen_at"])
-                else:
-                    membership = StaffMembership.objects.create(
-                        user=request.user,
-                        clinic=token.clinic,
-                    )
                 reactivate_assistant_account(request.user)
-                token.used_at = timezone.now()
-                token.save(update_fields=["used_at"])
+                if token.used_at is None:
+                    token.used_at = timezone.now()
+                    token.save(update_fields=["used_at"])
                 activate_session_clinic(
                     request.auth,
                     membership,
@@ -163,7 +190,10 @@ class AssistantSetupClaimView(APIView):
         }
         if raw_device_token:
             payload["device_token"] = raw_device_token
-        response = Response(payload, status=status.HTTP_201_CREATED)
+        response = Response(
+            payload,
+            status=status.HTTP_200_OK if idempotent_retry else status.HTTP_201_CREATED,
+        )
         if raw_device_token:
             response = set_device_cookie(response, raw_device_token, request)
         return response

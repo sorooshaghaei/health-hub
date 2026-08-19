@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
+import Dialog from "./Dialog.jsx";
 import { formatDate, formatTime } from "./patientForm.jsx";
 import VisitForm from "./VisitForm.jsx";
 import { ErrorMessage, Field } from "./ui.jsx";
@@ -133,15 +134,6 @@ function QueueRow({ item, roomReady, suggested, sending, onWithDoctor }) {
 function DoctorConsultationCard({ visit, onOpenPatient }) {
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    if (!expanded) return undefined;
-    function closeOnEscape(event) {
-      if (event.key === "Escape") setExpanded(false);
-    }
-    globalThis.addEventListener("keydown", closeOnEscape);
-    return () => globalThis.removeEventListener("keydown", closeOnEscape);
-  }, [expanded]);
-
   if (!visit) {
     return (
       <div className="consultation-empty">
@@ -165,14 +157,7 @@ function DoctorConsultationCard({ visit, onOpenPatient }) {
         <span aria-hidden="true">Open →</span>
       </button>
       {expanded && (
-        <div className="consultation-modal" role="presentation" onMouseDown={() => setExpanded(false)}>
-          <article
-            className="consultation-modal__panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${visit.patient.full_name} consultation details`}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
+        <Dialog backdropClassName="consultation-modal" className="consultation-modal__panel" ariaLabel={`${visit.patient.full_name} consultation details`} onClose={() => setExpanded(false)}>
             <div className="consultation-modal__heading">
               <div>
                 <p className="eyebrow">With doctor</p>
@@ -192,8 +177,7 @@ function DoctorConsultationCard({ visit, onOpenPatient }) {
             <div className="form-actions">
               <button className="secondary-button" type="button" onClick={() => { setExpanded(false); onOpenPatient?.(visit.patient.id); }}>Open patient profile</button>
             </div>
-          </article>
-        </div>
+        </Dialog>
       )}
     </>
   );
@@ -490,7 +474,7 @@ export default function ScheduleWorkspace({
         />
       )}
 
-      <article className="workspace-card live-queue-card">
+      <article className={`workspace-card live-queue-card${!queueLoading && !queue.length ? " workspace-card--empty" : ""}`}>
         <div className="card-heading">
           <div>
             <p className="eyebrow">Today · {formatDate(today)}</p>
@@ -522,7 +506,7 @@ export default function ScheduleWorkspace({
         </div>
       </article>
 
-      <article className="workspace-card phase2-card">
+      <article className={`workspace-card phase2-card${mode === "list" && !loading && !visits.length ? " workspace-card--empty" : ""}`}>
         <div className="card-heading">
           <div>
             <p className="eyebrow">{readOnly ? "Appointment overview" : "Daily planning"}</p>

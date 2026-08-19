@@ -1,0 +1,43 @@
+.private-sticky__header:focus-visible,
+.private-sticky__bar:focus-visible {
+  outline: 3px solid rgb(255 255 255 / 0.9);
+  outline-offset: -4px;
+}
+
+.private-sticky__title,
+.private-sticky__preview {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.private-sticky__title small,
+.private-sticky__preview small {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.78;
+  white-space: nowrap;
+}
+
+.private-sticky__header-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.private-sticky__header .private-sticky__reset,
+.private-sticky__bar .private-sticky__reset {
+  flex-basis: auto;
+  font-size: 11px;
+  padding: 0 7px;
+  width: auto;
+}
+
+.private-sticky__resize:focus-visible {
+  background: rgb(255 255 255 / 0.9);
+  border-radius: 4px;
+  outline: 3px solid #176448;
+  outline-offset: 2px;
+}

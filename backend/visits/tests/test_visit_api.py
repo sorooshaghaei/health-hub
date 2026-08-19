@@ -401,8 +401,12 @@ class VisitApiTests(APITestCase):
         )
 
         self.assertEqual(doctor_queue.status_code, status.HTTP_200_OK)
+        self.assertNotIn("country_calling_code", doctor_queue.data["queue"][0]["patient"])
+        self.assertNotIn("phone_number", doctor_queue.data["queue"][0]["patient"])
         self.assertNotIn("phone_e164", doctor_queue.data["queue"][0]["patient"])
         self.assertEqual(doctor_check_in.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("country_calling_code", assistant_queue.data["queue"][0]["patient"])
+        self.assertIn("phone_number", assistant_queue.data["queue"][0]["patient"])
         self.assertIn("phone_e164", assistant_queue.data["queue"][0]["patient"])
 
     def test_doctor_credentials_in_assistant_workspace_can_manage_queue(self):

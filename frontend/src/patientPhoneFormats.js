@@ -22,6 +22,25 @@ export function countryForCallingCode(code) {
   return COUNTRY_CODES.find((item) => item.code === code) ?? null;
 }
 
+export function patientPhoneParts(patient) {
+  const e164 = String(patient?.phone_e164 ?? "")
+    .trim()
+    .replace(/[\s().-]+/g, "")
+    .replace(/^00/, "+");
+  const suppliedCode = String(patient?.country_calling_code ?? "").trim();
+  const inferredCode = [...COUNTRY_CODES]
+    .sort((first, second) => second.code.length - first.code.length)
+    .find(({ code }) => e164.startsWith(code))?.code;
+  const countryCallingCode = suppliedCode || inferredCode || "+98";
+  const suppliedNumber = String(patient?.phone_number ?? "").trim();
+  const phoneNumber = suppliedNumber
+    || (e164.startsWith(countryCallingCode) ? e164.slice(countryCallingCode.length) : "");
+  return {
+    country_calling_code: countryCallingCode,
+    phone_number: phoneNumber,
+  };
+}
+
 export function phonePlaceholderForCallingCode(code) {
   return countryForCallingCode(code)?.placeholder ?? "000 000 0000";
 }

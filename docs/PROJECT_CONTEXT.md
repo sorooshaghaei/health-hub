@@ -98,6 +98,12 @@ Doctor defaults to Doctor workspace. Opening Assistant workspace does not change
 
 Assistant setup code is one-time and valid for 24 hours.
 
+The claim operation is idempotent only for the same Assistant's already-active
+membership, which makes an immediate submission retry enter the workspace
+without duplicating membership state. The code remains unusable by a different
+account. The setup-code screen always provides account and sign-out exits, and
+provides the clinic picker when memberships already exist.
+
 ### Existing account on trusted browser
 
 `Choose permanent role → email/phone + password or passkey → clinic`
@@ -143,13 +149,19 @@ OTP defaults:
 - 60-second resend minimum;
 - maximum five failed attempts.
 
+Code-entry screens expose a server-driven resend countdown and a way to change the relevant contact/channel. During new-account verification, staff may correct either contact with their current password; only the edited contact loses verification, its stale challenges are consumed, and Sign out remains available.
+
 Email/phone changes require explicit fresh password or passkey reauthentication. Normal login does not count. Explicit reauth remains valid for 10 minutes by default.
 
 Password change uses one verified email/SMS code, preserves current session, revokes other sessions, and does not remove device trust.
 
+New-password pairs show Django-aligned requirements, live strength/match feedback, and accessible Show/Hide controls.
+
+Routine Account settings are separated from permanent Doctor-account deletion in a dedicated Danger zone dialog. Account, device, clinic-team, task, and consultation dialogs share focus entry, Tab containment, Escape handling, and opener-focus restoration.
+
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
-Doctor accounts additionally have ten one-time offline recovery codes. Regeneration invalidates unused previous codes.
+Recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes.
 
 Passkeys are optional, maximum five, and may be used for sign-in or explicit sensitive-operation reauthentication.
 
@@ -252,7 +264,8 @@ PLANNED → CHECKED_IN
 - queue order is original persisted check-in sequence;
 - Assistant queue shows phone; Doctor queue omits it;
 - check-in has five-second Undo;
-- three-second polling.
+- three-second polling;
+- compact New Task dialog with focus management, complete Open/History tab semantics, and explicitly named comment fields.
 
 ### Consultation
 
@@ -301,7 +314,8 @@ OPEN → DONE
 - visible only when workspace matches permanent account role;
 - Doctor in Assistant administrator workspace gets no sticky;
 - minimized strip always says **Private note**, never content;
-- autosave; no title/multiple notes/history/attachments/etc.;
+- autosave with Saving/Saved feedback; no title/multiple notes/history/attachments/etc.;
+- arrow-key movement/resizing plus Reset for the nonessential desktop layout;
 - layout state not server-persisted.
 
 ## Browser demo invariant

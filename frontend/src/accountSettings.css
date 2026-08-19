@@ -1,0 +1,59 @@
+.phase8-danger-zone {
+  align-items: center;
+  background: #fff7f5;
+  border: 1px solid #efc7bf;
+  border-radius: 16px;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-top: 28px;
+  padding: 18px;
+}
+
+.phase8-danger-zone h3,
+.phase8-danger-zone p {
+  margin: 0;
+}
+
+.phase8-danger-zone .eyebrow {
+  color: #9b3427;
+  margin-bottom: 5px;
+}
+
+.phase8-danger-zone h3 + p {
+  color: var(--muted, #66736f);
+  margin-top: 5px;
+}
+
+.phase8-danger-zone .button {
+  flex: 0 0 auto;
+}
+
+.phase8-danger-dialog {
+  max-width: 680px;
+}
+
+.phase8-danger-dialog__actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.phase8-danger-dialog__actions .phase8-danger-action {
+  margin-top: 0;
+  width: auto;
+}
+
+@media (max-width: 620px) {
+  .phase8-danger-zone,
+  .phase8-danger-dialog__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .phase8-danger-zone .button,
+  .phase8-danger-dialog__actions .button {
+    width: 100%;
+  }
+}

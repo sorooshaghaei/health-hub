@@ -8,6 +8,7 @@ from rest_framework.exceptions import APIException
 
 from accounts.models import StaffUser
 from accounts.permissions import active_workspace_role
+from patients.serializers import PatientSerializer
 
 from .models import UNDO_WINDOW_SECONDS, Visit
 
@@ -239,19 +240,13 @@ class VisitSerializer(serializers.ModelSerializer):
     def get_patient(self, obj):
         patient = obj.patient
         if patient.deleted_at is None:
-            return {
-                "id": str(patient.id),
-                "full_name": patient.full_name,
-                "gender": patient.gender,
-                "phone_e164": patient.phone_e164,
-                "date_of_birth": patient.date_of_birth,
-                "patient_note": patient.patient_note,
-                "active": True,
-            }
+            return {**PatientSerializer(patient).data, "active": True}
         return {
             "id": str(patient.id),
             "full_name": obj.patient_full_name_snapshot,
             "gender": obj.patient_gender_snapshot,
+            "country_calling_code": None,
+            "phone_number": None,
             "phone_e164": obj.patient_phone_snapshot,
             "date_of_birth": obj.patient_date_of_birth_snapshot,
             "patient_note": "",
@@ -278,5 +273,7 @@ class QueueVisitSerializer(VisitSerializer):
         patient.pop("patient_note", None)
         request = self.context.get("request")
         if request is not None and active_workspace_role(request) == StaffUser.Role.DOCTOR:
+            patient.pop("country_calling_code", None)
+            patient.pop("phone_number", None)
             patient.pop("phone_e164", None)
         return patient

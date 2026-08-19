@@ -17,13 +17,14 @@ The text follows the person across clinics because it belongs to the global pers
 - no title and no second note;
 - direct editing at any time;
 - autosave to the backend while typing;
+- subtle **Saving…**, **Saved**, and **Not saved** status in the expanded note header;
 - clearing every character saves an empty scratchpad;
 - the same text remains until its owner changes or clears it;
 - no Delete action, Trash, five-second Undo, revision history, or **Edited** label.
 
 Only the note content is persistent application data.
 
-The sticky's screen position, size, and minimized/expanded state are not stored on the server. Reopening a workspace starts from the default minimized lower-right presentation.
+The sticky's screen position, size, and minimized/expanded state are not stored on the server. Reopening a workspace starts from the default minimized lower-right presentation above the reserved Undo-notification lane.
 
 ## Global-account behavior
 
@@ -72,17 +73,21 @@ This avoids exposing personal reminder text on a clinic screen while the sticky 
 
 - the sticky is fixed to the browser viewport rather than document flow;
 - it remains reachable while the page scrolls;
-- default state is a small minimized strip near the lower-right;
-- the minimized strip may be dragged within the viewport;
+- default state is a small minimized strip near the lower-right, above the reserved Undo-notification lane;
+- the minimized strip may be dragged within the available viewport area without entering that lane;
 - maximizing opens the same scratchpad;
-- the expanded sticky may be dragged and resized within the viewport;
-- minimizing returns it to the lower-right default position;
+- the expanded sticky may be dragged and resized within the available viewport area above that lane;
+- focusing the minimized bar or expanded header enables arrow-key movement, with Shift for larger steps;
+- focusing the resize grip enables arrow-key resizing, with Shift for larger steps;
+- **Reset** returns position and size to the safe default without changing note text;
+- minimizing returns it to the lower-right default position above the lane;
+- Undo notifications render above the sticky so their time-sensitive action remains operable;
 - there is no Close button;
 - there is no separate Notes tab or Open-note workflow.
 
 ## Mobile interaction
 
-- the minimized strip sits near the lower edge and remains movable within the viewport;
+- the minimized strip sits above the Undo-notification lane and remains movable within the available viewport area;
 - maximizing opens a full-screen plain-text editor;
 - minimizing returns to the movable strip;
 - there is no Close action.
@@ -119,6 +124,8 @@ The Pages adapter follows the same product rules:
 - permanent Doctor/Assistant role is account-scoped;
 - Doctor administrator access to Assistant workspace shows no sticky;
 - minimized UI displays only **Private note**, never note content;
+- the expanded header reports autosave state without exposing note text;
+- desktop movement, resizing, and layout reset are keyboard-operable;
 - layout state is not treated as persistent server data.
 
 The public browser demo remains demonstration storage only and must not contain real Patient or sensitive personal information.

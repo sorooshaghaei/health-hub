@@ -17,7 +17,7 @@
   top: 10px;
   right: 12px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .patient-picker__results--overlay {
@@ -71,14 +71,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .patient-suggestion__identity span,
 .patient-suggestion__details {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .patient-suggestion__details {

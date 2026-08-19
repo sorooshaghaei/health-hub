@@ -1,0 +1,41 @@
+/* Approved post-Phase-8 workspace type and control corrections. */
+.task-view-tab {
+  min-height: var(--control-height-compact);
+  font-size: 14px;
+}
+
+.task-view-tab span,
+.task-status,
+.task-card__meta,
+.task-completed-note,
+.task-comments__heading span,
+.task-comment__meta strong,
+.task-comment__meta span {
+  font-size: 12px;
+}
+
+.task-card__open,
+.task-patient-link,
+.task-comment p,
+.task-error,
+.task-empty p {
+  font-size: 13px;
+}
+
+.task-actions .primary-button,
+.task-actions .secondary-button,
+.task-actions .danger-button {
+  min-height: var(--control-height-compact);
+  border-radius: var(--control-radius-compact);
+  font-size: 13px;
+}
+
+.task-field {
+  font-size: 14px;
+}
+
+.private-sticky__header,
+.private-sticky__preview,
+.private-sticky__error {
+  font-size: 12px;
+}

@@ -186,6 +186,118 @@ class AuthenticationFlowTests(APITestCase):
         self.assertEqual(Clinic.objects.get().owner_doctor.email, "doctor@example.com")
         self.assertEqual(TrustedDevice.objects.get().user.email, "doctor@example.com")
 
+    def test_onboarding_contact_correction_invalidates_only_the_edited_contact(self):
+        registered = self.register()
+        token = registered.data["session_token"]
+        headers = self.auth(token)
+
+        email_request = self.client.post("/api/staff/verify/email/request/", {}, format="json", **headers)
+        email_code = code_from_message(mail.outbox[-1].body)
+        email_confirm = self.client.post(
+            "/api/staff/verify/email/confirm/",
+            {"code": email_code},
+            format="json",
+            **headers,
+        )
+        self.assertTrue(email_confirm.data["user"]["email_verified"])
+
+        pending_change = self.client.post(
+            "/api/staff/email/change/request/",
+            {"value": "pending@example.com", "current_password": self.password},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(pending_change.status_code, status.HTTP_200_OK)
+        stale_change_code = code_from_message(mail.outbox[-1].body)
+
+        wrong_password = self.client.patch(
+            "/api/staff/verification-contact/",
+            {"kind": "email", "value": "corrected@example.com", "current_password": "wrong"},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(wrong_password.status_code, status.HTTP_403_FORBIDDEN)
+
+        corrected_email = self.client.patch(
+            "/api/staff/verification-contact/",
+            {"kind": "email", "value": "corrected@example.com", "current_password": self.password},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(corrected_email.status_code, status.HTTP_200_OK)
+        self.assertEqual(corrected_email.data["user"]["email"], "corrected@example.com")
+        self.assertFalse(corrected_email.data["user"]["email_verified"])
+        self.assertFalse(corrected_email.data["user"]["phone_verified"])
+
+        stale_confirm = self.client.post(
+            "/api/staff/email/change/confirm/",
+            {"code": stale_change_code},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(stale_confirm.status_code, status.HTTP_400_BAD_REQUEST)
+
+        corrected_request = self.client.post("/api/staff/verify/email/request/", {}, format="json", **headers)
+        self.assertEqual(corrected_request.status_code, status.HTTP_200_OK)
+        self.assertEqual(mail.outbox[-1].to, ["corrected@example.com"])
+        corrected_code = code_from_message(mail.outbox[-1].body)
+        corrected_confirm = self.client.post(
+            "/api/staff/verify/email/confirm/",
+            {"code": corrected_code},
+            format="json",
+            **headers,
+        )
+        self.assertTrue(corrected_confirm.data["user"]["email_verified"])
+
+        corrected_phone = self.client.patch(
+            "/api/staff/verification-contact/",
+            {"kind": "phone", "value": "+33655555555", "current_password": self.password},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(corrected_phone.status_code, status.HTTP_200_OK)
+        self.assertTrue(corrected_phone.data["user"]["email_verified"])
+        self.assertFalse(corrected_phone.data["user"]["phone_verified"])
+
+        phone_request = self.client.post("/api/staff/verify/phone/request/", {}, format="json", **headers)
+        phone_code = code_from_message(sent_sms[-1][1])
+        ready = self.client.post(
+            "/api/staff/verify/phone/confirm/",
+            {"code": phone_code},
+            format="json",
+            **headers,
+        )
+        self.assertTrue(ready.data["user"]["account_ready"])
+        self.assertEqual(phone_request.data["resend_after_seconds"], 0)
+
+        blocked_after_onboarding = self.client.patch(
+            "/api/staff/verification-contact/",
+            {"kind": "phone", "value": "+33666666666", "current_password": self.password},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(blocked_after_onboarding.status_code, status.HTTP_403_FORBIDDEN)
+
+    @override_settings(VERIFICATION_RESEND_MIN_AGE=60)
+    def test_verification_requests_publish_and_enforce_the_resend_delay(self):
+        registered = self.register()
+        token = registered.data["session_token"]
+        first = self.client.post(
+            "/api/staff/verify/email/request/",
+            {},
+            format="json",
+            **self.auth(token),
+        )
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data["resend_after_seconds"], 60)
+        second = self.client.post(
+            "/api/staff/verify/email/request/",
+            {},
+            format="json",
+            **self.auth(token),
+        )
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_assistant_cannot_create_clinic_and_joins_with_doctor_setup_code(self):
         doctor, clinic = self.create_doctor_clinic()
         assistant, claim = self.create_assistant_for_clinic(
@@ -203,6 +315,57 @@ class AuthenticationFlowTests(APITestCase):
             **self.auth(assistant_token, claim.data["device_token"]),
         )
         self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_assistant_setup_claim_is_idempotent_for_the_same_account(self):
+        doctor, clinic = self.create_doctor_clinic()
+        setup = self.client.post(
+            "/api/clinic/assistant/setup/",
+            {"replace_existing": False},
+            format="json",
+            **self.auth(doctor.data["session_token"], clinic.data["device_token"]),
+        )
+        assistant = self.register("assistant", "assistant@example.com", "+33622222222")
+        assistant_token = assistant.data["session_token"]
+        self.verify_contacts(assistant_token)
+
+        first = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup.data["setup_code"]},
+            format="json",
+            HTTP_USER_AGENT=self.user_agent,
+            **self.auth(assistant_token),
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+
+        retry = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup.data["setup_code"]},
+            format="json",
+            HTTP_USER_AGENT=self.user_agent,
+            **self.auth(assistant_token, first.data["device_token"]),
+        )
+        self.assertEqual(retry.status_code, status.HTTP_200_OK)
+        self.assertEqual(retry.data["membership"]["id"], first.data["membership"]["id"])
+        self.assertEqual(retry.data["user"]["workspace_role"], "assistant")
+        self.assertEqual(
+            StaffMembership.objects.filter(
+                user__email="assistant@example.com",
+                clinic_id=clinic.data["clinic"]["id"],
+                is_active=True,
+            ).count(),
+            1,
+        )
+
+        other = self.register("assistant", "other-assistant@example.com", "+33644444444")
+        self.verify_contacts(other.data["session_token"])
+        occupied = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup.data["setup_code"]},
+            format="json",
+            **self.auth(other.data["session_token"]),
+        )
+        self.assertEqual(occupied.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(occupied.data["detail"], "The Assistant slot is already filled.")
 
     def test_global_trusted_device_works_for_multiple_doctor_clinics(self):
         registered, first = self.create_doctor_clinic("First Clinic")

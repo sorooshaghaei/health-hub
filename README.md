@@ -102,6 +102,9 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - Doctor offline recovery uses ten one-time codes; regeneration invalidates unused previous codes.
 - Passkeys are optional, maximum five.
 - OTP defaults are six digits, 10-minute expiry, 60-second resend minimum, five failed attempts.
+- Verification screens show the resend countdown, allow contact correction with isolated re-verification, and always retain a sign-out escape.
+- New-password forms provide live requirements, match/strength feedback, and accessible Show/Hide controls; recovery methods are mutually exclusive.
+- Routine Account settings are separate from the Doctor-account Danger zone, and modal surfaces share focus containment, Escape, and opener-focus restoration.
 - Broader login/recovery/IP throttling is deferred to Phase 10 production hardening.
 
 ## Clinic operational timezone
@@ -190,7 +193,8 @@ OPEN → DONE
 - task/comment deletion has five-second Undo;
 - attention dots remain per clinic membership;
 - no general task notification system beyond the red dot;
-- authenticated three-second polling.
+- authenticated three-second polling;
+- New task remains a compact dialog with keyboard focus management; Open/History and comment fields expose complete accessible semantics.
 
 ### Private sticky
 
@@ -199,7 +203,8 @@ OPEN → DONE
 - visible only when workspace matches permanent account role;
 - Doctor administrator access to Assistant workspace shows no sticky;
 - minimized strip always shows **Private note**, never private content;
-- autosave; no multiple notes/title/history/attachments/etc.;
+- autosave with Saving/Saved feedback; no multiple notes/title/history/attachments/etc.;
+- desktop movement and resizing support arrow keys, and Reset restores the safe default layout;
 - layout/minimized state is not stored on the server.
 
 ## Browser demo
