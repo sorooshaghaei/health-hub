@@ -246,4 +246,4 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 4. task/settings/dialog accessibility;
 5. shared clinic-aware scheduling.
 
-Only one corrective part is implemented and approved at a time. Phase 9 remains the reserved sensitive-attachment phase and is not part of this corrective pass.
+Each corrective part is implemented, reviewed, and approved before the next begins. Phase 9 remains the reserved sensitive-attachment phase and is not part of this corrective pass.

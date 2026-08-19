@@ -242,6 +242,12 @@ class VerificationConfirmSerializer(serializers.Serializer):
     code = serializers.CharField(min_length=6, max_length=12, trim_whitespace=True)
 
 
+class VerificationContactUpdateSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(choices=["email", "phone"])
+    value = serializers.CharField(max_length=254)
+    current_password = serializers.CharField(trim_whitespace=False, write_only=True)
+
+
 class ContactChangeRequestSerializer(serializers.Serializer):
     value = serializers.CharField(max_length=254)
     current_password = serializers.CharField(required=False, allow_blank=False, trim_whitespace=False, write_only=True)

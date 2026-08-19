@@ -47,13 +47,7 @@ class DeviceContactAuthorizationRequestView(APIView):
             DeliveryNotConfigured,
         ) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        payload = {
-            "detail": "Verification code sent.",
-            "expires_at": challenge.expires_at,
-        }
-        if development_code:
-            payload["development_code"] = development_code
-        return Response(payload)
+        return Response(verification_delivery_payload(challenge, development_code))
 
 
 class DeviceContactAuthorizationConfirmView(APIView):

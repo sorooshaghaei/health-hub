@@ -81,6 +81,64 @@ test("production and Pages have one shared final Phase 8 application UI", async 
   assert.match(env, /^VITE_DEMO_API=true$/m);
 });
 
+test("browser onboarding contact correction preserves the other verification state and enforces resend timing", async () => {
+  localStorage.clear();
+  const registered = await demoPhase8ApiRequest("/api/staff/register/", {
+    method: "POST",
+    data: {
+      role: "assistant",
+      first_name: "Demo",
+      last_name: "Assistant",
+      email: "mistyped@example.com",
+      phone: "+33123456789",
+      password: "Strong-demo-password-123",
+      password_confirm: "Strong-demo-password-123",
+    },
+  });
+  const token = registered.session_token;
+  const firstRequest = await demoPhase8ApiRequest("/api/staff/verify/email/request/", { method: "POST", staffToken: token });
+  assert.equal(firstRequest.resend_after_seconds, 60);
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/staff/verify/email/request/", { method: "POST", staffToken: token }),
+    (error) => error?.payload?.detail === "Wait before requesting another verification code.",
+  );
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/staff/verification-contact/", {
+      method: "PATCH",
+      staffToken: token,
+      data: { kind: "email", value: "corrected@example.com", current_password: "wrong" },
+    }),
+    (error) => error.status === 403,
+  );
+  const corrected = await demoPhase8ApiRequest("/api/staff/verification-contact/", {
+    method: "PATCH",
+    staffToken: token,
+    data: { kind: "email", value: "corrected@example.com", current_password: "Strong-demo-password-123" },
+  });
+  assert.equal(corrected.user.email, "corrected@example.com");
+  assert.equal(corrected.user.email_verified, false);
+  assert.equal(corrected.user.phone_verified, false);
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/staff/verify/email/confirm/", {
+      method: "POST",
+      staffToken: token,
+      data: { code: firstRequest.development_code },
+    }),
+    (error) => error?.payload?.detail === "Verification code is invalid or expired.",
+  );
+
+  const newEmailRequest = await demoPhase8ApiRequest("/api/staff/verify/email/request/", { method: "POST", staffToken: token });
+  const emailVerified = await demoPhase8ApiRequest("/api/staff/verify/email/confirm/", { method: "POST", staffToken: token, data: { code: newEmailRequest.development_code } });
+  assert.equal(emailVerified.user.email_verified, true);
+  const phoneCorrected = await demoPhase8ApiRequest("/api/staff/verification-contact/", {
+    method: "PATCH",
+    staffToken: token,
+    data: { kind: "phone", value: "+33987654321", current_password: "Strong-demo-password-123" },
+  });
+  assert.equal(phoneCorrected.user.email_verified, true);
+  assert.equal(phoneCorrected.user.phone_verified, false);
+});
+
 test("browser Phase 8 uses permanent roles, account-first clinic creation, and global device trust", async () => {
   localStorage.clear();
   const { registered, verified } = await createVerifiedDoctor();

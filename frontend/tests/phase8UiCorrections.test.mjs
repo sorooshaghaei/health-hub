@@ -12,16 +12,32 @@ test("Forgot password uses a normal text link and never the absolute Back contro
   assert.doesNotMatch(app, /className="back-button"[^>]*>Forgot password\?/);
 });
 
-test("recovery uses reusable stacked checkbox and select controls", async () => {
+test("recovery uses an exclusive recovery-method selector and styled channel control", async () => {
   const app = await source("../src/App.jsx");
   const ui = await source("../src/ui.jsx");
-  const styles = await source("../src/styles.css");
+  const styles = await source("../src/credentialUi.css");
 
-  assert.match(app, /<Checkbox label="Use a Doctor offline recovery code"/);
+  assert.match(app, /<RadioCards legend="Recovery method"/);
+  assert.match(app, /label: "Email or SMS"/);
+  assert.match(app, /label: "Doctor offline code"/);
   assert.match(app, /<SelectField label="Recovery channel"/);
-  assert.match(ui, /export function Checkbox/);
+  assert.match(ui, /export function RadioCards/);
   assert.match(ui, /export function SelectField/);
-  assert.match(styles, /\.checkbox-field \{[^}]*min-height: 44px/);
+  assert.match(styles, /\.radio-card \{/);
+});
+
+test("verification and password forms expose correction, resend, guidance, and reveal controls", async () => {
+  const app = await source("../src/App.jsx");
+  const credentials = await source("../src/credentialUi.jsx");
+
+  assert.match(app, /\/api\/staff\/verification-contact\//);
+  assert.match(app, /Resend code in \$\{countdown\.seconds\}s/);
+  assert.match(app, /<TextLink onClick=\{onSignOut\}>Sign out<\/TextLink>/);
+  assert.match(credentials, /export function PasswordPair/);
+  assert.match(credentials, /At least 8 characters/);
+  assert.match(credentials, /Not entirely numeric/);
+  assert.match(credentials, /Common passwords are rejected when submitted/);
+  assert.match(credentials, /aria-label=\{`\$\{visible \? "Hide" : "Show"\}/);
 });
 
 test("mobile authentication replaces the oversized hero with a compact titled header", async () => {

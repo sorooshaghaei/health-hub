@@ -102,6 +102,8 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - Doctor offline recovery uses ten one-time codes; regeneration invalidates unused previous codes.
 - Passkeys are optional, maximum five.
 - OTP defaults are six digits, 10-minute expiry, 60-second resend minimum, five failed attempts.
+- Verification screens show the resend countdown, allow contact correction with isolated re-verification, and always retain a sign-out escape.
+- New-password forms provide live requirements, match/strength feedback, and accessible Show/Hide controls; recovery methods are mutually exclusive.
 - Broader login/recovery/IP throttling is deferred to Phase 10 production hardening.
 
 ## Clinic operational timezone

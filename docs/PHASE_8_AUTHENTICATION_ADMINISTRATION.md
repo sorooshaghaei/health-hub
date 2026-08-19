@@ -213,6 +213,10 @@ Verification-code defaults are:
 - minimum 60 seconds between resend requests;
 - maximum five failed attempts.
 
+After a code is sent, the interface displays the remaining resend delay and enables **Resend code** when the server-provided window reaches zero. The person may return to change the email, phone, channel, or recovery method without being forced to complete a stale code flow.
+
+The new-account verification screen always provides **Edit email**, **Edit phone**, and **Sign out**. Correcting a contact requires the current password, consumes outstanding verification/change challenges for that contact, and clears only that contact's verification timestamp. The other contact's verification state is preserved. Once both contacts are verified, later contact replacement uses Account settings and the normal sensitive-operation flow.
+
 Verification code material is stored as keyed hashes rather than plaintext in the production backend.
 
 Email delivery uses Django email infrastructure. SMS delivery is supplied through the configured `SMS_SENDER`; production does not pretend a text message was delivered when no provider is configured.
@@ -251,6 +255,8 @@ A normal signed-in password change is confirmed using one verified personal cont
 
 The person chooses verified email or verified SMS, verifies the code, and supplies a new password that passes Django password validation.
 
+New-password forms show the active requirements before submission, update requirement and strength feedback while the person types, confirm whether both entries match, and provide an accessible **Show/Hide** control for each password field. The production backend remains authoritative for minimum length, personal-attribute similarity, common-password, and entirely-numeric checks.
+
 Successful password change:
 
 - preserves the current session;
@@ -264,6 +270,8 @@ Account/security operations do not use the five-second operational Undo mechanis
 Normal forgotten-password recovery is personal and global.
 
 The person chooses verified email or verified SMS. Public recovery requests use a generic response so normal API responses do not disclose whether an account exists.
+
+The recovery form presents mutually exclusive **Email or SMS** and **Doctor offline code** methods as radio cards. The contact-code path provides the same resend countdown plus a **Change email, phone, or method** action.
 
 A verified recovery code creates a short-lived recovery grant, valid for 30 minutes by default. A newer grant invalidates older outstanding grants.
 

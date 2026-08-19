@@ -14,10 +14,7 @@ class InitialEmailVerificationRequestView(APIView):
             )
         except (VerificationRateLimited, DeliveryNotConfigured) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        payload = {"detail": "Verification code sent.", "expires_at": challenge.expires_at}
-        if development_code:
-            payload["development_code"] = development_code
-        return Response(payload)
+        return Response(verification_delivery_payload(challenge, development_code))
 
 
 class InitialEmailVerificationConfirmView(APIView):
@@ -52,10 +49,7 @@ class InitialPhoneVerificationRequestView(APIView):
             )
         except (VerificationRateLimited, DeliveryNotConfigured) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        payload = {"detail": "Verification code sent.", "expires_at": challenge.expires_at}
-        if development_code:
-            payload["development_code"] = development_code
-        return Response(payload)
+        return Response(verification_delivery_payload(challenge, development_code))
 
 
 class InitialPhoneVerificationConfirmView(APIView):
@@ -72,6 +66,73 @@ class InitialPhoneVerificationConfirmView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         request.user.phone_verified_at = timezone.now()
         request.user.save(update_fields=["phone_verified_at"])
+        return Response({"user": serialize_user(request)})
+
+
+class VerificationContactUpdateView(APIView):
+    def patch(self, request):
+        if request.user.contacts_verified:
+            raise PermissionDenied("Use Account settings to change a verified account contact.")
+
+        serializer = VerificationContactUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reauthenticate_if_needed(request, serializer.validated_data["current_password"])
+        kind = serializer.validated_data["kind"]
+        value = serializer.validated_data["value"].strip()
+
+        if kind == "email":
+            value = value.lower()
+            try:
+                validate_email(value)
+            except DjangoValidationError:
+                return Response({"value": ["Enter a valid email address."]}, status=status.HTTP_400_BAD_REQUEST)
+            if StaffUser.objects.filter(email__iexact=value).exclude(pk=request.user.pk).exists():
+                return Response({"value": ["This email is already in use."]}, status=status.HTTP_400_BAD_REQUEST)
+            if value == request.user.email.lower():
+                return Response({"value": ["Enter a different email address."]}, status=status.HTTP_400_BAD_REQUEST)
+            old_value = request.user.email
+            was_verified = request.user.email_verified_at is not None
+            request.user.email = value
+            request.user.email_verified_at = None
+            update_fields = ["email", "email_verified_at"]
+            purposes = [VerificationChallenge.Purpose.EMAIL_VERIFY, VerificationChallenge.Purpose.EMAIL_CHANGE]
+            notice_channel = "email"
+        else:
+            try:
+                value = normalize_staff_phone(value)
+            except ValueError as exc:
+                return Response({"value": [str(exc)]}, status=status.HTTP_400_BAD_REQUEST)
+            if StaffUser.objects.filter(phone=value).exclude(pk=request.user.pk).exists():
+                return Response({"value": ["This phone number is already in use."]}, status=status.HTTP_400_BAD_REQUEST)
+            if value == request.user.phone:
+                return Response({"value": ["Enter a different phone number."]}, status=status.HTTP_400_BAD_REQUEST)
+            old_value = request.user.phone
+            was_verified = request.user.phone_verified_at is not None
+            request.user.phone = value
+            request.user.phone_verified_at = None
+            update_fields = ["phone", "phone_verified_at"]
+            purposes = [VerificationChallenge.Purpose.PHONE_VERIFY, VerificationChallenge.Purpose.PHONE_CHANGE]
+            notice_channel = "sms"
+
+        try:
+            with transaction.atomic():
+                request.user.save(update_fields=update_fields)
+                VerificationChallenge.objects.filter(
+                    user=request.user,
+                    purpose__in=purposes,
+                    consumed_at__isnull=True,
+                ).update(consumed_at=timezone.now())
+        except IntegrityError:
+            return Response(
+                {"value": [f"This {kind} is already in use."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if was_verified:
+            deliver_security_notice(
+                channel=notice_channel,
+                destination=old_value,
+                message=f"Your Health Hub {kind} was corrected during account verification.",
+            )
         return Response({"user": serialize_user(request)})
 
 
@@ -112,10 +173,7 @@ class ContactChangeRequestView(APIView):
             )
         except (VerificationRateLimited, DeliveryNotConfigured) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        payload = {"detail": "Verification code sent.", "expires_at": challenge.expires_at}
-        if development_code:
-            payload["development_code"] = development_code
-        return Response(payload)
+        return Response(verification_delivery_payload(challenge, development_code))
 
 
 class EmailChangeRequestView(ContactChangeRequestView):
@@ -191,10 +249,7 @@ class PasswordChangeRequestView(APIView):
             )
         except (InvalidVerificationChallenge, VerificationRateLimited, DeliveryNotConfigured) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        payload = {"detail": "Verification code sent.", "expires_at": challenge.expires_at}
-        if development_code:
-            payload["development_code"] = development_code
-        return Response(payload)
+        return Response(verification_delivery_payload(challenge, development_code))
 
 
 class PasswordChangeConfirmView(APIView):
@@ -245,7 +300,10 @@ class RecoveryRequestView(APIView):
                 )
             except Exception:
                 pass
-        return Response({"detail": "If the account and verified channel exist, a recovery code was sent."})
+        return Response({
+            "detail": "If the account and verified channel exist, a recovery code was sent.",
+            "resend_after_seconds": settings.VERIFICATION_RESEND_MIN_AGE,
+        })
 
 
 class RecoveryConfirmView(APIView):

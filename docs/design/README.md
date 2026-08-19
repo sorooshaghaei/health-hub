@@ -54,5 +54,8 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 - Standard controls use a 44px minimum height and 12px radius; compact header and row controls use a 38px minimum height and 10px radius; status chips remain pill-shaped and are never used as action buttons.
 - Form controls use at least 15px text on desktop and 16px on mobile. Secondary metadata uses at least 12px, while operational times, queue facts, and statuses use 12–14px according to hierarchy.
 - Empty operational content uses a compact roughly 100–130px state and its containing card grows naturally when records exist.
+- Verification code screens reserve visible space for the resend countdown and a change-contact/channel action; people must never be trapped in a code-entry state.
+- Password pairs show requirements and match/strength feedback while typing, with a separately named Show/Hide control for each field.
+- Mutually exclusive recovery workflows use radio cards rather than checkboxes.
 
 The broader visual-direction tokens remain in `frontend/src/design-tokens.css`. Approved live-screen control tokens are integrated in `frontend/src/styles.css` screen by screen.

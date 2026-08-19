@@ -149,13 +149,17 @@ OTP defaults:
 - 60-second resend minimum;
 - maximum five failed attempts.
 
+Code-entry screens expose a server-driven resend countdown and a way to change the relevant contact/channel. During new-account verification, staff may correct either contact with their current password; only the edited contact loses verification, its stale challenges are consumed, and Sign out remains available.
+
 Email/phone changes require explicit fresh password or passkey reauthentication. Normal login does not count. Explicit reauth remains valid for 10 minutes by default.
 
 Password change uses one verified email/SMS code, preserves current session, revokes other sessions, and does not remove device trust.
 
+New-password pairs show Django-aligned requirements, live strength/match feedback, and accessible Show/Hide controls.
+
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
-Doctor accounts additionally have ten one-time offline recovery codes. Regeneration invalidates unused previous codes.
+Recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes.
 
 Passkeys are optional, maximum five, and may be used for sign-in or explicit sensitive-operation reauthentication.
 

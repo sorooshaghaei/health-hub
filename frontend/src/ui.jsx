@@ -37,6 +37,16 @@ export function Checkbox({ label, hint, className = "", ...props }) {
   );
 }
 
+export function RadioCards({ legend, name, value, options, onChange }) {
+  return <fieldset className="radio-cards">
+    <legend>{legend}</legend>
+    {options.map((option) => <label className="radio-card" key={option.value}>
+      <input type="radio" name={name} value={option.value} checked={value === option.value} onChange={onChange} />
+      <span className="radio-card__copy"><strong>{option.label}</strong>{option.hint && <small>{option.hint}</small>}</span>
+    </label>)}
+  </fieldset>;
+}
+
 export function Field({ label, hint, ...props }) {
   return (
     <label className="field">
