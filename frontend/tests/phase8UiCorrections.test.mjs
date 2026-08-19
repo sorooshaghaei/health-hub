@@ -59,3 +59,18 @@ test("Phase 8 account and recovery surfaces avoid native unstyled selects", asyn
   assert.match(ui, /export function Button/);
   assert.match(ui, /export function TextLink/);
 });
+
+test("Assistant clinic onboarding always exposes account and sign-out escapes", async () => {
+  const app = await source("../src/App.jsx");
+  const joinForm = app.slice(
+    app.indexOf("function AssistantJoinForm"),
+    app.indexOf("function ClinicPicker"),
+  );
+
+  assert.match(joinForm, /submitting\.current/);
+  assert.match(joinForm, />Back to account<\/TextLink>/);
+  assert.match(joinForm, />Sign out<\/TextLink>/);
+  assert.match(joinForm, /additional && <TextLink onClick=\{onClinics\}>Your clinics<\/TextLink>/);
+  assert.match(app, /onAccount=\{\(\) => openAccountSettings\("join-clinic"\)\}/);
+  assert.match(app, /onBack=\{\(\) => setScreen\(accountSettingsReturnScreen\)\}/);
+});

@@ -26,6 +26,12 @@ Patient identity is **clinic-scoped**, not global. The same real-world person ap
 
 The Patient profile displays one combined phone value. Separate Country code and National number cards are not shown.
 
+Every active Patient API representation includes
+`country_calling_code`, `phone_number`, and `phone_e164`. The edit form also
+derives the national number from `phone_e164` when an older browser-demo record
+or incomplete nested payload lacks `phone_number`. Opening Edit therefore never
+turns an existing displayed phone number into a blank field.
+
 No address, Patient email, reminder, or additional field is approved.
 
 ## Clinic isolation

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AccountSettings from "./AccountSettings.jsx";
 import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
@@ -215,16 +215,24 @@ function ClinicCreateForm({ title = "Create your clinic.", onSubmit, onBack }) {
   </AuthShell>;
 }
 
-function AssistantJoinForm({ onSubmit, onBack, additional = false }) {
+function AssistantJoinForm({ onSubmit, onAccount, onClinics, onSignOut, additional = false }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   async function submit(event) {
-    event.preventDefault(); setBusy(true); setError(null);
-    try { await onSubmit(code); } catch (reason) { setError(asError(reason, "Clinic could not be joined.")); } finally { setBusy(false); }
+    event.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true; setBusy(true); setError(null);
+    try { await onSubmit(code); } catch (reason) { setError(asError(reason, "Clinic could not be joined.")); } finally { submitting.current = false; setBusy(false); }
   }
-  return <AuthShell title={additional ? "Join another clinic." : "Join your clinic."} description="Enter the one-time setup code created by that clinic's Doctor. The code is valid for 24 hours." onBack={onBack}>
+  return <AuthShell title={additional ? "Join another clinic." : "Join your clinic."} description="Enter the one-time setup code created by that clinic's Doctor. The code is valid for 24 hours.">
     <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Assistant setup code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="ABCDE-12345" required /><Button variant="primary" disabled={busy}>{busy ? "Joining…" : "Join clinic"}</Button></form>
+    <div className="auth-form-links">
+      <TextLink onClick={onAccount}>Back to account</TextLink>
+      {additional && <TextLink onClick={onClinics}>Your clinics</TextLink>}
+      <TextLink onClick={onSignOut}>Sign out</TextLink>
+    </div>
   </AuthShell>;
 }
 
@@ -270,6 +278,7 @@ export default function ProductionApp() {
   const [role, setRole] = useState(null);
   const [staffToken, setStaffToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [accountSettingsReturnScreen, setAccountSettingsReturnScreen] = useState("clinics");
 
   function saveSession(token) {
     localStorage.setItem(STAFF_TOKEN_KEY, token);
@@ -383,6 +392,11 @@ export default function ProductionApp() {
     } catch { await signOut(); }
   }
 
+  function openAccountSettings(returnScreen = "clinics") {
+    setAccountSettingsReturnScreen(returnScreen);
+    setScreen("account-settings");
+  }
+
   async function switchWorkspace() {
     if (!user?.clinic || user.role !== "doctor") return;
     const target = user.workspace_role === "doctor" ? "assistant" : "doctor";
@@ -415,9 +429,9 @@ export default function ProductionApp() {
   if (screen === "verify" && user && staffToken) return <VerificationGate user={user} staffToken={staffToken} onUser={setUser} onDone={verificationDone} />;
   if (screen === "device-auth" && user && staffToken) return <DeviceAuthorization staffToken={staffToken} onAuthorized={deviceAuthorized} onBack={() => setScreen("role")} />;
   if (screen === "create-clinic" && user?.role === "doctor") return <ClinicCreateForm onSubmit={createClinic} onBack={user.memberships?.length ? () => setScreen("clinics") : undefined} />;
-  if (screen === "join-clinic" && user?.role === "assistant") return <AssistantJoinForm onSubmit={joinClinic} additional={Boolean(user.memberships?.length)} onBack={user.memberships?.length ? () => setScreen("clinics") : undefined} />;
-  if (screen === "clinics" && user && staffToken) return <ClinicPicker user={user} onChoose={(membership) => openMembership(membership)} onCreate={() => setScreen("create-clinic")} onJoin={() => setScreen("join-clinic")} onSettings={() => setScreen("account-settings")} onSignOut={signOut} />;
-  if (screen === "account-settings" && user && staffToken) return <AccountSettingsStandalone user={user} staffToken={staffToken} onUserChange={setUser} onAccountDeleted={accountDeleted} onBack={() => setScreen("clinics")} />;
+  if (screen === "join-clinic" && user?.role === "assistant") return <AssistantJoinForm onSubmit={joinClinic} additional={Boolean(user.memberships?.length)} onAccount={() => openAccountSettings("join-clinic")} onClinics={() => setScreen("clinics")} onSignOut={signOut} />;
+  if (screen === "clinics" && user && staffToken) return <ClinicPicker user={user} onChoose={(membership) => openMembership(membership)} onCreate={() => setScreen("create-clinic")} onJoin={() => setScreen("join-clinic")} onSettings={() => openAccountSettings("clinics")} onSignOut={signOut} />;
+  if (screen === "account-settings" && user && staffToken) return <AccountSettingsStandalone user={user} staffToken={staffToken} onUserChange={setUser} onAccountDeleted={accountDeleted} onBack={() => setScreen(accountSettingsReturnScreen)} />;
   if (screen === "workspace" && user && staffToken) return <PatientWorkspace user={user} staffToken={staffToken} onSignOut={signOut} onSwitchClinic={showClinics} onSwitchWorkspace={switchWorkspace} onUserChange={setUser} onAccountDeleted={accountDeleted} />;
   return <LoadingScreen />;
 }

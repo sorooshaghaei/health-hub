@@ -139,6 +139,18 @@ Assistant setup codes are:
 - tied to one clinic;
 - not global account recovery credentials.
 
+Claiming is idempotent for the Assistant who successfully filled the slot. An
+immediate retry of the same submitted code returns that existing active
+membership and re-enters the Assistant workspace instead of returning a
+conflict or creating a duplicate membership. The used code remains invalid for
+every other account and cannot reactivate a membership after the Assistant is
+removed from the clinic.
+
+The join form prevents duplicate submission while a claim is pending. It also
+always exposes **Back to account** and **Sign out**. **Your clinics** is exposed
+when the Assistant already has at least one membership, so a valid global
+account is never trapped on the setup-code screen.
+
 ## Existing account on a trusted browser
 
 The existing-account flow on an already trusted browser is:

@@ -141,22 +141,19 @@ function publicPatientForVisit(store, visit) {
   );
   if (activePatient) {
     return {
-      id: activePatient.id,
-      full_name: activePatient.full_name,
-      gender: activePatient.gender,
-      phone_e164: activePatient.phone_e164,
-      date_of_birth: activePatient.date_of_birth || null,
-      patient_note: activePatient.patient_note || "",
+      ...publicPatient(activePatient),
       active: true,
     };
   }
   return {
-    id: visit.patient_id,
-    full_name: visit.patient_full_name_snapshot,
-    gender: visit.patient_gender_snapshot,
-    phone_e164: visit.patient_phone_snapshot,
-    date_of_birth: visit.patient_date_of_birth_snapshot || null,
-    patient_note: "",
+    ...publicPatient({
+      id: visit.patient_id,
+      full_name: visit.patient_full_name_snapshot,
+      gender: visit.patient_gender_snapshot,
+      phone_e164: visit.patient_phone_snapshot,
+      date_of_birth: visit.patient_date_of_birth_snapshot || null,
+      patient_note: "",
+    }),
     active: false,
   };
 }
@@ -261,7 +258,11 @@ function queueVisits(store, workspaceRole) {
     const item = publicVisit(store, visit);
     const patient = { ...item.patient };
     delete patient.patient_note;
-    if (workspaceRole === "doctor") delete patient.phone_e164;
+    if (workspaceRole === "doctor") {
+      delete patient.country_calling_code;
+      delete patient.phone_number;
+      delete patient.phone_e164;
+    }
     return {
       id: item.id,
       queue_position: index + 1,

@@ -479,12 +479,14 @@ def generate_assistant_setup_code(clinic, created_by):
     return token, formatted
 
 
-def resolve_assistant_setup_code(raw_code, *, consume=False):
+def resolve_assistant_setup_code(raw_code, *, consume=False, include_used=False):
     digest = hash_short_code(str(raw_code).strip().upper(), namespace="assistant-setup")
+    filters = {"code_hash": digest}
+    if not include_used:
+        filters["used_at__isnull"] = True
     try:
         token = AssistantSetupToken.objects.select_related("clinic", "clinic__owner_doctor").get(
-            code_hash=digest,
-            used_at__isnull=True,
+            **filters,
         )
     except AssistantSetupToken.DoesNotExist:
         raise InvalidAssistantSetup("Assistant setup code is invalid or expired.")

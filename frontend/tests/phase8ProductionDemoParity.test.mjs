@@ -45,6 +45,27 @@ async function createVerifiedDoctor() {
   return { registered, verified };
 }
 
+async function createVerifiedAssistant({
+  email = "assistant@example.com",
+  phone = "+33987654321",
+} = {}) {
+  const registered = await demoPhase8ApiRequest("/api/staff/register/", {
+    method: "POST",
+    data: {
+      role: "assistant",
+      first_name: "Demo",
+      last_name: "Assistant",
+      email,
+      phone,
+      password: "Strong-demo-password-123",
+      password_confirm: "Strong-demo-password-123",
+    },
+  });
+  await verifyContact(registered.session_token, "email");
+  await verifyContact(registered.session_token, "phone");
+  return registered;
+}
+
 test("production and Pages have one shared final Phase 8 application UI", async () => {
   const app = await readFile(new URL("../src/App.jsx", import.meta.url), "utf8");
   const env = await readFile(new URL("../.env.demo", import.meta.url), "utf8");
@@ -148,6 +169,53 @@ test("browser Phase 8 uses permanent roles, account-first clinic creation, and g
     },
   });
   assert.equal(patient.full_name, "Demo Patient");
+});
+
+test("browser Assistant setup claim is idempotent and enters the workspace", async () => {
+  localStorage.clear();
+  const { registered: doctor } = await createVerifiedDoctor();
+  const clinic = await demoPhase8ApiRequest("/api/clinics/", {
+    method: "POST",
+    staffToken: doctor.session_token,
+    data: { name: "Assistant Clinic", timezone: "Europe/Paris" },
+  });
+  const setup = await demoPhase8ApiRequest("/api/clinic/assistant/setup/", {
+    method: "POST",
+    staffToken: doctor.session_token,
+    data: { replace_existing: false },
+  });
+  const assistant = await createVerifiedAssistant();
+
+  const first = await demoPhase8ApiRequest("/api/clinic/assistant/setup/claim/", {
+    method: "POST",
+    staffToken: assistant.session_token,
+    data: { code: setup.setup_code },
+  });
+  const retry = await demoPhase8ApiRequest("/api/clinic/assistant/setup/claim/", {
+    method: "POST",
+    staffToken: assistant.session_token,
+    data: { code: setup.setup_code },
+  });
+
+  assert.equal(first.user.workspace_role, "assistant");
+  assert.equal(first.user.clinic.id, clinic.clinic.id);
+  assert.equal(retry.membership.id, first.membership.id);
+  assert.equal(retry.user.workspace_role, "assistant");
+  assert.equal(retry.user.memberships.length, 1);
+
+  const otherAssistant = await createVerifiedAssistant({
+    email: "other-assistant@example.com",
+    phone: "+33876543210",
+  });
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/clinic/assistant/setup/claim/", {
+      method: "POST",
+      staffToken: otherAssistant.session_token,
+      data: { code: setup.setup_code },
+    }),
+    (error) => error.status === 409
+      && error.payload?.detail === "The Assistant slot is already filled.",
+  );
 });
 
 test("new browser authorizes once and that trusted device works across Doctor clinics", async () => {

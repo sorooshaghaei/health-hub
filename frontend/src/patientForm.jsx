@@ -4,6 +4,7 @@ import { ApiError } from "./api.js";
 import {
   COUNTRY_CODES,
   countryForCallingCode,
+  patientPhoneParts,
   phonePlaceholderForCallingCode,
 } from "./patientPhoneFormats.js";
 import { ErrorMessage, Field, SelectField, TextAreaField } from "./ui.jsx";
@@ -11,11 +12,8 @@ import { ErrorMessage, Field, SelectField, TextAreaField } from "./ui.jsx";
 export { COUNTRY_CODES, countryForCallingCode } from "./patientPhoneFormats.js";
 
 export function formatPatientPhone(patient) {
-  const code = patient?.country_calling_code ?? "";
+  const { country_calling_code: code, phone_number: national } = patientPhoneParts(patient);
   const country = countryForCallingCode(code);
-  const national = patient?.phone_number
-    || (patient?.phone_e164?.startsWith(code) ? patient.phone_e164.slice(code.length) : patient?.phone_e164)
-    || "";
   if (!country) return `${code} ${national}`.trim() || "Not recorded";
   return `${country.flag} ${country.country} ${country.code} ${national}`.trim();
 }
@@ -33,11 +31,11 @@ export function emptyPatient() {
 
 export function patientFormValue(patient) {
   if (!patient) return emptyPatient();
+  const phone = patientPhoneParts(patient);
   return {
     full_name: patient.full_name,
     gender: patient.gender,
-    country_calling_code: patient.country_calling_code,
-    phone_number: patient.phone_number,
+    ...phone,
     date_of_birth: patient.date_of_birth ?? "",
     patient_note: patient.patient_note ?? "",
   };

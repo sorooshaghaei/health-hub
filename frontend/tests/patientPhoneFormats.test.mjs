@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   COUNTRY_CODES,
+  patientPhoneParts,
   phonePlaceholderForCallingCode,
 } from "../src/patientPhoneFormats.js";
 
@@ -21,4 +22,23 @@ test("phone placeholders follow the selected country and never contain sample pe
 test("country calling codes remain unique", () => {
   const codes = COUNTRY_CODES.map((country) => country.code);
   assert.equal(new Set(codes).size, codes.length);
+});
+
+test("legacy Patient phone values are reconstructed from E.164 for editing", () => {
+  assert.deepEqual(
+    patientPhoneParts({ phone_e164: "+989120000000" }),
+    { country_calling_code: "+98", phone_number: "9120000000" },
+  );
+  assert.deepEqual(
+    patientPhoneParts({ country_calling_code: "+33", phone_e164: "+33612345678" }),
+    { country_calling_code: "+33", phone_number: "612345678" },
+  );
+  assert.deepEqual(
+    patientPhoneParts({
+      country_calling_code: "+98",
+      phone_number: "9121111111",
+      phone_e164: "+989120000000",
+    }),
+    { country_calling_code: "+98", phone_number: "9121111111" },
+  );
 });

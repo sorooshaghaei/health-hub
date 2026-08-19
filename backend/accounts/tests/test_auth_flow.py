@@ -204,6 +204,57 @@ class AuthenticationFlowTests(APITestCase):
         )
         self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_assistant_setup_claim_is_idempotent_for_the_same_account(self):
+        doctor, clinic = self.create_doctor_clinic()
+        setup = self.client.post(
+            "/api/clinic/assistant/setup/",
+            {"replace_existing": False},
+            format="json",
+            **self.auth(doctor.data["session_token"], clinic.data["device_token"]),
+        )
+        assistant = self.register("assistant", "assistant@example.com", "+33622222222")
+        assistant_token = assistant.data["session_token"]
+        self.verify_contacts(assistant_token)
+
+        first = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup.data["setup_code"]},
+            format="json",
+            HTTP_USER_AGENT=self.user_agent,
+            **self.auth(assistant_token),
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+
+        retry = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup.data["setup_code"]},
+            format="json",
+            HTTP_USER_AGENT=self.user_agent,
+            **self.auth(assistant_token, first.data["device_token"]),
+        )
+        self.assertEqual(retry.status_code, status.HTTP_200_OK)
+        self.assertEqual(retry.data["membership"]["id"], first.data["membership"]["id"])
+        self.assertEqual(retry.data["user"]["workspace_role"], "assistant")
+        self.assertEqual(
+            StaffMembership.objects.filter(
+                user__email="assistant@example.com",
+                clinic_id=clinic.data["clinic"]["id"],
+                is_active=True,
+            ).count(),
+            1,
+        )
+
+        other = self.register("assistant", "other-assistant@example.com", "+33644444444")
+        self.verify_contacts(other.data["session_token"])
+        occupied = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": setup.data["setup_code"]},
+            format="json",
+            **self.auth(other.data["session_token"]),
+        )
+        self.assertEqual(occupied.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(occupied.data["detail"], "The Assistant slot is already filled.")
+
     def test_global_trusted_device_works_for_multiple_doctor_clinics(self):
         registered, first = self.create_doctor_clinic("First Clinic")
         token = registered.data["session_token"]

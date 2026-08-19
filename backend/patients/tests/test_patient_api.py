@@ -117,6 +117,9 @@ class PatientApiTests(APITestCase):
         )
 
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail.data["country_calling_code"], "+98")
+        self.assertEqual(detail.data["phone_number"], "9121234567")
+        self.assertEqual(detail.data["phone_e164"], "+989121234567")
         self.assertEqual(create.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(edit.status_code, status.HTTP_200_OK)
         self.assertEqual(edit.data["patient_note"], "Changed")

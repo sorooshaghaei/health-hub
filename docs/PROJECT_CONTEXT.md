@@ -98,6 +98,12 @@ Doctor defaults to Doctor workspace. Opening Assistant workspace does not change
 
 Assistant setup code is one-time and valid for 24 hours.
 
+The claim operation is idempotent only for the same Assistant's already-active
+membership, which makes an immediate submission retry enter the workspace
+without duplicating membership state. The code remains unusable by a different
+account. The setup-code screen always provides account and sign-out exits, and
+provides the clinic picker when memberships already exist.
+
 ### Existing account on trusted browser
 
 `Choose permanent role → email/phone + password or passkey → clinic`
