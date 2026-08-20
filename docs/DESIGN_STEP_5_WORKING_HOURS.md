@@ -1,6 +1,6 @@
 # Design Step 5 — Weekly clinic working hours
 
-Status: **Implemented and locally validated on the dedicated branch; awaiting review and merge approval.**
+Status: **Implemented, merged, and validated on `main`.**
 
 This is a post-Phase-8 design step. It is not Product Phase 5, which remains the completed-consultation phase.
 

@@ -115,13 +115,15 @@ export default function VisitForm({
     : [];
 
   useEffect(() => {
+    setWorkingHours([]);
+    setWorkingHoursConfigured(false);
+    setWorkingHoursUnavailable(false);
     if (workflowStarted || !clinic?.id) {
       setWorkingHoursLoaded(true);
       return undefined;
     }
     let cancelled = false;
     setWorkingHoursLoaded(false);
-    setWorkingHoursUnavailable(false);
     apiRequest(`/api/clinics/${clinic.id}/working-hours/`, { staffToken })
       .then((payload) => {
         if (cancelled) return;

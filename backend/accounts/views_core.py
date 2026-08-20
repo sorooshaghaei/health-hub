@@ -93,10 +93,10 @@ class ClinicWorkingHoursView(APIView):
             raise PermissionDenied("This account does not belong to that clinic.")
 
     def payload(self, clinic):
-        working_hours = clinic.working_hours.all()
+        working_hours = list(clinic.working_hours.all())
         return {
             "clinic": ClinicSummarySerializer(clinic).data,
-            "configured": working_hours.exists(),
+            "configured": bool(working_hours),
             "working_hours": ClinicWorkingHourSerializer(working_hours, many=True).data,
         }
 

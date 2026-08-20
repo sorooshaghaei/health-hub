@@ -30,7 +30,7 @@ Phases 0–8 have approved product contracts, implementation alignment, and comp
 The post-Phase-8 usability corrections are named **Design Steps**, not phases:
 
 - Design Steps 1–4 — complete and merged;
-- Design Step 5 — weekly clinic working days/hours and optional Appointment-time suggestions; implemented and locally validated on its own branch, awaiting review and merge approval;
+- Design Step 5 — weekly clinic working days/hours and optional Appointment-time suggestions; implemented, merged, and validated on `main`;
 - Product Phase 9 remains separate and has not started.
 
 ## Final identity architecture
@@ -360,6 +360,6 @@ It does not claim real security infrastructure. Real Patient information must ne
 
 ## Next action
 
-Review Design Step 5, confirm branch CI, and request product-owner approval before merging it into `main`.
+Design Steps 1–5 are complete. Stop before Product Phase 9 and clarify its complete product contract before implementation.
 
 After the Design Steps are complete, stop before Product Phase 9. Phase 9 has not started and requires its own clarification pass before implementation.
