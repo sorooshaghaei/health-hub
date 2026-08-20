@@ -147,3 +147,9 @@ Create and update payloads do not contain `visit_type`.
 A nested `new_patient` may replace `patient_id` during creation or before check-in.
 
 All endpoints operate only on the active clinic and require the account-role/workspace/membership permissions defined above.
+
+## Later design-step extension
+
+Post-Phase-8 **Design Step 5** adds clinic weekly working hours, a **Today** shortcut, and optional 15-minute scheduled-time suggestions without changing this phase's Appointment model, permissions, manual time entry, workflow locks, or deletion rules.
+
+See [`DESIGN_STEP_5_WORKING_HOURS.md`](DESIGN_STEP_5_WORKING_HOURS.md). Product Phase 5 remains the separate completed-consultation phase.

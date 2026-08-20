@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from rest_framework import serializers
 
-from .models import Clinic, PasskeyCredential, StaffMembership, StaffUser, TrustedDevice
+from .models import Clinic, ClinicWorkingHour, PasskeyCredential, StaffMembership, StaffUser, TrustedDevice
 from .services import normalize_staff_phone
 
 
@@ -29,6 +29,34 @@ class ClinicCreateSerializer(serializers.ModelSerializer):
             ZoneInfo(value)
         except (ZoneInfoNotFoundError, ValueError):
             raise serializers.ValidationError("Enter a valid IANA timezone, such as Europe/Paris.")
+        return value
+
+
+class ClinicWorkingHourSerializer(serializers.ModelSerializer):
+    start_time = serializers.TimeField(format="%H:%M", input_formats=["%H:%M"])
+    end_time = serializers.TimeField(format="%H:%M", input_formats=["%H:%M"])
+
+    class Meta:
+        model = ClinicWorkingHour
+        fields = ["weekday", "start_time", "end_time"]
+
+    def validate(self, attrs):
+        if attrs["start_time"] >= attrs["end_time"]:
+            raise serializers.ValidationError(
+                {"end_time": "End time must be later than start time."}
+            )
+        return attrs
+
+
+class ClinicWorkingHoursUpdateSerializer(serializers.Serializer):
+    working_hours = ClinicWorkingHourSerializer(many=True)
+
+    def validate_working_hours(self, value):
+        weekdays = [item["weekday"] for item in value]
+        if len(weekdays) != len(set(weekdays)):
+            raise serializers.ValidationError(
+                "Each weekday can have only one working-time range."
+            )
         return value
 
 

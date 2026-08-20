@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import (
     AssistantRecoveryInitiateView, AssistantSetupClaimView, AssistantSetupInfoView, AssistantSetupView,
-    ClaimDoctorMembershipView, ClinicAssistantView, ClinicContextView, ClinicCreateView,
+    ClaimDoctorMembershipView, ClinicAssistantView, ClinicContextView, ClinicCreateView, ClinicWorkingHoursView,
     DeviceContactAuthorizationConfirmView, DeviceContactAuthorizationRequestView,
     DevicePairingApproveView, DevicePairingStartView, DevicePairingStatusView,
     EmailChangeConfirmView, EmailChangeRequestView, HealthView,
@@ -20,6 +20,7 @@ from .views import (
 urlpatterns = [
     path("health/", HealthView.as_view()),
     path("clinics/", ClinicCreateView.as_view()),
+    path("clinics/<uuid:clinic_id>/working-hours/", ClinicWorkingHoursView.as_view()),
     path("clinic/context/", ClinicContextView.as_view()),
     path("clinics/<uuid:clinic_id>/claim-doctor/", ClaimDoctorMembershipView.as_view()),
     path("staff/register/", StaffRegisterView.as_view()),

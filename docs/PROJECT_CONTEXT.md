@@ -5,10 +5,10 @@ This is the handoff entry point for a new chat or development session.
 ## Repository and working protocol
 
 - Repository: `sorooshaghaei/health-hub`
-- Working branch: `main`
-- Work directly on `main`; do not create branches or pull requests unless explicitly instructed.
+- Working branch: one dedicated branch created from the current `main` for each approved product phase or design step.
+- Merge into `main` only after validation and product-owner approval; keep the branch history small and reviewable.
 - Clarify product/workflow changes with the product owner before implementing them.
-- Do not re-ask decisions already explicit in the current phase specifications.
+- Do not re-ask decisions already explicit in the current product-phase or design-step specifications.
 - Reconcile specification, implementation, tests, browser adapter, and handoff documentation together.
 - Phase 8 is complete and validated. Do not begin Phase 9 until its behavior is explicitly clarified.
 
@@ -26,6 +26,12 @@ Phases 0–8 have approved product contracts, implementation alignment, and comp
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
 - Phase 8 — Authentication/administration/security: implemented, documentation reconciled, source-audited, and validated.
 - Phase 9 — not started; clarification required before implementation.
+
+The post-Phase-8 usability corrections are named **Design Steps**, not phases:
+
+- Design Steps 1–4 — complete and merged;
+- Design Step 5 — weekly clinic working days/hours and optional Appointment-time suggestions; implemented and locally validated on its own branch, awaiting review and merge approval;
+- Product Phase 9 remains separate and has not started.
 
 ## Final identity architecture
 
@@ -254,6 +260,8 @@ A travelling browser does not change the clinic's operational day.
 - scheduled time/reason remain correctable;
 - eligible deletion has five-second Undo.
 
+Design Step 5 adds a **Today** shortcut and optional 15-minute time suggestions derived from the selected clinic's weekly working hours. Manual time entry remains available and unrestricted. The complete approved contract is in [`DESIGN_STEP_5_WORKING_HOURS.md`](DESIGN_STEP_5_WORKING_HOURS.md).
+
 ### Queue
 
 ```text
@@ -315,7 +323,8 @@ OPEN → DONE
 - Doctor in Assistant administrator workspace gets no sticky;
 - minimized strip always says **Private note**, never content;
 - autosave with Saving/Saved feedback; no title/multiple notes/history/attachments/etc.;
-- arrow-key movement/resizing plus Reset for the nonessential desktop layout;
+- pointer and arrow-key movement/resizing for the nonessential desktop layout, with no Reset control;
+- the sticky remains below workspace menus, dialogs, and the bottom-right Undo notification lane;
 - layout state not server-persisted.
 
 ## Browser demo invariant
@@ -330,6 +339,7 @@ It does not claim real security infrastructure. Real Patient information must ne
 
 - `accounts.0008_clinic_timezone` — clinic operational timezone.
 - `accounts.0009_final_phase8_identity` — permanent account roles, explicit clinic ownership, global trusted devices, Assistant dormancy/anonymization fields, removal of persisted membership role.
+- `accounts.0010_clinic_working_hours` — one clinic-scoped start/end range per enabled weekday.
 - `python manage.py cleanup_dormant_assistants` — anonymizes eligible zero-membership Assistants after the two-year retention period; production scheduling belongs to deployment/operations.
 
 ## Phase specifications
@@ -344,8 +354,12 @@ It does not claim real security infrastructure. Real Patient information must ne
 - [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md)
 - [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
 
+## Design-step specifications
+
+- [`DESIGN_STEP_5_WORKING_HOURS.md`](DESIGN_STEP_5_WORKING_HOURS.md)
+
 ## Next action
 
-Phase 8 is complete. Stop before implementation work on Phase 9.
+Review Design Step 5, confirm branch CI, and request product-owner approval before merging it into `main`.
 
-Phase 9 has not started and requires its own clarification pass before implementation.
+After the Design Steps are complete, stop before Product Phase 9. Phase 9 has not started and requires its own clarification pass before implementation.

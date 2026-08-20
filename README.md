@@ -10,7 +10,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 ## Current status
 
-**Phases 0–8 are implemented, specification-aligned, and validated on `main`. Phase 8 is complete. Phase 9 has not started and requires clarification before implementation.**
+**Product Phases 0–8 are implemented, specification-aligned, and validated on `main`. Design Steps 1–4 are complete. Design Step 5 is implemented and locally validated on its dedicated branch, awaiting review and merge approval. Product Phase 9 has not started and requires separate clarification.**
 
 Source-of-truth documents:
 
@@ -25,6 +25,7 @@ Source-of-truth documents:
 - [`docs/PHASE_6_SHARED_TASKS.md`](docs/PHASE_6_SHARED_TASKS.md)
 - [`docs/PHASE_7_PRIVATE_NOTES.md`](docs/PHASE_7_PRIVATE_NOTES.md)
 - [`docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
+- [`docs/DESIGN_STEP_5_WORKING_HOURS.md`](docs/DESIGN_STEP_5_WORKING_HOURS.md)
 
 ## Account and clinic architecture
 

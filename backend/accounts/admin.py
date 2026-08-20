@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import AssistantSetupToken, Clinic, DevicePairingRequest, PasskeyCredential, RecoveryCode, RecoveryGrant, StaffMembership, StaffSession, StaffUser, TrustedDevice, VerificationChallenge
+from .models import AssistantSetupToken, Clinic, ClinicWorkingHour, DevicePairingRequest, PasskeyCredential, RecoveryCode, RecoveryGrant, StaffMembership, StaffSession, StaffUser, TrustedDevice, VerificationChallenge
 
 
 @admin.register(Clinic)
@@ -9,6 +9,13 @@ class ClinicAdmin(admin.ModelAdmin):
     list_display = ("name", "owner_doctor", "created_at")
     search_fields = ("name", "owner_doctor__email")
     readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(ClinicWorkingHour)
+class ClinicWorkingHourAdmin(admin.ModelAdmin):
+    list_display = ("clinic", "weekday", "start_time", "end_time")
+    list_filter = ("weekday",)
+    search_fields = ("clinic__name",)
 
 
 @admin.register(StaffUser)
