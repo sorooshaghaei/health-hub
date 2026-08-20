@@ -2,19 +2,20 @@
 
 ## Working protocol
 
-Health Hub is developed directly on `main`, one approved phase or corrective pass at a time.
+Health Hub is developed one approved product phase or design step at a time on a dedicated branch created from the current `main`.
 
 For each unit:
 
-1. read `PROJECT_CONTEXT.md` and the relevant phase specification;
+1. read `PROJECT_CONTEXT.md` and the relevant product-phase or design-step specification;
 2. clarify unresolved product behavior before implementation;
 3. update the specification to the approved contract;
 4. align backend, frontend, browser adapter, migrations, and tests;
 5. validate affected behavior;
-6. commit directly to `main`;
-7. do not start the next phase until the current phase is reconciled.
+6. keep the approved unit on its dedicated branch with a small, reviewable commit history;
+7. merge into `main` only after validation and product-owner approval;
+8. do not start the next unit until the current unit is reconciled.
 
-Do not create branches, pull requests, speculative features, duplicate workflows, or unapproved dependencies.
+Do not add speculative features, duplicate workflows, or unapproved dependencies. Product **Phases** and post-Phase-8 **Design Steps** are separate naming systems and must not be used interchangeably.
 
 ## Current product baseline
 
@@ -238,12 +239,14 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 
 ## Current work
 
-**Phase 8 is complete and validated. An approved five-part post-Phase-8 corrective pass is in progress without redefining the product roadmap:**
+**Product Phase 8 is complete and validated. The approved post-Phase-8 usability work is tracked as five Design Steps so it cannot be confused with the product roadmap:**
 
-1. critical onboarding and Patient-edit data safety;
-2. workspace usability and visual hierarchy;
-3. verification, password, and recovery guidance;
-4. task/settings/dialog accessibility;
-5. shared clinic-aware scheduling.
+1. **Design Step 1 — complete:** critical onboarding and Patient-edit data safety;
+2. **Design Step 2 — complete:** workspace usability and visual hierarchy;
+3. **Design Step 3 — complete:** verification, password, and recovery guidance;
+4. **Design Step 4 — complete:** task/settings/dialog accessibility;
+5. **Design Step 5 — approved for implementation:** weekly clinic working days/hours and optional Appointment-time suggestions.
 
-Each corrective part is implemented, reviewed, and approved before the next begins. Phase 9 remains the reserved sensitive-attachment phase and is not part of this corrective pass.
+Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
+
+See [`DESIGN_STEP_5_WORKING_HOURS.md`](DESIGN_STEP_5_WORKING_HOURS.md) for the approved contract and implementation plan. Product Phase 9 remains the reserved sensitive-attachment phase and is not part of these Design Steps.
