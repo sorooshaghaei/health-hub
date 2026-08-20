@@ -26,7 +26,10 @@ function loadAuthStore() {
     return {
       ...emptyAuthStore(), ...parsed,
       accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
-      clinics: Array.isArray(parsed.clinics) ? parsed.clinics : [],
+      clinics: Array.isArray(parsed.clinics) ? parsed.clinics.map((clinic) => ({
+        ...clinic,
+        working_hours: Array.isArray(clinic.working_hours) ? clinic.working_hours : [],
+      })) : [],
       memberships: Array.isArray(parsed.memberships) ? parsed.memberships : [],
       devices: Array.isArray(parsed.devices) ? parsed.devices : [],
       sessions: parsed.sessions && typeof parsed.sessions === "object" ? parsed.sessions : {},
@@ -41,6 +44,21 @@ function loadAuthStore() {
 
 function saveAuthStore(store) { localStorage.setItem(AUTH_STORE_KEY, JSON.stringify(store)); }
 function clean(value) { return typeof value === "string" ? value.trim() : ""; }
+function normalizeWorkingHours(value) {
+  if (!Array.isArray(value)) fail({ working_hours: ["Enter a list of working days and hours."] });
+  const weekdays = new Set();
+  const result = value.map((item) => {
+    const weekday = Number(item?.weekday), start_time = clean(item?.start_time), end_time = clean(item?.end_time);
+    if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) fail({ working_hours: ["Choose a valid weekday."] });
+    if (weekdays.has(weekday)) fail({ working_hours: ["Each weekday can have only one working-time range."] });
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(start_time)) fail({ working_hours: ["Enter a valid start time."] });
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(end_time)) fail({ working_hours: ["Enter a valid end time."] });
+    if (start_time >= end_time) fail({ working_hours: ["End time must be later than start time."] });
+    weekdays.add(weekday);
+    return { weekday, start_time, end_time };
+  });
+  return result.sort((first, second) => first.weekday - second.weekday);
+}
 function normalizeEmail(value) { return clean(value).toLowerCase(); }
 function normalizePhone(value) {
   let phone = clean(value).replace(/[\s().-]+/g, "");
@@ -253,7 +271,7 @@ function createClinic(store, staffToken, data) {
     if (store.devices.some((item) => item.user_id === account.id)) fail({ detail: "Authorize this browser before creating another clinic." }, 403);
     const issued = issueDevice(store, account.id); device = issued.device; rawDevice = issued.token; session.device_id = device.id;
   }
-  const clinic = { id: crypto.randomUUID(), name, timezone: clean(data.timezone) || "UTC", owner_doctor_id: account.id, created_at: nowIso() }; store.clinics.push(clinic);
+  const clinic = { id: crypto.randomUUID(), name, timezone: clean(data.timezone) || "UTC", owner_doctor_id: account.id, working_hours: [], created_at: nowIso() }; store.clinics.push(clinic);
   const membership = { id: crypto.randomUUID(), user_id: account.id, clinic_id: clinic.id, is_active: true, joined_at: nowIso() }; store.memberships.push(membership);
   session.clinic_id = clinic.id; session.workspace_role = "doctor"; activateLegacyClinic(store, clinic.id); saveAuthStore(store);
   return { clinic: publicClinic(clinic), roles: { doctor: { exists: true, is_administrator: true }, assistant: { exists: false, is_administrator: false } }, membership: publicMembership(store, membership), user: publicUser(store, account, session), trusted_device: publicDevice(device, device.id), ...(rawDevice ? { device_token: rawDevice } : {}) };
@@ -266,6 +284,23 @@ function chooseWorkspace(store, staffToken, data) {
   archiveLegacyStore(store); session.clinic_id = membership.clinic_id; session.workspace_role = data.workspace_role; activateLegacyClinic(store, membership.clinic_id); saveAuthStore(store); return { user: publicUser(store, account, session) };
 }
 function clearWorkspace(store, staffToken) { const { session, account } = sessionFor(store, staffToken); archiveLegacyStore(store); session.clinic_id = null; session.workspace_role = null; saveAuthStore(store); return { user: publicUser(store, account, session) }; }
+
+function clinicWorkingHours(store, staffToken, clinicId, method, data) {
+  const { session, account } = sessionFor(store, staffToken);
+  const device = deviceForSession(store, session);
+  if (!device || device.user_id !== account.id) fail({ detail: "Use a trusted device before opening clinic data." }, 403);
+  if (!account.email_verified_at || !account.phone_verified_at) fail({ detail: "Verify both email and phone before opening clinic data." }, 403);
+  if (!membershipFor(store, account.id, clinicId)) fail({ detail: "This account does not belong to that clinic." }, 403);
+  const clinic = store.clinics.find((item) => item.id === clinicId);
+  if (!clinic) fail({ detail: "Clinic not found." }, 404);
+  if (method === "PUT") {
+    if (account.role !== "doctor" || clinic.owner_doctor_id !== account.id) fail({ detail: "Only the clinic Doctor can change working days and hours." }, 403);
+    clinic.working_hours = normalizeWorkingHours(data.working_hours);
+    saveAuthStore(store);
+  }
+  const working_hours = Array.isArray(clinic.working_hours) ? clinic.working_hours.map((item) => ({ ...item })) : [];
+  return { clinic: publicClinic(clinic), configured: working_hours.length > 0, working_hours };
+}
 
 function deviceAuthorizationRequest(store, staffToken, data) {
   const { account } = sessionFor(store, staffToken); if (!account.email_verified_at || !account.phone_verified_at) fail({ detail: "Verify both email and phone before trusting a browser." }, 403);
@@ -340,6 +375,8 @@ export async function demoPhase8ApiRequest(path, { method = "GET", data = {}, st
   if (pathname === "/api/staff/logout/" && method === "POST") { archiveLegacyStore(store); if (staffToken) delete store.sessions[staffToken]; saveAuthStore(store); return null; }
   if (pathname === "/api/staff/profile/" && method === "PATCH") return profileUpdate(store, staffToken, data);
   if (pathname === "/api/clinics/" && method === "POST") return createClinic(store, staffToken, data);
+  const workingHoursMatch = pathname.match(/^\/api\/clinics\/([0-9a-f-]+)\/working-hours\/$/i);
+  if (workingHoursMatch && ["GET", "PUT"].includes(method)) return clinicWorkingHours(store, staffToken, workingHoursMatch[1], method, data);
   if (pathname === "/api/staff/select-clinic/" && method === "POST") return chooseWorkspace(store, staffToken, data);
   if (pathname === "/api/staff/leave-clinic/" && method === "POST") return clearWorkspace(store, staffToken);
   if (pathname === "/api/clinic/context/" && method === "GET") { const { session, account } = sessionFor(store, staffToken); return { user: publicUser(store, account, session), ...(session.clinic_id ? { clinic: publicClinic(store.clinics.find((c) => c.id === session.clinic_id)) } : {}) }; }

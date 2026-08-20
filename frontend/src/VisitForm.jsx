@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
 import { appointmentPatientPayload, shouldSuggestPatients } from "./appointmentPatientFlow.js";
+import { dateValueInTimeZone } from "./clinicTime.js";
+import { suggestedAppointmentTimes, workingHoursForDate } from "./clinicWorkingHours.js";
 import {
   DuplicateWarning,
   PatientFields,
@@ -77,6 +79,7 @@ export default function VisitForm({
   visit,
   defaultDate,
   defaultTime,
+  clinic,
   staffToken,
   onSaved,
   onCancel,
@@ -99,8 +102,38 @@ export default function VisitForm({
   const [sameDayConflict, setSameDayConflict] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [workingHours, setWorkingHours] = useState([]);
+  const [workingHoursConfigured, setWorkingHoursConfigured] = useState(false);
+  const [workingHoursLoaded, setWorkingHoursLoaded] = useState(false);
+  const [workingHoursUnavailable, setWorkingHoursUnavailable] = useState(false);
 
   const typedName = patientDraft.full_name.trim();
+  const clinicToday = dateValueInTimeZone(clinic?.timezone || "UTC");
+  const selectedDayHours = workingHoursForDate(workingHours, schedule.date);
+  const timeSuggestions = selectedDayHours
+    ? suggestedAppointmentTimes(selectedDayHours.start_time, selectedDayHours.end_time)
+    : [];
+
+  useEffect(() => {
+    if (workflowStarted || !clinic?.id) {
+      setWorkingHoursLoaded(true);
+      return undefined;
+    }
+    let cancelled = false;
+    setWorkingHoursLoaded(false);
+    setWorkingHoursUnavailable(false);
+    apiRequest(`/api/clinics/${clinic.id}/working-hours/`, { staffToken })
+      .then((payload) => {
+        if (cancelled) return;
+        setWorkingHours(payload.working_hours);
+        setWorkingHoursConfigured(payload.configured);
+      })
+      .catch(() => {
+        if (!cancelled) setWorkingHoursUnavailable(true);
+      })
+      .finally(() => { if (!cancelled) setWorkingHoursLoaded(true); });
+    return () => { cancelled = true; };
+  }, [workflowStarted, clinic?.id, staffToken]);
 
   useEffect(() => {
     if (workflowStarted || selectedPatient || !shouldSuggestPatients(typedName)) {
@@ -314,18 +347,21 @@ export default function VisitForm({
           <h4>Date, time, and reason</h4>
         </div>
         <div className="visit-schedule-fields">
-          <Field
-            label="Date"
-            name="date"
-            type="date"
-            value={schedule.date}
-            onChange={(event) => {
-              setSameDayConflict(null);
-              setSchedule((current) => ({ ...current, date: event.target.value }));
-            }}
-            disabled={workflowStarted}
-            required
-          />
+          <div className="visit-date-control">
+            <Field
+              label="Date"
+              name="date"
+              type="date"
+              value={schedule.date}
+              onChange={(event) => {
+                setSameDayConflict(null);
+                setSchedule((current) => ({ ...current, date: event.target.value }));
+              }}
+              disabled={workflowStarted}
+              required
+            />
+            {!workflowStarted && <div className="visit-date-control__actions"><button className="text-button" type="button" disabled={schedule.date === clinicToday} onClick={() => { setSameDayConflict(null); setSchedule((current) => ({ ...current, date: clinicToday })); }}>Today</button></div>}
+          </div>
           <Field
             label="Scheduled time"
             name="scheduled_time"
@@ -334,6 +370,13 @@ export default function VisitForm({
             onChange={(event) => setSchedule((current) => ({ ...current, scheduled_time: event.target.value }))}
             required
           />
+          {!workflowStarted && workingHoursLoaded && (
+            <div className="appointment-time-guidance">
+              {workingHoursConfigured && !selectedDayHours && schedule.date && <p className="appointment-working-warning" role="status">This is not a working day for this clinic.</p>}
+              {workingHoursUnavailable && <p className="appointment-hours-unavailable">Working hours could not be loaded. Enter the time manually.</p>}
+              {!!timeSuggestions.length && <div className="appointment-time-suggestions" aria-label="Suggested appointment times"><span>Suggested times</span>{timeSuggestions.map((time) => <button type="button" key={time} aria-pressed={schedule.scheduled_time === time} onClick={() => setSchedule((current) => ({ ...current, scheduled_time: time }))}>{time}</button>)}</div>}
+            </div>
+          )}
         </div>
         <TextAreaField
           label="Visit reason"

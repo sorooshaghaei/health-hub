@@ -10,7 +10,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 ## Current status
 
-**Product Phases 0–8 are implemented, specification-aligned, and validated on `main`. Design Steps 1–4 are complete. Design Step 5 is approved for implementation. Product Phase 9 has not started and requires separate clarification.**
+**Product Phases 0–8 are implemented, specification-aligned, and validated on `main`. Design Steps 1–4 are complete. Design Step 5 is implemented and locally validated on its dedicated branch, awaiting review and merge approval. Product Phase 9 has not started and requires separate clarification.**
 
 Source-of-truth documents:
 

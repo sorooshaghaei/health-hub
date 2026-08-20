@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import AccountSettings from "./AccountSettings.jsx";
 import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
+import ClinicWorkingHours from "./ClinicWorkingHours.jsx";
 import { PasswordField, PasswordPair, useResendCountdown } from "./credentialUi.jsx";
 import PatientWorkspace from "./PatientWorkspace.jsx";
 import { getPasskey } from "./webauthn.js";
@@ -297,6 +298,16 @@ function ClinicPicker({ user, onChoose, onCreate, onJoin, onSettings, onSignOut 
   </AuthShell>;
 }
 
+function ClinicDetails({ membership, user, staffToken, onBack, onOpenWorkspace }) {
+  const clinic = membership.clinic;
+  const editable = user.role === "doctor" && membership.is_clinic_admin;
+  return <AuthShell title={clinic.name} description="Review this clinic before opening its workspace." onBack={onBack}>
+    <div className="panel-heading"><p className="eyebrow">Selected clinic</p><h2>{clinic.name}</h2><p>{editable ? "Doctor · Administrator" : "Assistant · Read-only clinic settings"}</p></div>
+    <div className="clinic-details-actions"><Button variant="primary" compact type="button" onClick={onOpenWorkspace}>Open clinic workspace</Button></div>
+    <ClinicWorkingHours clinic={clinic} editable={editable} staffToken={staffToken} />
+  </AuthShell>;
+}
+
 function RecoveryFlow({ onBack, onComplete }) {
   const [step, setStep] = useState("request"), [identity, setIdentity] = useState(""), [channel, setChannel] = useState("email"), [code, setCode] = useState(""), [recoveryToken, setRecoveryToken] = useState(""), [password, setPassword] = useState(""), [confirm, setConfirm] = useState(""), [error, setError] = useState(null), [busy, setBusy] = useState(false), [method, setMethod] = useState("contact"), [dev, setDev] = useState("");
   const resend = useResendCountdown();
@@ -327,6 +338,7 @@ export default function ProductionApp() {
   const [role, setRole] = useState(null);
   const [staffToken, setStaffToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [selectedMembership, setSelectedMembership] = useState(null);
   const [accountSettingsReturnScreen, setAccountSettingsReturnScreen] = useState("clinics");
 
   function saveSession(token) {
@@ -437,7 +449,7 @@ export default function ProductionApp() {
   async function showClinics() {
     try {
       const payload = await apiRequest("/api/staff/leave-clinic/", { method: "POST", staffToken });
-      setUser(payload.user); setScreen("clinics");
+      setSelectedMembership(null); setUser(payload.user); setScreen("clinics");
     } catch { await signOut(); }
   }
 
@@ -479,7 +491,8 @@ export default function ProductionApp() {
   if (screen === "device-auth" && user && staffToken) return <DeviceAuthorization staffToken={staffToken} onAuthorized={deviceAuthorized} onBack={() => setScreen("role")} />;
   if (screen === "create-clinic" && user?.role === "doctor") return <ClinicCreateForm onSubmit={createClinic} onBack={user.memberships?.length ? () => setScreen("clinics") : undefined} />;
   if (screen === "join-clinic" && user?.role === "assistant") return <AssistantJoinForm onSubmit={joinClinic} additional={Boolean(user.memberships?.length)} onAccount={() => openAccountSettings("join-clinic")} onClinics={() => setScreen("clinics")} onSignOut={signOut} />;
-  if (screen === "clinics" && user && staffToken) return <ClinicPicker user={user} onChoose={(membership) => openMembership(membership)} onCreate={() => setScreen("create-clinic")} onJoin={() => setScreen("join-clinic")} onSettings={() => openAccountSettings("clinics")} onSignOut={signOut} />;
+  if (screen === "clinics" && user && staffToken) return <ClinicPicker user={user} onChoose={(membership) => { setSelectedMembership(membership); setScreen("clinic-details"); }} onCreate={() => setScreen("create-clinic")} onJoin={() => setScreen("join-clinic")} onSettings={() => openAccountSettings("clinics")} onSignOut={signOut} />;
+  if (screen === "clinic-details" && user && staffToken && selectedMembership) return <ClinicDetails membership={selectedMembership} user={user} staffToken={staffToken} onBack={() => setScreen("clinics")} onOpenWorkspace={() => openMembership(selectedMembership)} />;
   if (screen === "account-settings" && user && staffToken) return <AccountSettingsStandalone user={user} staffToken={staffToken} onUserChange={setUser} onAccountDeleted={accountDeleted} onBack={() => setScreen(accountSettingsReturnScreen)} />;
   if (screen === "workspace" && user && staffToken) return <PatientWorkspace user={user} staffToken={staffToken} onSignOut={signOut} onSwitchClinic={showClinics} onSwitchWorkspace={switchWorkspace} onUserChange={setUser} onAccountDeleted={accountDeleted} />;
   return <LoadingScreen />;

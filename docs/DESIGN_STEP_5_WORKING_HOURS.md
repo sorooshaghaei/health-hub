@@ -1,6 +1,6 @@
 # Design Step 5 — Weekly clinic working hours
 
-Status: **Product behavior approved; implementation not started.**
+Status: **Implemented and locally validated on the dedicated branch; awaiting review and merge approval.**
 
 This is a post-Phase-8 design step. It is not Product Phase 5, which remains the completed-consultation phase.
 
@@ -68,13 +68,13 @@ The Assistant may type any valid time manually, including a time outside the con
 
 Suggestions apply when creating an Appointment and when editing a planned Appointment. Existing post-check-in field locks and correction rules do not change.
 
-## Implementation plan
+## Implemented architecture
 
 ### 1. Clinic data and API
 
 - Add a clinic-owned weekly-hours record with one row per enabled weekday.
 - Store weekday, start time, and end time; enforce one row per clinic and weekday plus start-before-end validation.
-- Provide one clinic-scoped read endpoint for active members and one idempotent full-update operation for the owning Doctor.
+- Provide `GET` and `PUT /api/clinics/<clinic-id>/working-hours/` for clinic-scoped reading and idempotent full replacement.
 - Return a clear permission error if an Assistant attempts to modify the hours.
 - Mirror the same records, validation, and permissions in the browser-demo adapter.
 

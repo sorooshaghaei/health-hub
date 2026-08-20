@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
+import { dateValueInTimeZone, timeValueInTimeZone } from "./clinicTime.js";
 import Dialog from "./Dialog.jsx";
 import { formatDate, formatTime } from "./patientForm.jsx";
 import VisitForm from "./VisitForm.jsx";
@@ -12,15 +13,6 @@ const STATUS_LABELS = {
   with_doctor: "With doctor",
   doctor_finished: "Completed",
 };
-
-function localDateValue(date = new Date()) {
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
-}
-
-function localTimeValue(date = new Date()) {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
 
 function statusLabel(status) {
   return STATUS_LABELS[status] ?? status;
@@ -206,6 +198,7 @@ function RoomReadyNotification({ roomCall, queue, dismissed, onDismiss }) {
 }
 
 export default function ScheduleWorkspace({
+  clinic,
   staffToken,
   requestedVisitId,
   onRequestedVisitHandled,
@@ -215,7 +208,7 @@ export default function ScheduleWorkspace({
   refreshVersion = 0,
   readOnly = false,
 }) {
-  const initialToday = localDateValue();
+  const initialToday = dateValueInTimeZone(clinic?.timezone || "UTC");
   const [today, setToday] = useState(initialToday);
   const todayRef = useRef(initialToday);
   const [selectedDate, setSelectedDate] = useState(initialToday);
@@ -571,7 +564,8 @@ export default function ScheduleWorkspace({
             <VisitForm
               key="create"
               defaultDate={selectedDate}
-              defaultTime={selectedDate === today ? localTimeValue() : ""}
+              defaultTime={selectedDate === today ? timeValueInTimeZone(clinic?.timezone || "UTC") : ""}
+              clinic={clinic}
               staffToken={staffToken}
               onSaved={saved}
               onCancel={() => setMode("list")}
@@ -585,6 +579,7 @@ export default function ScheduleWorkspace({
               visit={editingVisit}
               defaultDate={editingVisit.date}
               defaultTime={editingVisit.scheduled_time?.slice(0, 5) ?? ""}
+              clinic={clinic}
               staffToken={staffToken}
               onSaved={saved}
               onCancel={() => { setEditingVisit(null); setMode("list"); }}

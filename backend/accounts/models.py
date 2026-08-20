@@ -77,6 +77,42 @@ class Clinic(models.Model):
         return self.name
 
 
+class ClinicWorkingHour(models.Model):
+    class Weekday(models.IntegerChoices):
+        MONDAY = 0, "Monday"
+        TUESDAY = 1, "Tuesday"
+        WEDNESDAY = 2, "Wednesday"
+        THURSDAY = 3, "Thursday"
+        FRIDAY = 4, "Friday"
+        SATURDAY = 5, "Saturday"
+        SUNDAY = 6, "Sunday"
+
+    clinic = models.ForeignKey(
+        Clinic,
+        on_delete=models.CASCADE,
+        related_name="working_hours",
+    )
+    weekday = models.PositiveSmallIntegerField(choices=Weekday.choices)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        ordering = ["weekday"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["clinic", "weekday"],
+                name="one_working_range_per_clinic_weekday",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(start_time__lt=models.F("end_time")),
+                name="clinic_working_start_before_end",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.clinic.name} · {self.get_weekday_display()} · {self.start_time:%H:%M}–{self.end_time:%H:%M}"
+
+
 class TrustedDevice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(

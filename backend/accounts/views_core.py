@@ -76,6 +76,56 @@ class ClinicContextView(APIView):
         return Response(payload)
 
 
+class ClinicWorkingHoursView(APIView):
+    def membership(self, request, clinic_id):
+        device = request.auth.trusted_device
+        if device is None or device.user_id != request.user.id:
+            raise PermissionDenied("Use a trusted device before opening clinic data.")
+        if not request.user.contacts_verified:
+            raise PermissionDenied("Verify both email and phone before opening clinic data.")
+        try:
+            return StaffMembership.objects.select_related("clinic").get(
+                user=request.user,
+                clinic_id=clinic_id,
+                is_active=True,
+            )
+        except StaffMembership.DoesNotExist:
+            raise PermissionDenied("This account does not belong to that clinic.")
+
+    def payload(self, clinic):
+        working_hours = clinic.working_hours.all()
+        return {
+            "clinic": ClinicSummarySerializer(clinic).data,
+            "configured": working_hours.exists(),
+            "working_hours": ClinicWorkingHourSerializer(working_hours, many=True).data,
+        }
+
+    def get(self, request, clinic_id):
+        membership = self.membership(request, clinic_id)
+        return Response(self.payload(membership.clinic))
+
+    def put(self, request, clinic_id):
+        membership = self.membership(request, clinic_id)
+        clinic = membership.clinic
+        if (
+            request.user.role != StaffUser.Role.DOCTOR
+            or clinic.owner_doctor_id != request.user.id
+        ):
+            raise PermissionDenied("Only the clinic Doctor can change working days and hours.")
+
+        serializer = ClinicWorkingHoursUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            locked_clinic = Clinic.objects.select_for_update().get(pk=clinic.pk)
+            locked_clinic.working_hours.all().delete()
+            ClinicWorkingHour.objects.bulk_create([
+                ClinicWorkingHour(clinic=locked_clinic, **item)
+                for item in serializer.validated_data["working_hours"]
+            ])
+        clinic.refresh_from_db()
+        return Response(self.payload(clinic))
+
+
 class ClaimDoctorMembershipView(APIView):
     """Compatibility endpoint for an ownerless migrated/test clinic.
 

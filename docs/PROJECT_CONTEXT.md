@@ -30,7 +30,7 @@ Phases 0–8 have approved product contracts, implementation alignment, and comp
 The post-Phase-8 usability corrections are named **Design Steps**, not phases:
 
 - Design Steps 1–4 — complete and merged;
-- Design Step 5 — weekly clinic working days/hours and optional Appointment-time suggestions; approved for implementation on its own branch;
+- Design Step 5 — weekly clinic working days/hours and optional Appointment-time suggestions; implemented and locally validated on its own branch, awaiting review and merge approval;
 - Product Phase 9 remains separate and has not started.
 
 ## Final identity architecture
@@ -339,6 +339,7 @@ It does not claim real security infrastructure. Real Patient information must ne
 
 - `accounts.0008_clinic_timezone` — clinic operational timezone.
 - `accounts.0009_final_phase8_identity` — permanent account roles, explicit clinic ownership, global trusted devices, Assistant dormancy/anonymization fields, removal of persisted membership role.
+- `accounts.0010_clinic_working_hours` — one clinic-scoped start/end range per enabled weekday.
 - `python manage.py cleanup_dormant_assistants` — anonymizes eligible zero-membership Assistants after the two-year retention period; production scheduling belongs to deployment/operations.
 
 ## Phase specifications
@@ -359,6 +360,6 @@ It does not claim real security infrastructure. Real Patient information must ne
 
 ## Next action
 
-Implement and validate Design Step 5 on its dedicated branch, then request product-owner approval before merging it into `main`.
+Review Design Step 5, confirm branch CI, and request product-owner approval before merging it into `main`.
 
 After the Design Steps are complete, stop before Product Phase 9. Phase 9 has not started and requires its own clarification pass before implementation.

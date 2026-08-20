@@ -245,7 +245,7 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 2. **Design Step 2 — complete:** workspace usability and visual hierarchy;
 3. **Design Step 3 — complete:** verification, password, and recovery guidance;
 4. **Design Step 4 — complete:** task/settings/dialog accessibility;
-5. **Design Step 5 — approved for implementation:** weekly clinic working days/hours and optional Appointment-time suggestions.
+5. **Design Step 5 — implemented and locally validated; awaiting review and merge approval:** weekly clinic working days/hours and optional Appointment-time suggestions.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 
