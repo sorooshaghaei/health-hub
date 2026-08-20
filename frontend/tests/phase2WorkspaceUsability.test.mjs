@@ -47,12 +47,16 @@ test("shared form controls and operational metadata meet the corrected type scal
   assert.match(workspaceUsability, /\.task-field \{\s*font-size: 14px;/);
 });
 
-test("the private note reserves the Undo lane and Undo stays on top", async () => {
+test("the private note starts below the workspace header and reserves the Undo lane", async () => {
   const sticky = await source("../src/PrivateSticky.jsx");
   const queue = await source("../src/phase3.css");
 
+  assert.match(sticky, /const WORKSPACE_HEADER_HEIGHT = 76;/);
+  assert.match(sticky, /function topRightPosition\(\)/);
+  assert.match(sticky, /WORKSPACE_HEADER_HEIGHT \+ EDGE_MARGIN/);
   assert.match(sticky, /const UNDO_LANE_RESERVE = 104;/);
   assert.match(sticky, /viewport\.height - MINIMIZED_HEIGHT - EDGE_MARGIN - UNDO_LANE_RESERVE/);
   assert.match(sticky, /availableHeight = Math\.max\(0, viewport\.height - UNDO_LANE_RESERVE\)/);
+  assert.doesNotMatch(sticky, /setMinimizedPosition\([^)]*\);\s*setMinimized\(true\)/);
   assert.match(queue, /\.undo-stack \{[\s\S]*?z-index: 110;/);
 });

@@ -54,7 +54,7 @@ test("account deletion is isolated from ordinary settings", () => {
   assert.match(account, /Back to account settings/);
 });
 
-test("private note announces autosave and supports keyboard layout recovery", () => {
+test("private note announces autosave and supports keyboard movement and resizing", () => {
   const sticky = source("PrivateSticky.jsx");
   assert.match(sticky, /setSaveStatus\("saving"\)/);
   assert.match(sticky, /setSaveStatus\("saved"\)/);
@@ -62,5 +62,6 @@ test("private note announces autosave and supports keyboard layout recovery", ()
   assert.match(sticky, /function moveWithKeyboard/);
   assert.match(sticky, /function resizeWithKeyboard/);
   assert.match(sticky, /aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"/);
-  assert.match(sticky, /Reset private note position and size/);
+  assert.doesNotMatch(sticky, /Reset private note position and size/);
+  assert.doesNotMatch(sticky, />Reset<\/button>/);
 });

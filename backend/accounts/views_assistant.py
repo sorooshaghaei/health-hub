@@ -111,10 +111,7 @@ class AssistantSetupClaimView(APIView):
         idempotent_retry = False
         try:
             with transaction.atomic():
-                token = AssistantSetupToken.objects.select_for_update().select_related(
-                    "clinic",
-                    "clinic__owner_doctor",
-                ).get(pk=token.pk)
+                token = AssistantSetupToken.objects.select_for_update().get(pk=token.pk)
                 clinic = Clinic.objects.select_for_update().get(pk=token.clinic_id)
                 current = current_assistant_membership(clinic)
                 if current is not None and current.user_id != request.user.id:

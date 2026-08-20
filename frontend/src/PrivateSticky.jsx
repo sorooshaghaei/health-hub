@@ -5,6 +5,7 @@ import "./privateStickyAccessibility.css";
 
 const EDGE_MARGIN = 14;
 const UNDO_LANE_RESERVE = 104;
+const WORKSPACE_HEADER_HEIGHT = 76;
 const MINIMIZED_WIDTH = 236;
 const MINIMIZED_HEIGHT = 38;
 const MIN_WIDTH = 300;
@@ -31,17 +32,41 @@ function defaultExpandedFrame() {
     width,
     height,
     x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
-    y: Math.max(EDGE_MARGIN, availableHeight - height - EDGE_MARGIN),
+    y: clamp(
+      WORKSPACE_HEADER_HEIGHT + EDGE_MARGIN,
+      EDGE_MARGIN,
+      availableHeight - height,
+    ),
   };
 }
 
-function bottomRightPosition() {
+function topRightPosition() {
+  const viewport = viewportSize();
+  const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
+  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
+  return {
+    x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
+    y: clamp(
+      WORKSPACE_HEADER_HEIGHT + EDGE_MARGIN,
+      EDGE_MARGIN,
+      availableHeight - MINIMIZED_HEIGHT,
+    ),
+  };
+}
+
+function mobileBottomRightPosition() {
   const viewport = viewportSize();
   const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
   return {
     x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
     y: Math.max(EDGE_MARGIN, viewport.height - MINIMIZED_HEIGHT - EDGE_MARGIN - UNDO_LANE_RESERVE),
   };
+}
+
+function defaultMinimizedPosition() {
+  return window.matchMedia(MOBILE_QUERY).matches
+    ? mobileBottomRightPosition()
+    : topRightPosition();
 }
 
 function constrainFrame(frame) {
@@ -75,7 +100,7 @@ export default function PrivateSticky({ staffToken }) {
   const [minimized, setMinimized] = useState(true);
   const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
   const [frame, setFrame] = useState(defaultExpandedFrame);
-  const [minimizedPosition, setMinimizedPosition] = useState(bottomRightPosition);
+  const [minimizedPosition, setMinimizedPosition] = useState(defaultMinimizedPosition);
   const latestContent = useRef("");
   const persistedContent = useRef("");
   const saving = useRef(false);
@@ -173,18 +198,12 @@ export default function PrivateSticky({ staffToken }) {
 
   function minimize() {
     flush();
-    setMinimizedPosition(bottomRightPosition());
     setMinimized(true);
   }
 
   function maximize() {
     setFrame((current) => constrainFrame(current));
     setMinimized(false);
-  }
-
-  function resetLayout() {
-    setFrame(defaultExpandedFrame());
-    setMinimizedPosition(bottomRightPosition());
   }
 
   function moveWithKeyboard(event) {
@@ -325,7 +344,6 @@ export default function PrivateSticky({ staffToken }) {
         >
           <span className="private-sticky__preview">Private note</span>
           <span className="private-sticky__header-actions">
-            {!mobile && <button className="private-sticky__reset" type="button" onClick={resetLayout} aria-label="Reset private note position and size">Reset</button>}
             <button type="button" onClick={maximize} aria-label="Maximize private note">□</button>
           </span>
         </div>
@@ -348,7 +366,6 @@ export default function PrivateSticky({ staffToken }) {
       >
         <span className="private-sticky__title">Private note <small aria-live="polite" aria-atomic="true">{statusText}</small></span>
         <span className="private-sticky__header-actions">
-          {!mobile && <button className="private-sticky__reset" type="button" onClick={resetLayout} aria-label="Reset private note position and size">Reset</button>}
           <button type="button" onClick={minimize} aria-label="Minimize private note">—</button>
         </span>
       </header>
