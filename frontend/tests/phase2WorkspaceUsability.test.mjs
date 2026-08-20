@@ -49,6 +49,8 @@ test("shared form controls and operational metadata meet the corrected type scal
 
 test("the private note starts below the workspace header and reserves the Undo lane", async () => {
   const sticky = await source("../src/PrivateSticky.jsx");
+  const stickyStyles = await source("../src/phase7.css");
+  const base = await source("../src/styles.css");
   const queue = await source("../src/phase3.css");
 
   assert.match(sticky, /const WORKSPACE_HEADER_HEIGHT = 76;/);
@@ -58,5 +60,9 @@ test("the private note starts below the workspace header and reserves the Undo l
   assert.match(sticky, /viewport\.height - MINIMIZED_HEIGHT - EDGE_MARGIN - UNDO_LANE_RESERVE/);
   assert.match(sticky, /availableHeight = Math\.max\(0, viewport\.height - UNDO_LANE_RESERVE\)/);
   assert.doesNotMatch(sticky, /setMinimizedPosition\([^)]*\);\s*setMinimized\(true\)/);
+  assert.match(stickyStyles, /\.private-sticky\{[^}]*z-index:4;/);
+  assert.match(stickyStyles, /\.private-sticky--open\{[^}]*z-index:60;/);
+  assert.match(base, /\.workspace-header \{[^}]*z-index: 20;/);
+  assert.match(base, /\.workspace-account-menu__panel \{[^}]*z-index: 40;/);
   assert.match(queue, /\.undo-stack \{[\s\S]*?z-index: 110;/);
 });
