@@ -214,7 +214,7 @@ OPEN → DONE
 - Doctor administrator access to Assistant workspace shows no sticky;
 - minimized strip always shows **Private note**, never private content;
 - autosave with Saving/Saved feedback; no multiple notes/title/history/attachments/etc.;
-- desktop movement and resizing support arrow keys, and Reset restores the safe default layout;
+- desktop pointer and arrow-key movement/resizing stay inside safe viewport bounds below the workspace header and above the Undo lane; compact-height windows cap the sticky size, and there is no Reset control;
 - layout/minimized state is not stored on the server.
 
 ## Browser demo

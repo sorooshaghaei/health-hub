@@ -339,7 +339,7 @@ OPEN → DONE
 - Doctor in Assistant administrator workspace gets no sticky;
 - minimized strip always says **Private note**, never content;
 - autosave with Saving/Saved feedback; no title/multiple notes/history/attachments/etc.;
-- pointer and arrow-key movement/resizing for the nonessential desktop layout, with no Reset control;
+- pointer and arrow-key movement/resizing for the nonessential desktop layout, constrained inside edge margins below the workspace header and above the Undo lane, with no Reset control;
 - the sticky remains below workspace menus, dialogs, and the bottom-right Undo notification lane;
 - layout state not server-persisted.
 

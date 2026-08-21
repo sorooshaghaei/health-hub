@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiRequest } from "./api.js";
+import {
+  constrainPrivateStickyFrame,
+  constrainPrivateStickyMinimized,
+  defaultPrivateStickyFrame,
+  defaultPrivateStickyMinimizedPosition,
+  privateStickyMinimizedHeight,
+  privateStickyMinimizedWidth,
+} from "./privateStickyGeometry.js";
 import "./privateStickyAccessibility.css";
 
-const EDGE_MARGIN = 14;
-const UNDO_LANE_RESERVE = 104;
-const WORKSPACE_HEADER_HEIGHT = 76;
-const MINIMIZED_WIDTH = 236;
-const MINIMIZED_HEIGHT = 38;
-const MIN_WIDTH = 300;
-const MIN_HEIGHT = 260;
 const MOBILE_QUERY = "(max-width: 680px)";
 
 function viewportSize() {
@@ -19,77 +20,23 @@ function viewportSize() {
   };
 }
 
-function clamp(value, minimum, maximum) {
-  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
-}
-
 function defaultExpandedFrame() {
-  const viewport = viewportSize();
-  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
-  const width = Math.min(440, viewport.width - EDGE_MARGIN * 2);
-  const height = Math.min(460, Math.max(0, availableHeight - EDGE_MARGIN * 2));
-  return {
-    width,
-    height,
-    x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
-    y: clamp(
-      WORKSPACE_HEADER_HEIGHT + EDGE_MARGIN,
-      EDGE_MARGIN,
-      availableHeight - height,
-    ),
-  };
-}
-
-function topRightPosition() {
-  const viewport = viewportSize();
-  const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
-  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
-  return {
-    x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
-    y: clamp(
-      WORKSPACE_HEADER_HEIGHT + EDGE_MARGIN,
-      EDGE_MARGIN,
-      availableHeight - MINIMIZED_HEIGHT,
-    ),
-  };
-}
-
-function mobileBottomRightPosition() {
-  const viewport = viewportSize();
-  const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
-  return {
-    x: Math.max(EDGE_MARGIN, viewport.width - width - EDGE_MARGIN),
-    y: Math.max(EDGE_MARGIN, viewport.height - MINIMIZED_HEIGHT - EDGE_MARGIN - UNDO_LANE_RESERVE),
-  };
+  return defaultPrivateStickyFrame(viewportSize());
 }
 
 function defaultMinimizedPosition() {
-  return window.matchMedia(MOBILE_QUERY).matches
-    ? mobileBottomRightPosition()
-    : topRightPosition();
+  return defaultPrivateStickyMinimizedPosition(
+    viewportSize(),
+    window.matchMedia(MOBILE_QUERY).matches,
+  );
 }
 
 function constrainFrame(frame) {
-  const viewport = viewportSize();
-  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
-  const width = clamp(frame.width, Math.min(MIN_WIDTH, viewport.width), viewport.width);
-  const height = clamp(frame.height, Math.min(MIN_HEIGHT, availableHeight), availableHeight);
-  return {
-    width,
-    height,
-    x: clamp(frame.x, 0, viewport.width - width),
-    y: clamp(frame.y, 0, availableHeight - height),
-  };
+  return constrainPrivateStickyFrame(frame, viewportSize());
 }
 
 function constrainMinimized(position) {
-  const viewport = viewportSize();
-  const width = Math.min(MINIMIZED_WIDTH, viewport.width - EDGE_MARGIN * 2);
-  const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
-  return {
-    x: clamp(position.x, 0, viewport.width - width),
-    y: clamp(position.y, 0, availableHeight - MINIMIZED_HEIGHT),
-  };
+  return constrainPrivateStickyMinimized(position, viewportSize());
 }
 
 export default function PrivateSticky({ staffToken }) {
@@ -241,11 +188,8 @@ export default function PrivateSticky({ staffToken }) {
     const origin = minimized
       ? {
           ...minimizedPosition,
-          width: Math.min(
-            MINIMIZED_WIDTH,
-            viewportSize().width - EDGE_MARGIN * 2,
-          ),
-          height: MINIMIZED_HEIGHT,
+          width: privateStickyMinimizedWidth(viewportSize()),
+          height: privateStickyMinimizedHeight(viewportSize()),
         }
       : frame;
     interaction.current = {
@@ -277,29 +221,20 @@ export default function PrivateSticky({ staffToken }) {
     const deltaX = event.clientX - current.startX;
     const deltaY = event.clientY - current.startY;
     const viewport = viewportSize();
-    const availableHeight = Math.max(0, viewport.height - UNDO_LANE_RESERVE);
     if (current.kind === "drag") {
       const next = {
-        x: clamp(current.origin.x + deltaX, 0, viewport.width - current.origin.width),
-        y: clamp(current.origin.y + deltaY, 0, availableHeight - current.origin.height),
+        x: current.origin.x + deltaX,
+        y: current.origin.y + deltaY,
       };
-      if (minimized) setMinimizedPosition(next);
-      else setFrame((value) => ({ ...value, ...next }));
+      if (minimized) setMinimizedPosition(constrainPrivateStickyMinimized(next, viewport));
+      else setFrame((value) => constrainPrivateStickyFrame({ ...value, ...next }, viewport));
       return;
     }
-    setFrame({
+    setFrame(constrainPrivateStickyFrame({
       ...current.origin,
-      width: clamp(
-        current.origin.width + deltaX,
-        Math.min(MIN_WIDTH, viewport.width - current.origin.x),
-        viewport.width - current.origin.x,
-      ),
-      height: clamp(
-        current.origin.height + deltaY,
-        Math.min(MIN_HEIGHT, availableHeight - current.origin.y),
-        availableHeight - current.origin.y,
-      ),
-    });
+      width: current.origin.width + deltaX,
+      height: current.origin.height + deltaY,
+    }, viewport));
   }
 
   function endInteraction(event) {
@@ -310,14 +245,16 @@ export default function PrivateSticky({ staffToken }) {
     }
   }
 
-  const minimizedWidth = Math.min(MINIMIZED_WIDTH, viewportSize().width - EDGE_MARGIN * 2);
+  const minimizedViewport = viewportSize();
+  const minimizedWidth = privateStickyMinimizedWidth(minimizedViewport);
+  const minimizedHeight = privateStickyMinimizedHeight(minimizedViewport);
   const statusText = !loaded ? "Loading…" : saveStatus === "saving" ? "Saving…" : saveStatus === "error" ? "Not saved" : "Saved";
   const style = minimized
     ? {
         left: minimizedPosition.x,
         top: minimizedPosition.y,
         width: minimizedWidth,
-        height: MINIMIZED_HEIGHT,
+        height: minimizedHeight,
       }
     : mobile
       ? undefined

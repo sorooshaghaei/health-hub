@@ -190,7 +190,7 @@ See [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md).
 - minimized strip always says **Private note** and never previews content;
 - autosave; empty content valid;
 - no multiple notes, title, Trash, Undo, history, rich text, Patient link, task conversion, reminders, attachments, or notifications;
-- desktop movable/resizable behavior and mobile full-screen behavior remain as approved;
+- desktop movement/resizing stays within safe viewport bounds below the workspace header and above the Undo lane, with no Reset control; mobile expansion remains full-screen;
 - sticky layout state is not server-persisted.
 
 See [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md).
@@ -261,7 +261,9 @@ Audit remediation status:
 2. **Multi-account trusted devices and recovery routing — implemented:** per-account browser credentials, trusted-device last-used tracking, duplicate-free credential reuse, and Assistant-only personal recovery methods;
 3. **International phone normalization — implemented:** metadata-backed staff and Patient validation, domestic or matching international Patient input, corrected French guidance, and canonical E.164 storage in production and demo paths;
 4. **Conflict-free task editing — implemented:** the in-card edit form replaces that task's normal details and mutation/comment controls until Save or Cancel and patches the same task identity;
-5. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+5. **Clinic onboarding and Assistant setup codes — implemented:** safe account/sign-out exits and browser history, one-time plaintext with exact expiry and Copy, reload-safe active-code status, confirmed rotation/replacement, and production/demo parity;
+6. **Private sticky safety — implemented:** no Reset control, viewport-constrained pointer/keyboard movement and resizing, reachable header/Minimize controls, and a reserved bottom-right Undo lane;
+7. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

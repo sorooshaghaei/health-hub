@@ -49,20 +49,33 @@ test("shared form controls and operational metadata meet the corrected type scal
 
 test("the private note starts below the workspace header and reserves the Undo lane", async () => {
   const sticky = await source("../src/PrivateSticky.jsx");
+  const geometry = await source("../src/privateStickyGeometry.js");
   const stickyStyles = await source("../src/phase7.css");
   const base = await source("../src/styles.css");
   const queue = await source("../src/phase3.css");
 
-  assert.match(sticky, /const WORKSPACE_HEADER_HEIGHT = 76;/);
-  assert.match(sticky, /function topRightPosition\(\)/);
-  assert.match(sticky, /WORKSPACE_HEADER_HEIGHT \+ EDGE_MARGIN/);
-  assert.match(sticky, /const UNDO_LANE_RESERVE = 104;/);
-  assert.match(sticky, /viewport\.height - MINIMIZED_HEIGHT - EDGE_MARGIN - UNDO_LANE_RESERVE/);
-  assert.match(sticky, /availableHeight = Math\.max\(0, viewport\.height - UNDO_LANE_RESERVE\)/);
+  assert.match(sticky, /constrainPrivateStickyFrame/);
+  assert.match(sticky, /constrainPrivateStickyMinimized/);
+  assert.match(geometry, /STICKY_WORKSPACE_HEADER_HEIGHT = 76/);
+  assert.match(geometry, /STICKY_UNDO_LANE_RESERVE = 104/);
+  assert.match(geometry, /STICKY_WORKSPACE_HEADER_HEIGHT \+ STICKY_EDGE_MARGIN/);
+  assert.match(geometry, /viewportHeight - STICKY_UNDO_LANE_RESERVE - STICKY_EDGE_MARGIN/);
+  assert.match(geometry, /x: clamp\([^\n]+bounds\.left, bounds\.right - width\)/);
+  assert.match(geometry, /y: clamp\([^\n]+bounds\.top, bounds\.bottom - height\)/);
   assert.doesNotMatch(sticky, /setMinimizedPosition\([^)]*\);\s*setMinimized\(true\)/);
   assert.match(stickyStyles, /\.private-sticky\{[^}]*z-index:4;/);
   assert.match(stickyStyles, /\.private-sticky--open\{[^}]*z-index:60;/);
   assert.match(base, /\.workspace-header \{[^}]*z-index: 20;/);
   assert.match(base, /\.workspace-account-menu__panel \{[^}]*z-index: 40;/);
   assert.match(queue, /\.undo-stack \{[\s\S]*?z-index: 110;/);
+});
+
+test("private-note documentation keeps the approved no-Reset safety contract", async () => {
+  const phase7 = await source("../../docs/PHASE_7_PRIVATE_NOTES.md");
+  const readme = await source("../../README.md");
+
+  assert.doesNotMatch(phase7, /Reset returns position and size/);
+  assert.doesNotMatch(readme, /Reset restores the safe default layout/);
+  assert.match(phase7, /there is no Reset control/);
+  assert.match(readme, /there is no Reset control/);
 });
