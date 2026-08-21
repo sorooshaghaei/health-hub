@@ -174,6 +174,7 @@ OPEN → DONE
 - former Assistant attribution is preserved;
 - task/comment deletion has five-second Undo;
 - New Task uses compact modal;
+- existing-task edit replaces that task's expanded details and conflicting controls until Save or Cancel;
 - no task notification system beyond the red attention dot;
 - three-second polling remains.
 
@@ -256,7 +257,8 @@ Audit remediation status:
 1. **Verification and password lifecycle — implemented:** reload restoration, authoritative resend timing, exact six-digit confirmation, pending contact-replacement cancellation, stale-error clearing, password guidance/validation parity, and submit gating;
 2. **Multi-account trusted devices and recovery routing — implemented:** per-account browser credentials, trusted-device last-used tracking, duplicate-free credential reuse, and Assistant-only personal recovery methods;
 3. **International phone normalization — implemented:** metadata-backed staff and Patient validation, domestic or matching international Patient input, corrected French guidance, and canonical E.164 storage in production and demo paths;
-4. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+4. **Conflict-free task editing — implemented:** the in-card edit form replaces that task's normal details and mutation/comment controls until Save or Cancel and patches the same task identity;
+5. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

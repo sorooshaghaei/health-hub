@@ -8,6 +8,7 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
   const [view, setView] = useState("open"), [expanded, setExpanded] = useState(null), [formTask, setFormTask] = useState(undefined);
   const [drafts, setDrafts] = useState({}), [editing, setEditing] = useState(null), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [error, setError] = useState(null);
   const creating = formTask === null;
+  const taskEditActive = Boolean(formTask);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -56,8 +57,15 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
     if (p) { onRegisterUndo({ id: `task-comment-delete:${comment.id}:${Date.now()}`, kind: "task_comment_delete", resourceId: comment.id, message: "Comment deleted.", undoUntil: p.undo_until }); setEditing(null); await load(true); }
   }
   const commentProps = (task) => ({ draft: drafts[task.id] ?? "", setDraft: (v) => setDrafts((d) => ({ ...d, [task.id]: v })), editing, setEditing, saveEdit: saveComment, add: () => addComment(task.id), remove: deleteComment, saving });
+  function startTaskEdit(task) {
+    setEditing(null);
+    setError(null);
+    setExpanded(task.id);
+    setFormTask(task);
+  }
 
   function handleTabKeyDown(event) {
+    if (taskEditActive) return;
     const views = ["open", "history"];
     const currentIndex = views.indexOf(view);
     let nextIndex = null;
@@ -77,8 +85,10 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
     return <div id={`task-panel-${panelView}`} role="tabpanel" aria-labelledby={`task-tab-${panelView}`} tabIndex={active ? 0 : -1} hidden={!active}>
       {active && <>
         {error && !creating && <div className="task-error" role="alert">{error.message}</div>}
-        {doctorAccount && formTask && <TaskForm key={formTask.id} task={formTask} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} />}
-        {loading ? <div className="task-loading"><div className="loader" aria-label="Loading tasks" /></div> : tasks.length ? <div className="task-list">{tasks.map((task) => <TaskCard key={task.id} task={task} user={user} doctor={doctorAccount} expanded={expanded === task.id} toggle={() => setExpanded((id) => id === task.id ? null : task.id)} done={markDone} edit={setFormTask} remove={deleteTask} openPatient={onOpenPatient} comments={commentProps(task)} />)}</div> : <div className="task-empty"><strong>{panelView === "history" ? "No completed tasks yet." : "No open tasks."}</strong><p>{panelView === "history" ? "Done tasks will remain available here." : doctorAccount ? "Create a task for the Assistant when something needs follow-up." : "The Doctor has not assigned any tasks."}</p></div>}
+        {loading ? <div className="task-loading"><div className="loader" aria-label="Loading tasks" /></div> : tasks.length ? <div className="task-list">{tasks.map((task) => {
+          const editingTask = formTask?.id === task.id;
+          return <TaskCard key={task.id} task={task} user={user} doctor={doctorAccount} expanded={expanded === task.id} editing={editingTask} taskEditActive={taskEditActive} editForm={editingTask ? <TaskForm key={task.id} task={formTask} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} /> : null} toggle={() => setExpanded((id) => id === task.id ? null : task.id)} done={markDone} edit={startTaskEdit} remove={deleteTask} openPatient={onOpenPatient} comments={commentProps(task)} />;
+        })}</div> : <div className="task-empty"><strong>{panelView === "history" ? "No completed tasks yet." : "No open tasks."}</strong><p>{panelView === "history" ? "Done tasks will remain available here." : doctorAccount ? "Create a task for the Assistant when something needs follow-up." : "The Doctor has not assigned any tasks."}</p></div>}
       </>}
     </div>;
   }
@@ -86,8 +96,8 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
   return <section className="task-workspace">
     <div className="task-toolbar"><div><p className="eyebrow">Shared work</p><h2>Tasks</h2><p>Doctor-created tasks for the Assistant.</p></div>{doctorAccount && <button id="new-task-trigger" className="primary-button" type="button" disabled={formTask !== undefined} onClick={() => setFormTask(null)}>New task</button>}</div>
     <div className="task-view-tabs" role="tablist" aria-label="Task views" onKeyDown={handleTabKeyDown}>
-      <button id="task-tab-open" role="tab" aria-selected={view === "open"} aria-controls="task-panel-open" tabIndex={view === "open" ? 0 : -1} className={view === "open" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" onClick={() => setView("open")}>Open <span>{openTasks.length}</span></button>
-      <button id="task-tab-history" role="tab" aria-selected={view === "history"} aria-controls="task-panel-history" tabIndex={view === "history" ? 0 : -1} className={view === "history" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" onClick={() => setView("history")}>History <span>{completedTasks.length}</span></button>
+      <button id="task-tab-open" role="tab" aria-selected={view === "open"} aria-controls="task-panel-open" tabIndex={view === "open" ? 0 : -1} className={view === "open" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" disabled={taskEditActive} onClick={() => setView("open")}>Open <span>{openTasks.length}</span></button>
+      <button id="task-tab-history" role="tab" aria-selected={view === "history"} aria-controls="task-panel-history" tabIndex={view === "history" ? 0 : -1} className={view === "history" ? "task-view-tab task-view-tab--active" : "task-view-tab"} type="button" disabled={taskEditActive} onClick={() => setView("history")}>History <span>{completedTasks.length}</span></button>
     </div>
     {renderTaskPanel("open", openTasks)}
     {renderTaskPanel("history", completedTasks)}

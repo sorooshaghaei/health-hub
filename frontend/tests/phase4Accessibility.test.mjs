@@ -44,6 +44,18 @@ test("task views expose complete tabs and comment textarea names", () => {
   assert.match(parts, /data-dialog-initial-focus/);
 });
 
+test("task editing replaces that task detail until Save or Cancel", () => {
+  const workspace = source("TaskWorkspace.jsx");
+  const parts = source("TaskParts.jsx");
+  assert.doesNotMatch(workspace, /doctorAccount && formTask && <TaskForm/);
+  assert.match(workspace, /editingTask \? <TaskForm/);
+  assert.match(workspace, /taskEditActive=\{taskEditActive\}/);
+  assert.match(workspace, /disabled=\{taskEditActive\}/);
+  assert.match(parts, /detailsOpen && \(editing \? <div className="task-card__detail task-card__detail--editing">\{editForm\}/);
+  assert.match(parts, /editing \? "Editing"/);
+  assert.match(parts, /disabled=\{taskEditActive\}/);
+});
+
 test("account deletion is isolated from ordinary settings", () => {
   const account = source("AccountSettings.jsx");
   assert.match(account, /const tabs = \["profile", "security", "passkeys", "recovery"\]/);

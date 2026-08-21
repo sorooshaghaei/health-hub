@@ -34,6 +34,26 @@
   font-size: 14px;
 }
 
+.task-card__detail--editing .task-form {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.task-card__summary[aria-disabled="true"] {
+  cursor: default;
+}
+
+.task-card__summary[aria-disabled="true"]:hover {
+  background: transparent;
+}
+
+.task-view-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .private-sticky__header,
 .private-sticky__preview,
 .private-sticky__error {

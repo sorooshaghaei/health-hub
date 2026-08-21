@@ -95,6 +95,12 @@ The modal uses the shared accessible dialog behavior: focus enters the title fie
 
 Open and History expose complete tab semantics, including selected state, associated tab panels, and Left/Right/Home/End keyboard navigation. New- and edit-comment textareas have explicit accessible names rather than relying on placeholder text.
 
+## Existing task edit UX
+
+Choosing **Edit** keeps the same task card and replaces that task's expanded details with its edit form. While the draft is open, the same task's Done, Edit, Delete, Patient-link, and comment controls are not rendered. Saving patches the existing task identity; cancelling makes no request. The title receives focus when editing starts, and Save/Cancel remain the only ways to finish the edit.
+
+New-task creation, Open/History switching, and starting an edit on another task are unavailable until the current edit is saved or cancelled, so an unsaved draft cannot be silently replaced. Other tasks remain visible and keep their non-edit operations.
+
 ## Lifecycle
 
 ```text
@@ -194,6 +200,7 @@ The public browser-only adapter mirrors the same production React task behavior 
 - comment deletion Undo;
 - clinic-membership-scoped Tasks-tab attention dots and seen state;
 - compact, keyboard-accessible New Task modal behavior;
+- in-card existing-task editing that replaces normal details and conflicting controls until Save or Cancel;
 - fully named comment fields and complete Open/History tab semantics.
 
 The browser demo remains demonstration storage only and must not contain real Patient information.

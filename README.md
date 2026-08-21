@@ -202,6 +202,7 @@ OPEN → DONE
 - no general task notification system beyond the red dot;
 - authenticated three-second polling;
 - New task remains a compact dialog with keyboard focus management; Open/History and comment fields expose complete accessible semantics.
+- editing an existing task replaces that card's normal details and conflicting controls until Save or Cancel, and saves back to the same task.
 
 ### Private sticky
 

@@ -316,6 +316,7 @@ OPEN → DONE
 - former Assistant attribution preserved;
 - task/comment delete five-second Undo;
 - red attention dot only; no general task notification system;
+- existing-task editing replaces that card's normal details and action/comment controls until Save or Cancel, then updates the same task identity;
 - three-second polling.
 
 ### Private sticky

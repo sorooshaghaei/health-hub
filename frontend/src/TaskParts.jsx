@@ -14,7 +14,7 @@ export function TaskForm({ task, patients, saving, onSave, onCancel }) {
   const submit = (e) => { e.preventDefault(); onSave({ ...form, due_date: form.due_date || null, patient_id: form.patient_id || null }); };
   return <form className="task-form" onSubmit={submit}>
     <div className="task-form__heading"><div><p className="eyebrow">{task ? "Edit task" : "New task"}</p><h3>{task ? task.title : "Task for Assistant"}</h3></div></div>
-    <label className="task-field"><span>Title</span><input name="title" value={form.title} onChange={update} maxLength={200} required data-dialog-initial-focus={!task ? "true" : undefined} /></label>
+    <label className="task-field"><span>Title</span><input name="title" value={form.title} onChange={update} maxLength={200} required autoFocus={Boolean(task)} data-dialog-initial-focus={!task ? "true" : undefined} /></label>
     <label className="task-field"><span>Description</span><textarea name="description" value={form.description} onChange={update} rows={4} /></label>
     <div className="task-form__row">
       <label className="task-field"><span>Due date</span><input name="due_date" type="date" value={form.due_date} onChange={update} /></label>
@@ -39,16 +39,17 @@ function Comments({ task, user, props }) {
   </section>;
 }
 
-export function TaskCard({ task, user, doctor, expanded, toggle, done, edit, remove, openPatient, comments }) {
+export function TaskCard({ task, user, doctor, expanded, editing, taskEditActive, editForm, toggle, done, edit, remove, openPatient, comments }) {
   const finished = task.status === "done";
-  return <article className={`task-card${finished ? " task-card--done" : ""}`}>
-    <button className="task-card__summary" type="button" onClick={toggle} aria-expanded={expanded}><div className="task-card__main"><div className="task-card__title-row"><strong>{task.title}</strong><span className={`task-status task-status--${task.status}`}>{finished ? "Done" : "Open"}</span></div><div className="task-card__meta"><span>For Assistant</span><span>{formatTaskDate(task.due_date)}</span>{task.patient && <span>{task.patient.full_name}</span>}</div></div><span className="task-card__open">{expanded ? "Close" : "Open"}</span></button>
-    {expanded && <div className="task-card__detail">
+  const detailsOpen = editing || expanded;
+  return <article className={`task-card${finished ? " task-card--done" : ""}${editing ? " task-card--editing" : ""}`}>
+    <button className="task-card__summary" type="button" onClick={editing ? undefined : toggle} aria-expanded={detailsOpen} aria-disabled={editing || undefined}><div className="task-card__main"><div className="task-card__title-row"><strong>{task.title}</strong><span className={`task-status task-status--${task.status}`}>{finished ? "Done" : "Open"}</span></div><div className="task-card__meta"><span>For Assistant</span><span>{formatTaskDate(task.due_date)}</span>{task.patient && <span>{task.patient.full_name}</span>}</div></div><span className="task-card__open">{editing ? "Editing" : expanded ? "Close" : "Open"}</span></button>
+    {detailsOpen && (editing ? <div className="task-card__detail task-card__detail--editing">{editForm}</div> : <div className="task-card__detail">
       {task.description ? <p className="task-description">{task.description}</p> : <p className="task-muted">No description.</p>}
       {task.patient && <button className="task-patient-link" type="button" onClick={() => openPatient(task.patient.id)}>Open Patient · {task.patient.full_name}</button>}
       {finished && <p className="task-completed-note">Done {formatTaskDateTime(task.completed_at)}{task.completed_by ? ` by ${task.completed_by.display_name}` : ""}</p>}
-      <div className="task-actions">{!finished && <button className="primary-button" type="button" onClick={() => done(task)}>Done</button>}{doctor && <button className="secondary-button" type="button" onClick={() => edit(task)}>Edit</button>}{doctor && <button className="danger-button" type="button" onClick={() => remove(task)}>Delete</button>}</div>
+      <div className="task-actions">{!finished && <button className="primary-button" type="button" onClick={() => done(task)}>Done</button>}{doctor && <button className="secondary-button" type="button" disabled={taskEditActive} onClick={() => edit(task)}>Edit</button>}{doctor && <button className="danger-button" type="button" onClick={() => remove(task)}>Delete</button>}</div>
       <Comments task={task} user={user} props={comments} />
-    </div>}
+    </div>)}
   </article>;
 }
