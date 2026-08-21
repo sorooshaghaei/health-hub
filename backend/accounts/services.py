@@ -129,6 +129,10 @@ def resolve_trusted_device_token(raw_token, *, user=None):
         raise InvalidTrustedDevice("This browser is not trusted for this account.")
     if user is not None and device.user_id != user.id:
         raise InvalidTrustedDevice("This browser is trusted for another account.")
+    now = timezone.now()
+    if device.last_used_at < now - timedelta(minutes=5):
+        device.last_used_at = now
+        device.save(update_fields=["last_used_at"])
     return device
 
 

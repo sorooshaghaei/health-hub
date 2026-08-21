@@ -10,7 +10,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 ## Current status
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`, but release-readiness audit remediation is still in progress. The verification/password lifecycle part is implemented; the remaining approved audit parts are pending. Product Phase 9 has not started and requires separate clarification.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. A hands-on browser audit identified unresolved release issues. Product Phase 9 has not started.**
 
 Source-of-truth documents:
 
@@ -80,6 +80,8 @@ role → sign in → verified email or SMS OTP → browser becomes globally trus
 Device trust is global per personal account, not per clinic.
 
 - one trusted browser works across all of that account's clinics;
+- the browser retains a separate trusted-device credential for each account used on it, so alternating Doctor and Assistant accounts does not overwrite trust;
+- reusing a matching account credential updates that device's last-used time instead of creating a duplicate;
 - current trusted device cannot be removed;
 - another trusted device may be removed;
 - removing it ends sessions on that device across all clinics;
@@ -100,7 +102,7 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - A Doctor who deletes their own account permanently deletes all Doctor-owned clinics and their operational data, but not other people's global accounts.
 - Doctor deletion requires trusted browser, fresh password/passkey reauthentication, affected-clinic warning, typed `DELETE`, and has no Undo.
 - Email/phone changes require explicit fresh password/passkey reauthentication; ordinary login does not count. Reauthentication remains valid for 10 minutes by default.
-- Doctor offline recovery uses ten one-time codes; regeneration invalidates unused previous codes.
+- Doctor offline recovery uses ten one-time codes; regeneration invalidates unused previous codes. Assistant recovery shows only verified personal email/SMS methods.
 - Passkeys are optional, maximum five.
 - OTP defaults are six digits, 10-minute expiry, 60-second resend minimum, five failed attempts.
 - Pending onboarding, device-authorization, contact-change, and password-change challenges restore their code-entry state and server-derived resend countdown after reload.

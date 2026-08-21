@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import AccountSettings from "./AccountSettings.jsx";
-import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
+import { ApiError, apiRequest } from "./api.js";
 import ClinicWorkingHours from "./ClinicWorkingHours.jsx";
 import { PasswordField, PasswordPair, useResendCountdown, verificationCodeComplete, verificationCodeValue } from "./credentialUi.jsx";
+import { ACTIVE_DEVICE_TOKEN_KEY, clearActiveTrustedDevice, forgetTrustedDevice, refreshTrustedDeviceIdentity, rememberTrustedDevice, trustedDeviceTokenForIdentity } from "./deviceCredentials.js";
 import { passwordRequirements } from "./passwordRules.js";
 import PatientWorkspace from "./PatientWorkspace.jsx";
 import { getPasskey } from "./webauthn.js";
@@ -348,22 +349,23 @@ function ClinicDetails({ membership, user, staffToken, onBack, onOpenWorkspace }
   </AuthShell>;
 }
 
-function RecoveryFlow({ onBack, onComplete }) {
+function RecoveryFlow({ role, onBack, onComplete }) {
   const [step, setStep] = useState("request"), [identity, setIdentity] = useState(""), [channel, setChannel] = useState("email"), [code, setCode] = useState(""), [recoveryToken, setRecoveryToken] = useState(""), [password, setPassword] = useState(""), [confirm, setConfirm] = useState(""), [error, setError] = useState(null), [busy, setBusy] = useState(false), [method, setMethod] = useState("contact"), [dev, setDev] = useState("");
   const resend = useResendCountdown();
+  const doctorRecovery = role === "doctor";
   const resetPasswordValid = passwordRequirements(password, confirm, [identity]).valid;
   async function sendRecoveryCode() { const payload = await apiRequest("/api/recovery/request/", { method: "POST", data: { identity, channel } }); setDev(payload.development_code ?? ""); resend.start(payload); return payload; }
-  async function request(event) { event.preventDefault(); setBusy(true); setError(null); try { if (method === "offline") { const payload = await apiRequest("/api/recovery/code/confirm/", { method: "POST", data: { identity, code } }); setRecoveryToken(payload.recovery_token); setStep("reset"); } else { await sendRecoveryCode(); setStep("confirm"); } } catch (reason) { setError(asError(reason, "Recovery could not be started.")); } finally { setBusy(false); } }
+  async function request(event) { event.preventDefault(); setBusy(true); setError(null); try { if (doctorRecovery && method === "offline") { const payload = await apiRequest("/api/recovery/code/confirm/", { method: "POST", data: { identity, code } }); setRecoveryToken(payload.recovery_token); setStep("reset"); } else { await sendRecoveryCode(); setStep("confirm"); } } catch (reason) { setError(asError(reason, "Recovery could not be started.")); } finally { setBusy(false); } }
   async function resendCode() { setBusy(true); setError(null); try { await sendRecoveryCode(); } catch (reason) { setError(asError(reason, "Recovery code could not be resent.")); } finally { setBusy(false); } }
   async function verify(event) { event.preventDefault(); setBusy(true); setError(null); try { const payload = await apiRequest("/api/recovery/confirm/", { method: "POST", data: { identity, code } }); setRecoveryToken(payload.recovery_token); setStep("reset"); } catch (reason) { setError(asError(reason, "Recovery code is invalid or expired.")); } finally { setBusy(false); } }
   async function reset(event) { event.preventDefault(); setBusy(true); setError(null); try { await apiRequest("/api/recovery/reset/", { method: "POST", data: { recovery_token: recoveryToken, password, password_confirm: confirm } }); onComplete(); } catch (reason) { setError(asError(reason, "Password could not be reset.")); } finally { setBusy(false); } }
-  return <AuthShell title="Recover your personal account." description="Use verified email or SMS. Doctor accounts may alternatively use one unused offline recovery code." onBack={onBack}>
+  return <AuthShell title="Recover your personal account." description={doctorRecovery ? "Use verified email or SMS, or one unused Doctor offline recovery code." : "Use your verified personal email address or phone number."} onBack={onBack}>
     <ErrorMessage error={error} />
     {step === "request" && <form className="form recovery-form" onSubmit={request}>
       <Field label="Email or phone" value={identity} onChange={(event) => { setIdentity(event.target.value); setError(null); }} required />
-      <RadioCards legend="Recovery method" name="recovery-method" value={method} onChange={(event) => { setMethod(event.target.value); setCode(""); setError(null); }} options={[{ value: "contact", label: "Email or SMS", hint: "Send a code to one verified personal contact." }, { value: "offline", label: "Doctor offline code", hint: "Use one unused code from a Doctor recovery-code set." }]} />
-      {method === "offline" ? <Field label="Offline recovery code" value={code} onChange={(event) => { setCode(event.target.value); setError(null); }} required /> : <SelectField label="Recovery channel" value={channel} onChange={(event) => { setChannel(event.target.value); setError(null); }}><option value="email">Email</option><option value="sms">SMS</option></SelectField>}
-      <Button variant="primary" disabled={busy || (method === "contact" && resend.seconds > 0)}>{method === "contact" && resend.seconds > 0 ? `Send another code in ${resend.seconds}s` : "Continue"}</Button>
+      {doctorRecovery && <RadioCards legend="Recovery method" name="recovery-method" value={method} onChange={(event) => { setMethod(event.target.value); setCode(""); setError(null); }} options={[{ value: "contact", label: "Email or SMS", hint: "Send a code to one verified personal contact." }, { value: "offline", label: "Doctor offline code", hint: "Use one unused code from a Doctor recovery-code set." }]} />}
+      {doctorRecovery && method === "offline" ? <Field label="Offline recovery code" value={code} onChange={(event) => { setCode(event.target.value); setError(null); }} required /> : <SelectField label="Recovery channel" value={channel} onChange={(event) => { setChannel(event.target.value); setError(null); }}><option value="email">Email</option><option value="sms">SMS</option></SelectField>}
+      <Button variant="primary" disabled={busy || ((!doctorRecovery || method === "contact") && resend.seconds > 0)}>{(!doctorRecovery || method === "contact") && resend.seconds > 0 ? `Send another code in ${resend.seconds}s` : "Continue"}</Button>
     </form>}
     {step === "confirm" && <form className="form" onSubmit={verify}><p className="security-note">If the account and chosen verified channel exist, a code has been sent.</p><Field label="Recovery code" value={code} onChange={(event) => { setCode(verificationCodeValue(event.target.value)); setError(null); }} inputMode="numeric" autoComplete="one-time-code" maxLength={6} required />{dev && <p className="security-note">Development code: {dev}</p>}<Button variant="primary" disabled={busy || !verificationCodeComplete(code)}>Verify code</Button><div className="resend-actions"><Button variant="text" type="button" disabled={busy || resend.seconds > 0} onClick={resendCode}>{resend.seconds > 0 ? `Resend code in ${resend.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setStep("request"); setCode(""); setDev(""); setError(null); }}>Change email, phone, or method</Button></div></form>}
     {step === "reset" && <form className="form" onSubmit={reset}><PasswordPair password={password} confirmation={confirm} onPasswordChange={(event) => { setPassword(event.target.value); setError(null); }} onConfirmationChange={(event) => { setConfirm(event.target.value); setError(null); }} personalValues={[identity]} passwordLabel="New password" confirmationLabel="Confirm new password" /><Button variant="primary" disabled={busy || !resetPasswordValid}>Reset password</Button></form>}
@@ -381,6 +383,10 @@ export default function ProductionApp() {
   const [user, setUser] = useState(null);
   const [selectedMembership, setSelectedMembership] = useState(null);
   const [accountSettingsReturnScreen, setAccountSettingsReturnScreen] = useState("clinics");
+
+  useEffect(() => {
+    if (user) refreshTrustedDeviceIdentity(user);
+  }, [user?.id, user?.role, user?.email, user?.phone]);
 
   function saveSession(token) {
     localStorage.setItem(STAFF_TOKEN_KEY, token);
@@ -436,6 +442,8 @@ export default function ProductionApp() {
       try {
         const payload = await apiRequest("/api/staff/me/", { staffToken: token });
         if (cancelled) return;
+        const activeDeviceToken = localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY);
+        if (payload.user.device_trusted && activeDeviceToken) rememberTrustedDevice(payload.user, activeDeviceToken);
         setRole(payload.user.role); setStaffToken(token); await routeReady(payload.user, token);
       } catch {
         if (cancelled) return;
@@ -448,20 +456,25 @@ export default function ProductionApp() {
   }, []);
 
   async function login(form) {
-    const deviceToken = localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY);
+    const deviceToken = trustedDeviceTokenForIdentity(role, form.identity);
     const payload = await apiRequest("/api/staff/login/", { method: "POST", deviceToken, data: { role, ...form } });
+    if (payload.user.device_trusted && deviceToken) rememberTrustedDevice(payload.user, deviceToken);
+    else { if (deviceToken) forgetTrustedDevice(payload.user.id); clearActiveTrustedDevice(); }
     saveSession(payload.session_token); await routeReady(payload.user, payload.session_token);
   }
 
   async function passkeyLogin(identity) {
     const begin = await apiRequest("/api/passkeys/auth/options/", { method: "POST", data: { role, identity } });
     const credential = await getPasskey(begin.public_key);
-    const deviceToken = localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY);
+    const deviceToken = trustedDeviceTokenForIdentity(role, identity);
     const payload = await apiRequest("/api/passkeys/auth/complete/", { method: "POST", deviceToken, data: { role, identity, credential } });
+    if (payload.user.device_trusted && deviceToken) rememberTrustedDevice(payload.user, deviceToken);
+    else { if (deviceToken) forgetTrustedDevice(payload.user.id); clearActiveTrustedDevice(); }
     saveSession(payload.session_token); await routeReady(payload.user, payload.session_token);
   }
 
   async function createAccount(form) {
+    clearActiveTrustedDevice();
     const payload = await apiRequest("/api/staff/register/", { method: "POST", data: { role, ...form } });
     saveSession(payload.session_token); setUser(payload.user); setScreen("verify");
   }
@@ -471,19 +484,19 @@ export default function ProductionApp() {
   }
 
   async function deviceAuthorized(deviceToken, nextUser) {
-    localStorage.setItem(ACTIVE_DEVICE_TOKEN_KEY, deviceToken);
+    rememberTrustedDevice(nextUser, deviceToken);
     await routeReady({ ...nextUser, device_trusted: true, has_trusted_devices: true }, staffToken);
   }
 
   async function createClinic(name) {
     const payload = await apiRequest("/api/clinics/", { method: "POST", staffToken, data: { name } });
-    if (payload.device_token) localStorage.setItem(ACTIVE_DEVICE_TOKEN_KEY, payload.device_token);
+    if (payload.device_token) rememberTrustedDevice(payload.user, payload.device_token);
     setUser(payload.user); setScreen("workspace");
   }
 
   async function joinClinic(code) {
     const payload = await apiRequest("/api/clinic/assistant/setup/claim/", { method: "POST", staffToken, data: { code } });
-    if (payload.device_token) localStorage.setItem(ACTIVE_DEVICE_TOKEN_KEY, payload.device_token);
+    if (payload.device_token) rememberTrustedDevice(payload.user, payload.device_token);
     setUser(payload.user); setScreen("workspace");
   }
 
@@ -513,12 +526,14 @@ export default function ProductionApp() {
   async function signOut() {
     try { if (staffToken) await apiRequest("/api/staff/logout/", { method: "POST", staffToken }); } catch { /* local sign-out still proceeds */ }
     localStorage.removeItem(STAFF_TOKEN_KEY);
+    clearActiveTrustedDevice();
     setStaffToken(null); setUser(null); setRole(null); setScreen("role");
   }
 
   function accountDeleted() {
     localStorage.removeItem(STAFF_TOKEN_KEY);
-    localStorage.removeItem(ACTIVE_DEVICE_TOKEN_KEY);
+    forgetTrustedDevice(user?.id);
+    clearActiveTrustedDevice();
     setStaffToken(null); setUser(null); setRole(null); setScreen("role");
   }
 
@@ -527,7 +542,7 @@ export default function ProductionApp() {
   if (screen === "role-entry") return <RoleEntry role={role} onLogin={() => setScreen("login")} onCreate={() => setScreen("create-account")} onBack={() => setScreen("role")} />;
   if (screen === "login") return <LoginForm role={role} onSubmit={login} onPasskey={passkeyLogin} onBack={() => setScreen("role-entry")} onRecovery={() => setScreen("recovery")} />;
   if (screen === "create-account") return <AccountCreateForm role={role} onSubmit={createAccount} onBack={() => setScreen("role-entry")} />;
-  if (screen === "recovery") return <RecoveryFlow onBack={() => setScreen(role ? "role-entry" : "role")} onComplete={() => setScreen(role ? "login" : "role")} />;
+  if (screen === "recovery") return <RecoveryFlow role={role} onBack={() => setScreen(role ? "role-entry" : "role")} onComplete={() => setScreen(role ? "login" : "role")} />;
   if (screen === "verify" && user && staffToken) return <VerificationGate user={user} staffToken={staffToken} onUser={setUser} onDone={verificationDone} onSignOut={signOut} />;
   if (screen === "device-auth" && user && staffToken) return <DeviceAuthorization staffToken={staffToken} onAuthorized={deviceAuthorized} onBack={() => setScreen("role")} />;
   if (screen === "create-clinic" && user?.role === "doctor") return <ClinicCreateForm onSubmit={createClinic} onBack={user.memberships?.length ? () => setScreen("clinics") : undefined} />;

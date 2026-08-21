@@ -48,8 +48,8 @@ class StaffMembershipAdmin(admin.ModelAdmin):
 
 @admin.register(TrustedDevice)
 class TrustedDeviceAdmin(admin.ModelAdmin):
-    list_display = ("user", "browser", "operating_system", "created_at")
-    readonly_fields = ("token_hash", "created_at")
+    list_display = ("user", "browser", "operating_system", "created_at", "last_used_at")
+    readonly_fields = ("token_hash", "created_at", "last_used_at")
     search_fields = ("user__email", "user__phone", "browser", "operating_system")
 
 

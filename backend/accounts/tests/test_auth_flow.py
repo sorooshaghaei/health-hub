@@ -555,6 +555,30 @@ class AuthenticationFlowTests(APITestCase):
         self.assertEqual(selected.status_code, status.HTTP_200_OK)
         self.assertEqual(selected.data["user"]["clinic"]["id"], first_id)
 
+    def test_reusing_account_device_updates_last_used_without_creating_a_duplicate(self):
+        registered, clinic = self.create_doctor_clinic()
+        device = TrustedDevice.objects.get(user__email="doctor@example.com")
+        previous_use = timezone.now() - timedelta(days=1)
+        TrustedDevice.objects.filter(pk=device.id).update(last_used_at=previous_use)
+
+        login = self.login(
+            "doctor",
+            "doctor@example.com",
+            device_token=clinic.data["device_token"],
+        )
+        self.assertEqual(login.status_code, status.HTTP_200_OK)
+        self.assertTrue(login.data["user"]["device_trusted"])
+        device.refresh_from_db()
+        self.assertGreater(device.last_used_at, previous_use)
+        self.assertEqual(TrustedDevice.objects.filter(user__email="doctor@example.com").count(), 1)
+
+        listing = self.client.get(
+            "/api/devices/",
+            **self.auth(login.data["session_token"], clinic.data["device_token"]),
+        )
+        self.assertEqual(listing.status_code, status.HTTP_200_OK)
+        self.assertIn("last_used_at", listing.data["devices"][0])
+
     def test_doctor_defaults_to_doctor_role_but_can_open_assistant_workspace_as_admin(self):
         registered, clinic = self.create_doctor_clinic()
         token = registered.data["session_token"]

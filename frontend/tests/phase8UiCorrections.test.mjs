@@ -25,6 +25,8 @@ test("recovery uses an exclusive recovery-method selector and styled channel con
   assert.match(app, /<RadioCards legend="Recovery method"/);
   assert.match(app, /label: "Email or SMS"/);
   assert.match(app, /label: "Doctor offline code"/);
+  assert.match(app, /doctorRecovery && <RadioCards legend="Recovery method"/);
+  assert.match(app, /<RecoveryFlow role=\{role\}/);
   assert.match(app, /<SelectField label="Recovery channel"/);
   assert.match(ui, /export function RadioCards/);
   assert.match(ui, /export function SelectField/);

@@ -13,6 +13,7 @@ class MemoryStorage {
 globalThis.localStorage = new MemoryStorage();
 
 const { demoPhase8ApiRequest } = await import("../src/demoPhase8Api.js");
+const { clearActiveTrustedDevice, rememberTrustedDevice, trustedDeviceTokenForIdentity } = await import("../src/deviceCredentials.js");
 
 async function verifyContact(staffToken, kind) {
   const requested = await demoPhase8ApiRequest(`/api/staff/verify/${kind}/request/`, {
@@ -444,4 +445,52 @@ test("new browser authorizes once and that trusted device works across Doctor cl
   });
   assert.equal(selected.user.clinic.id, firstClinic.clinic.id);
   assert.equal(selected.user.device_trusted, true);
+});
+
+test("alternating Doctor and Assistant accounts reuses each account device without duplicates", async () => {
+  localStorage.clear();
+  const { registered: doctor } = await createVerifiedDoctor();
+  const clinic = await demoPhase8ApiRequest("/api/clinics/", {
+    method: "POST",
+    staffToken: doctor.session_token,
+    data: { name: "Shared Browser Clinic", timezone: "Europe/Paris" },
+  });
+  rememberTrustedDevice(clinic.user, clinic.device_token);
+
+  const setup = await demoPhase8ApiRequest("/api/clinic/assistant/setup/", {
+    method: "POST",
+    staffToken: doctor.session_token,
+    data: { replace_existing: false },
+  });
+  const assistant = await createVerifiedAssistant();
+  const joined = await demoPhase8ApiRequest("/api/clinic/assistant/setup/claim/", {
+    method: "POST",
+    staffToken: assistant.session_token,
+    data: { code: setup.setup_code },
+  });
+  rememberTrustedDevice(joined.user, joined.device_token);
+  clearActiveTrustedDevice();
+
+  const doctorLogin = await demoPhase8ApiRequest("/api/staff/login/", {
+    method: "POST",
+    deviceToken: trustedDeviceTokenForIdentity("doctor", "doctor@example.com"),
+    data: { role: "doctor", identity: "doctor@example.com", password: "Strong-clinic-password-123" },
+  });
+  assert.equal(doctorLogin.user.device_trusted, true);
+  const assistantLogin = await demoPhase8ApiRequest("/api/staff/login/", {
+    method: "POST",
+    deviceToken: trustedDeviceTokenForIdentity("assistant", "+33987654321"),
+    data: { role: "assistant", identity: "+33987654321", password: "Strong-clinic-password-123" },
+  });
+  assert.equal(assistantLogin.user.device_trusted, true);
+
+  const doctorAgain = await demoPhase8ApiRequest("/api/staff/login/", {
+    method: "POST",
+    deviceToken: trustedDeviceTokenForIdentity("doctor", "doctor@example.com"),
+    data: { role: "doctor", identity: "doctor@example.com", password: "Strong-clinic-password-123" },
+  });
+  assert.equal(doctorAgain.user.device_trusted, true);
+  const authStore = JSON.parse(localStorage.getItem("health-hub.demo-auth.v2"));
+  assert.equal(authStore.devices.filter((device) => device.user_id === doctor.user.id).length, 1);
+  assert.equal(authStore.devices.filter((device) => device.user_id === assistant.user.id).length, 1);
 });

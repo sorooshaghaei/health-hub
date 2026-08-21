@@ -24,7 +24,7 @@ Phases 0–8 have approved product contracts and are implemented on `main`. Rele
 - Phase 5 — Completed consultation behavior: reconciled.
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
-- Phase 8 — Authentication/administration/security: implemented; verification/password lifecycle audit corrections complete, remaining audit corrections pending.
+- Phase 8 — Authentication/administration/security: implemented; verification/password lifecycle and multi-account trusted-device/recovery-routing audit corrections complete, remaining audit corrections pending.
 - Phase 9 — not started; clarification required before implementation.
 
 The post-Phase-8 usability corrections are named **Design Steps**, not phases:
@@ -129,6 +129,9 @@ Both contacts were already verified during account onboarding, so one verified c
 Trusted devices belong to the personal account globally, not per clinic.
 
 - one trusted browser works across all clinic memberships for that account;
+- browser storage keeps the trusted-device credential separately for each account used in that browser;
+- alternating Doctor and Assistant accounts selects the credential matching the entered role and identity rather than overwriting the other account's trust;
+- successful credential reuse updates the matching device's last-used time without creating another record;
 - current trusted device cannot be removed;
 - other devices may be removed;
 - removing another device ends sessions bound to it across all clinics;
@@ -167,7 +170,7 @@ Routine Account settings are separated from permanent Doctor-account deletion in
 
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
-Recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes.
+Doctor recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes. Assistant recovery never offers the Doctor-only method and shows verified personal email/SMS only.
 
 Passkeys are optional, maximum five, and may be used for sign-in or explicit sensitive-operation reauthentication.
 

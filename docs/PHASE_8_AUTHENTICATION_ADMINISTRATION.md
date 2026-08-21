@@ -189,6 +189,8 @@ Trusted devices belong to the personal account globally, not to a clinic.
 
 Once a browser is trusted for an account, that browser may be used with every active clinic membership belonging to that same account. Switching clinics does not require another device OTP.
 
+One physical browser may be trusted for more than one personal account. Browser storage retains each account's credential separately and selects it from the entered permanent role plus email/phone identity during sign-in. Alternating a Doctor account and an Assistant account therefore does not overwrite either account's trust. Successful reuse updates the matching trusted-device record's last-used time and does not create a duplicate record.
+
 Trusted-device management is also global:
 
 - list the account's trusted devices;
@@ -273,7 +275,7 @@ Normal forgotten-password recovery is personal and global.
 
 The person chooses verified email or verified SMS. Public recovery requests use a generic response so normal API responses do not disclose whether an account exists.
 
-The recovery form presents mutually exclusive **Email or SMS** and **Doctor offline code** methods as radio cards. The contact-code path provides the same resend countdown plus a **Change email, phone, or method** action.
+For a Doctor route, the recovery form presents mutually exclusive **Email or SMS** and **Doctor offline code** methods as radio cards. An Assistant route does not render the Doctor-only choice and uses verified personal email/SMS only. The contact-code path provides the same resend countdown plus a **Change email, phone, or method** action.
 
 A verified recovery code creates a short-lived recovery grant, valid for 30 minutes by default. A newer grant invalidates older outstanding grants.
 
@@ -435,6 +437,8 @@ The demo uses `VITE_DEMO_API=true` to replace only the backend transport with a 
 - Assistant setup-code membership;
 - 24-hour setup-code validity;
 - global trusted-device simulation;
+- separate browser credentials for each simulated account and last-used updates on reuse;
+- role-correct recovery choices;
 - pending challenge restoration and resend timing;
 - contact-replacement cancellation;
 - displayed password-rule enforcement;

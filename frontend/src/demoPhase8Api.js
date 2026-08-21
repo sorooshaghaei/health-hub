@@ -32,7 +32,10 @@ function loadAuthStore() {
         working_hours: Array.isArray(clinic.working_hours) ? clinic.working_hours : [],
       })) : [],
       memberships: Array.isArray(parsed.memberships) ? parsed.memberships : [],
-      devices: Array.isArray(parsed.devices) ? parsed.devices : [],
+      devices: Array.isArray(parsed.devices) ? parsed.devices.map((item) => ({
+        ...item,
+        last_used_at: item.last_used_at || item.created_at,
+      })) : [],
       sessions: parsed.sessions && typeof parsed.sessions === "object" ? parsed.sessions : {},
       challenges: parsed.challenges && typeof parsed.challenges === "object" ? parsed.challenges : {},
       setup_codes: parsed.setup_codes && typeof parsed.setup_codes === "object" ? parsed.setup_codes : {},
@@ -145,15 +148,17 @@ function issueSession(store, userId, { clinicId = null, workspaceRole = null, de
   store.sessions[token] = { user_id: userId, clinic_id: clinicId, workspace_role: workspaceRole, device_id: deviceId, reauthenticated_at: null, created_at: nowIso() };
   return token;
 }
-function publicDevice(device, currentId = null) { return { id: device.id, browser: device.browser, operating_system: device.operating_system, created_at: device.created_at, current: device.id === currentId }; }
+function publicDevice(device, currentId = null) { return { id: device.id, browser: device.browser, operating_system: device.operating_system, created_at: device.created_at, last_used_at: device.last_used_at, current: device.id === currentId }; }
 function issueDevice(store, userId) {
   const token = randomToken("demo-device"), info = deviceInfo();
-  const device = { id: crypto.randomUUID(), user_id: userId, token, browser: info.browser, operating_system: info.operating_system, created_at: nowIso() };
+  const createdAt = nowIso();
+  const device = { id: crypto.randomUUID(), user_id: userId, token, browser: info.browser, operating_system: info.operating_system, created_at: createdAt, last_used_at: createdAt };
   store.devices.push(device); return { token, device };
 }
 function deviceFromToken(store, token, userId = null) {
   const device = token ? store.devices.find((item) => item.token === token) : null;
   if (!device || (userId && device.user_id !== userId)) fail({ detail: "This browser is not trusted for this account." }, 403);
+  device.last_used_at = nowIso();
   return device;
 }
 function currentTrustedDevice(store, session, account) {

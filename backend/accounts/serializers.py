@@ -65,7 +65,7 @@ class TrustedDeviceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TrustedDevice
-        fields = ["id", "browser", "operating_system", "created_at", "current"]
+        fields = ["id", "browser", "operating_system", "created_at", "last_used_at", "current"]
 
     def get_current(self, obj):
         return obj.id == self.context.get("current_device_id")

@@ -1,8 +1,8 @@
 import { browserTimeZone } from "./clinicTime.js";
 import { demoPhase8ApiRequest } from "./demoPhase8Api.js";
+import { ACTIVE_DEVICE_TOKEN_KEY } from "./deviceCredentials.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-const ACTIVE_DEVICE_TOKEN_KEY = "health-hub.active-device-token";
 const DEMO_AUTH_STORE_KEY = "health-hub.demo-auth.v2";
 const DEMO_OPERATIONAL_STORE_KEY = "health-hub.demo-store.v1";
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";

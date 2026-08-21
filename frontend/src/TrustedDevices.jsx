@@ -4,7 +4,7 @@ import Dialog from "./Dialog.jsx";
 import { Button, ErrorMessage } from "./ui.jsx";
 import "./deviceAccess.css";
 
-function formatAdded(value) {
+function formatDate(value) {
   return value ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value)) : "Unknown date";
 }
 
@@ -29,7 +29,7 @@ function DeviceModal({ staffToken, onClose }) {
   return <Dialog onClose={onClose} returnFocusSelector="#trusted-devices-trigger" ariaLabelledBy="trusted-devices-title" ariaDescribedBy="trusted-devices-description">
       <div className="device-modal__header"><div><p className="eyebrow">Personal account</p><h2 id="trusted-devices-title">Trusted devices</h2><p id="trusted-devices-description">A trusted browser works with every clinic connected to this account. Removing another device signs out its sessions across all clinics. The current device cannot be removed.</p></div><button className="device-icon-button" type="button" onClick={onClose} aria-label="Close trusted devices">×</button></div>
       <ErrorMessage error={error} />
-      <div className="device-list">{loading && <p>Loading…</p>}{devices.map((device) => <div className="device-row" key={device.id}><div><strong>{device.browser} on {device.operating_system}</strong><span>Added {formatAdded(device.created_at)}{device.current ? " · Current device" : ""}</span></div><button className="device-remove-button" type="button" disabled={device.current || removing === device.id} onClick={() => remove(device)}>{device.current ? "Current device" : removing === device.id ? "Removing…" : "Remove"}</button></div>)}</div>
+      <div className="device-list">{loading && <p>Loading…</p>}{devices.map((device) => <div className="device-row" key={device.id}><div><strong>{device.browser} on {device.operating_system}</strong><span>Added {formatDate(device.created_at)} · Last used {formatDate(device.last_used_at)}{device.current ? " · Current device" : ""}</span></div><button className="device-remove-button" type="button" disabled={device.current || removing === device.id} onClick={() => remove(device)}>{device.current ? "Current device" : removing === device.id ? "Removing…" : "Remove"}</button></div>)}</div>
     </Dialog>;
 }
 

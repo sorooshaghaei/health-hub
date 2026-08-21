@@ -126,9 +126,10 @@ class TrustedDevice(models.Model):
     browser = models.CharField(max_length=80)
     operating_system = models.CharField(max_length=80)
     created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-last_used_at", "-created_at"]
 
     def __str__(self):
         return f"{self.browser} on {self.operating_system}"
