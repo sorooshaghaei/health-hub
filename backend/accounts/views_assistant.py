@@ -17,6 +17,23 @@ def current_assistant_membership(clinic):
     )
 
 
+def active_assistant_setup_token(clinic):
+    return (
+        clinic.assistant_setup_tokens.filter(
+            used_at__isnull=True,
+            expires_at__gt=timezone.now(),
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+
+def assistant_setup_state(token):
+    if token is None:
+        return None
+    return {"created_at": token.created_at, "expires_at": token.expires_at}
+
+
 class ClinicAssistantView(APIView):
     def get(self, request):
         membership = require_clinic_doctor(request)
@@ -52,6 +69,11 @@ class ClinicAssistantView(APIView):
 
 
 class AssistantSetupView(APIView):
+    def get(self, request):
+        membership = require_clinic_doctor(request)
+        token = active_assistant_setup_token(membership.clinic)
+        return Response({"active_setup": assistant_setup_state(token)})
+
     def post(self, request):
         membership = require_clinic_doctor(request)
         serializer = AssistantSetupSerializer(data=request.data)
@@ -72,7 +94,11 @@ class AssistantSetupView(APIView):
                 deactivate_assistant_membership(existing)
             token, code = generate_assistant_setup_code(clinic, request.user)
         return Response(
-            {"setup_code": code, "expires_at": token.expires_at},
+            {
+                "setup_code": code,
+                "expires_at": token.expires_at,
+                "active_setup": assistant_setup_state(token),
+            },
             status=status.HTTP_201_CREATED,
         )
 

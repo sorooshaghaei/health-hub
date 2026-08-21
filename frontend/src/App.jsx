@@ -8,6 +8,7 @@ import { ACTIVE_DEVICE_TOKEN_KEY, clearActiveTrustedDevice, forgetTrustedDevice,
 import { passwordRequirements } from "./passwordRules.js";
 import PatientWorkspace from "./PatientWorkspace.jsx";
 import { normalizeInternationalPhone } from "./phoneNumbers.js";
+import { clearOnboardingHistory, onboardingHistoryScreen, primeFirstClinicHistory, replaceOnboardingHistory } from "./onboardingHistory.js";
 import { getPasskey } from "./webauthn.js";
 import { Brand, Button, ErrorMessage, Field, RadioCards, SelectField, TextLink } from "./ui.jsx";
 import "./deviceAccess.css";
@@ -294,7 +295,7 @@ function DeviceAuthorization({ staffToken, onAuthorized, onBack }) {
   </AuthShell>;
 }
 
-function ClinicCreateForm({ title = "Create your clinic.", onSubmit, onBack }) {
+function ClinicCreateForm({ title = "Create your clinic.", onSubmit, onBack, onAccount, onSignOut }) {
   const [name, setName] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -304,6 +305,10 @@ function ClinicCreateForm({ title = "Create your clinic.", onSubmit, onBack }) {
   }
   return <AuthShell title={title} description="Only a Doctor account can create a clinic. Your current browser becomes trusted automatically if this is your first clinic." onBack={onBack}>
     <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Clinic name" value={name} onChange={(event) => setName(event.target.value)} required /><Button variant="primary" disabled={busy}>{busy ? "Creating…" : "Create clinic"}</Button></form>
+    {(onAccount || onSignOut) && <div className="auth-form-links">
+      {onAccount && <TextLink onClick={onAccount}>Back to account</TextLink>}
+      {onSignOut && <TextLink onClick={onSignOut}>Sign out</TextLink>}
+    </div>}
   </AuthShell>;
 }
 
@@ -392,6 +397,26 @@ export default function ProductionApp() {
     if (user) refreshTrustedDeviceIdentity(user);
   }, [user?.id, user?.role, user?.email, user?.phone]);
 
+  useEffect(() => {
+    function restoreOnboardingScreen(event) {
+      const nextScreen = onboardingHistoryScreen(event.state);
+      if (!nextScreen || !user || !staffToken || !user.account_ready) return;
+      if (user.memberships?.length) {
+        setScreen(user.clinic && user.workspace_role ? "workspace" : "clinics");
+        return;
+      }
+      const clinicScreen = user.role === "doctor" ? "create-clinic" : "join-clinic";
+      if (nextScreen === "account-settings") {
+        setAccountSettingsReturnScreen(clinicScreen);
+        setScreen("account-settings");
+      } else if (nextScreen === clinicScreen) {
+        setScreen(clinicScreen);
+      }
+    }
+    window.addEventListener("popstate", restoreOnboardingScreen);
+    return () => window.removeEventListener("popstate", restoreOnboardingScreen);
+  }, [staffToken, user]);
+
   function saveSession(token) {
     localStorage.setItem(STAFF_TOKEN_KEY, token);
     setStaffToken(token);
@@ -424,9 +449,13 @@ export default function ProductionApp() {
       return;
     }
     if (!memberships.length) {
-      setScreen(nextUser.role === "doctor" ? "create-clinic" : "join-clinic");
+      const clinicScreen = nextUser.role === "doctor" ? "create-clinic" : "join-clinic";
+      setAccountSettingsReturnScreen(clinicScreen);
+      primeFirstClinicHistory(clinicScreen);
+      setScreen(clinicScreen);
       return;
     }
+    clearOnboardingHistory();
     if (!nextUser.device_trusted) {
       setScreen("device-auth");
       return;
@@ -495,12 +524,14 @@ export default function ProductionApp() {
   async function createClinic(name) {
     const payload = await apiRequest("/api/clinics/", { method: "POST", staffToken, data: { name } });
     if (payload.device_token) rememberTrustedDevice(payload.user, payload.device_token);
+    clearOnboardingHistory();
     setUser(payload.user); setScreen("workspace");
   }
 
   async function joinClinic(code) {
     const payload = await apiRequest("/api/clinic/assistant/setup/claim/", { method: "POST", staffToken, data: { code } });
     if (payload.device_token) rememberTrustedDevice(payload.user, payload.device_token);
+    clearOnboardingHistory();
     setUser(payload.user); setScreen("workspace");
   }
 
@@ -513,7 +544,17 @@ export default function ProductionApp() {
 
   function openAccountSettings(returnScreen = "clinics") {
     setAccountSettingsReturnScreen(returnScreen);
+    if (!user?.memberships?.length && ["create-clinic", "join-clinic"].includes(returnScreen)) {
+      replaceOnboardingHistory("account-settings");
+    }
     setScreen("account-settings");
+  }
+
+  function closeAccountSettings() {
+    if (!user?.memberships?.length && ["create-clinic", "join-clinic"].includes(accountSettingsReturnScreen)) {
+      replaceOnboardingHistory(accountSettingsReturnScreen);
+    }
+    setScreen(accountSettingsReturnScreen);
   }
 
   async function switchWorkspace() {
@@ -530,12 +571,14 @@ export default function ProductionApp() {
   async function signOut() {
     try { if (staffToken) await apiRequest("/api/staff/logout/", { method: "POST", staffToken }); } catch { /* local sign-out still proceeds */ }
     localStorage.removeItem(STAFF_TOKEN_KEY);
+    clearOnboardingHistory();
     clearActiveTrustedDevice();
     setStaffToken(null); setUser(null); setRole(null); setScreen("role");
   }
 
   function accountDeleted() {
     localStorage.removeItem(STAFF_TOKEN_KEY);
+    clearOnboardingHistory();
     forgetTrustedDevice(user?.id);
     clearActiveTrustedDevice();
     setStaffToken(null); setUser(null); setRole(null); setScreen("role");
@@ -549,11 +592,11 @@ export default function ProductionApp() {
   if (screen === "recovery") return <RecoveryFlow role={role} onBack={() => setScreen(role ? "role-entry" : "role")} onComplete={() => setScreen(role ? "login" : "role")} />;
   if (screen === "verify" && user && staffToken) return <VerificationGate user={user} staffToken={staffToken} onUser={setUser} onDone={verificationDone} onSignOut={signOut} />;
   if (screen === "device-auth" && user && staffToken) return <DeviceAuthorization staffToken={staffToken} onAuthorized={deviceAuthorized} onBack={() => setScreen("role")} />;
-  if (screen === "create-clinic" && user?.role === "doctor") return <ClinicCreateForm onSubmit={createClinic} onBack={user.memberships?.length ? () => setScreen("clinics") : undefined} />;
+  if (screen === "create-clinic" && user?.role === "doctor") return <ClinicCreateForm onSubmit={createClinic} onBack={user.memberships?.length ? () => setScreen("clinics") : undefined} onAccount={!user.memberships?.length ? () => openAccountSettings("create-clinic") : undefined} onSignOut={!user.memberships?.length ? signOut : undefined} />;
   if (screen === "join-clinic" && user?.role === "assistant") return <AssistantJoinForm onSubmit={joinClinic} additional={Boolean(user.memberships?.length)} onAccount={() => openAccountSettings("join-clinic")} onClinics={() => setScreen("clinics")} onSignOut={signOut} />;
   if (screen === "clinics" && user && staffToken) return <ClinicPicker user={user} onChoose={(membership) => { setSelectedMembership(membership); setScreen("clinic-details"); }} onCreate={() => setScreen("create-clinic")} onJoin={() => setScreen("join-clinic")} onSettings={() => openAccountSettings("clinics")} onSignOut={signOut} />;
   if (screen === "clinic-details" && user && staffToken && selectedMembership) return <ClinicDetails membership={selectedMembership} user={user} staffToken={staffToken} onBack={() => setScreen("clinics")} onOpenWorkspace={() => openMembership(selectedMembership)} />;
-  if (screen === "account-settings" && user && staffToken) return <AccountSettingsStandalone user={user} staffToken={staffToken} onUserChange={setUser} onAccountDeleted={accountDeleted} onBack={() => setScreen(accountSettingsReturnScreen)} />;
+  if (screen === "account-settings" && user && staffToken) return <AccountSettingsStandalone user={user} staffToken={staffToken} onUserChange={setUser} onAccountDeleted={accountDeleted} onBack={closeAccountSettings} />;
   if (screen === "workspace" && user && staffToken) return <PatientWorkspace user={user} staffToken={staffToken} onSignOut={signOut} onSwitchClinic={showClinics} onSwitchWorkspace={switchWorkspace} onUserChange={setUser} onAccountDeleted={accountDeleted} />;
   return <LoadingScreen />;
 }

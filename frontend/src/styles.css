@@ -48,7 +48,8 @@ button:disabled { cursor: wait; opacity: 0.62; }
 .back-button--inline { position: static; }
 .text-link { border: 0; background: transparent; color: var(--green); padding: 8px 0; font-size: 13px; font-weight: 800; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .text-link:hover { color: var(--green-dark); }
-.auth-form-links { width: min(100%, 540px); margin-top: 14px; }
+.auth-form-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; width: min(100%, 540px); margin-top: 14px; }
+.auth-form-links .text-link { min-height: var(--control-height-standard); padding: 8px 4px; }
 .auth-secondary-action { width: 100%; margin-top: 10px; }
 .eyebrow { margin: 0; color: var(--green); text-transform: uppercase; letter-spacing: 0.13em; font-size: 12px; font-weight: 800; }
 .panel-heading { margin-bottom: 30px; }
@@ -98,6 +99,11 @@ button:disabled { cursor: wait; opacity: 0.62; }
 .role-card__content > span:nth-child(2) { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .role-card__content em { display: block; margin-top: 8px; color: var(--green); font-size: 12px; font-style: normal; font-weight: 800; }
 .security-note { margin: 18px 0 0; color: var(--muted); font-size: 12px; }
+.assistant-setup-result { display: grid; gap: 12px; margin: 16px 0; }
+.assistant-setup-result .security-note { margin-top: 0; line-height: 1.5; }
+.assistant-setup-result .secondary-button { justify-self: start; }
+.assistant-setup-confirmation { margin: 16px 0; border: 1px solid #ead09e; border-radius: 14px; background: var(--warning-light); padding: 16px; color: var(--warning); }
+.assistant-setup-confirmation p { margin: 8px 0 14px; font-size: 13px; line-height: 1.5; }
 .loading-screen { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 30px; background: #f4f6f3; }
 .loader { width: 24px; height: 24px; border: 3px solid #d4dfd8; border-top-color: var(--green); border-radius: 50%; animation: spin 700ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

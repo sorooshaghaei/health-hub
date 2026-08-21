@@ -98,11 +98,23 @@ Doctor defaults to Doctor workspace. Opening Assistant workspace does not change
 
 `Choose Doctor → create account → verify email → verify phone → create clinic → first browser trusted automatically → Doctor workspace`
 
+Before a first clinic exists, Doctor and Assistant onboarding always provides
+**Back to account** and **Sign out**. The app seeds an Account-settings history
+entry before the clinic step, so the browser's first Back action remains inside
+Health Hub. Assistant accounts with existing memberships also receive a
+separate **Your clinics** action.
+
 ### New Assistant
 
 `Choose Assistant → create account → verify email → verify phone → enter Doctor setup code → first browser trusted automatically → Assistant workspace`
 
-Assistant setup code is one-time and valid for 24 hours.
+Assistant setup code is one-time, case-insensitive, and valid for 24 hours. Its
+plaintext is displayed only when created, alongside a copy control and the exact
+expiry. Reopening Clinic team returns only active-code status and expiry.
+Replacing an unclaimed code requires confirmation and invalidates the previous
+code; replacing an assigned Assistant separately confirms the immediate
+clinic-membership deactivation. Production and the Pages demo share this
+lifecycle.
 
 The claim operation is idempotent only for the same Assistant's already-active
 membership, which makes an immediate submission retry enter the workspace

@@ -95,7 +95,8 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 
 ## Phase 8 administration/security
 
-- Assistant setup codes are one-time and valid for 24 hours.
+- Assistant setup codes are one-time and valid for 24 hours. The Doctor sees the plaintext only when it is created, with a copy control and exact expiry; reopening Clinic team shows only that an active code exists and when it expires.
+- Replacing an unclaimed setup code requires confirmation and invalidates the previous code. Code entry is case-insensitive in production and the Pages demo.
 - A Doctor removes/replaces an Assistant's membership in that clinic; the Doctor never deletes or takes over the Assistant's global account.
 - An existing Assistant may join several clinics with separate Doctor setup codes.
 - Assistants have no self-service Delete account action.
@@ -108,6 +109,7 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - OTP defaults are six digits, 10-minute expiry, 60-second resend minimum, five failed attempts.
 - Pending onboarding, device-authorization, contact-change, and password-change challenges restore their code-entry state and server-derived resend countdown after reload.
 - Verification submissions require the complete six-digit code. Verification screens allow contact correction with isolated re-verification and always retain a sign-out escape.
+- First-clinic Doctor and Assistant screens always provide account and sign-out exits. Health Hub seeds an in-app history entry so the browser's first Back action returns to account settings instead of immediately leaving the app.
 - A pending Account-settings email/phone replacement can be edited or explicitly cancelled; cancellation consumes its challenge and leaves the verified contact unchanged.
 - New-password forms provide live requirements, match/strength feedback, accessible Show/Hide controls, and remain disabled until the client-known requirements and confirmation match pass. Production validation remains authoritative.
 - Routine Account settings are separate from the Doctor-account Danger zone, and modal surfaces share focus containment, Escape, and opener-focus restoration.

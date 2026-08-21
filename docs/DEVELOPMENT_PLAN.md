@@ -202,13 +202,16 @@ Final contract:
 - first screen chooses permanent Doctor or Assistant role;
 - both contacts verified during new-account onboarding;
 - new Doctor creates clinic; new Assistant joins with a Doctor setup code;
+- first-clinic Doctor and Assistant screens retain account/sign-out exits and seed an in-app browser-history fallback;
 - first browser is trusted automatically after first clinic creation/join;
 - existing trusted browser needs no second OTP;
 - browser credentials are retained per account so alternating Doctor and Assistant accounts reuses the matching trusted-device record;
 - new browser uses one OTP through verified email or SMS, then becomes globally trusted;
 - one clinic auto-opens; multiple clinics use clinic picker;
 - Doctor defaults to Doctor workspace and may switch to Assistant administrator workspace;
-- setup codes are one-time, 24-hour;
+- setup codes are one-time, case-insensitive, and 24-hour; plaintext appears only on creation with copy and exact-expiry controls;
+- active setup status survives reload without returning plaintext, and confirmed rotation invalidates the previous unclaimed code;
+- replacing an assigned Assistant requires confirmation before immediate clinic-membership deactivation;
 - Assistant removal/replacement is clinic-membership-only;
 - no Doctor global-recovery key for an Assistant;
 - Assistants have no self-service Delete account option;

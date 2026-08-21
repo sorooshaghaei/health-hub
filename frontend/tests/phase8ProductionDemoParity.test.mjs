@@ -398,6 +398,51 @@ test("browser Assistant setup claim is idempotent and enters the workspace", asy
   );
 });
 
+test("browser Assistant setup status hides plaintext and rotation invalidates the previous code", async () => {
+  localStorage.clear();
+  const { registered: doctor } = await createVerifiedDoctor();
+  await demoPhase8ApiRequest("/api/clinics/", {
+    method: "POST",
+    staffToken: doctor.session_token,
+    data: { name: "Rotation Clinic", timezone: "Europe/Paris" },
+  });
+
+  const first = await demoPhase8ApiRequest("/api/clinic/assistant/setup/", {
+    method: "POST",
+    staffToken: doctor.session_token,
+    data: { replace_existing: false },
+  });
+  const statusBeforeRotation = await demoPhase8ApiRequest("/api/clinic/assistant/setup/", {
+    staffToken: doctor.session_token,
+  });
+  assert.equal(statusBeforeRotation.active_setup.expires_at, first.active_setup.expires_at);
+  assert.equal(Object.hasOwn(statusBeforeRotation, "setup_code"), false);
+
+  const replacement = await demoPhase8ApiRequest("/api/clinic/assistant/setup/", {
+    method: "POST",
+    staffToken: doctor.session_token,
+    data: { replace_existing: false },
+  });
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/clinic/assistant/setup/info/", {
+      method: "POST",
+      data: { code: first.setup_code },
+    }),
+    (error) => error.status === 400,
+  );
+
+  const assistant = await createVerifiedAssistant();
+  await demoPhase8ApiRequest("/api/clinic/assistant/setup/claim/", {
+    method: "POST",
+    staffToken: assistant.session_token,
+    data: { code: replacement.setup_code.toLowerCase() },
+  });
+  const statusAfterClaim = await demoPhase8ApiRequest("/api/clinic/assistant/setup/", {
+    staffToken: doctor.session_token,
+  });
+  assert.equal(statusAfterClaim.active_setup, null);
+});
+
 test("new browser authorizes once and that trusted device works across Doctor clinics", async () => {
   localStorage.clear();
   const { registered } = await createVerifiedDoctor();

@@ -109,5 +109,40 @@ test("Assistant clinic onboarding always exposes account and sign-out escapes", 
   assert.match(joinForm, />Sign out<\/TextLink>/);
   assert.match(joinForm, /additional && <TextLink onClick=\{onClinics\}>Your clinics<\/TextLink>/);
   assert.match(app, /onAccount=\{\(\) => openAccountSettings\("join-clinic"\)\}/);
-  assert.match(app, /onBack=\{\(\) => setScreen\(accountSettingsReturnScreen\)\}/);
+  assert.match(app, /onBack=\{closeAccountSettings\}/);
+});
+
+test("first-Doctor clinic onboarding has safe exits and app-owned browser history", async () => {
+  const app = await source("../src/App.jsx");
+  const createForm = app.slice(
+    app.indexOf("function ClinicCreateForm"),
+    app.indexOf("function AssistantJoinForm"),
+  );
+
+  assert.match(createForm, />Back to account<\/TextLink>/);
+  assert.match(createForm, />Sign out<\/TextLink>/);
+  assert.match(app, /primeFirstClinicHistory\(clinicScreen\)/);
+  assert.match(app, /onboardingHistoryScreen\(event\.state\)/);
+  assert.match(app, /onAccount=\{!user\.memberships\?\.length \? \(\) => openAccountSettings\("create-clinic"\)/);
+});
+
+test("onboarding navigation links wrap with distinct touch targets", async () => {
+  const styles = await source("../src/styles.css");
+
+  assert.match(styles, /\.auth-form-links \{ display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;/);
+  assert.match(styles, /\.auth-form-links \.text-link \{ min-height: var\(--control-height-standard\);/);
+});
+
+test("Assistant setup codes expose one-time plaintext, status, copy, and confirmed replacement", async () => {
+  const team = await source("../src/ClinicTeam.jsx");
+
+  assert.doesNotMatch(team, /DEMO_MODE/);
+  assert.match(team, /apiRequest\("\/api\/clinic\/assistant\/setup\/", \{ staffToken \}\)/);
+  assert.match(team, /Copy setup code/);
+  assert.match(team, /This code is shown once and expires at/);
+  assert.match(team, /An active setup code exists and expires at/);
+  assert.match(team, /Replace setup code/);
+  assert.match(team, /immediately deactivates their membership in this clinic/);
+  assert.match(team, /immediately invalidates the current unclaimed code/);
+  assert.match(team, /Confirm replacement/);
 });

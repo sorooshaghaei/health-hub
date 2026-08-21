@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from accounts.models import Clinic, StaffMembership, StaffSession, StaffUser, TrustedDevice
+from accounts.models import AssistantSetupToken, Clinic, StaffMembership, StaffSession, StaffUser, TrustedDevice
 from accounts.services import anonymize_dormant_assistants
 from patients.models import Patient
 
@@ -533,6 +533,64 @@ class AuthenticationFlowTests(APITestCase):
         )
         self.assertEqual(occupied.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(occupied.data["detail"], "The Assistant slot is already filled.")
+
+    def test_assistant_setup_status_rotation_and_lowercase_claim(self):
+        doctor, clinic = self.create_doctor_clinic()
+        auth = self.auth(doctor.data["session_token"], clinic.data["device_token"])
+
+        first = self.client.post(
+            "/api/clinic/assistant/setup/",
+            {"replace_existing": False},
+            format="json",
+            **auth,
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertIn("expires_at", first.data["active_setup"])
+
+        status_response = self.client.get("/api/clinic/assistant/setup/", **auth)
+        self.assertEqual(status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            status_response.data["active_setup"]["expires_at"],
+            first.data["active_setup"]["expires_at"],
+        )
+        self.assertNotIn("setup_code", status_response.data)
+
+        replacement = self.client.post(
+            "/api/clinic/assistant/setup/",
+            {"replace_existing": False},
+            format="json",
+            **auth,
+        )
+        self.assertEqual(replacement.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            AssistantSetupToken.objects.filter(
+                clinic_id=clinic.data["clinic"]["id"],
+                used_at__isnull=True,
+            ).count(),
+            1,
+        )
+
+        invalidated = self.client.post(
+            "/api/clinic/assistant/setup/info/",
+            {"code": first.data["setup_code"]},
+            format="json",
+        )
+        self.assertEqual(invalidated.status_code, status.HTTP_400_BAD_REQUEST)
+
+        assistant = self.register("assistant", "assistant@example.com", "+33622222222")
+        assistant_token = assistant.data["session_token"]
+        self.verify_contacts(assistant_token)
+        claimed = self.client.post(
+            "/api/clinic/assistant/setup/claim/",
+            {"code": replacement.data["setup_code"].lower()},
+            format="json",
+            **self.auth(assistant_token),
+        )
+        self.assertEqual(claimed.status_code, status.HTTP_201_CREATED)
+
+        consumed_status = self.client.get("/api/clinic/assistant/setup/", **auth)
+        self.assertEqual(consumed_status.status_code, status.HTTP_200_OK)
+        self.assertIsNone(consumed_status.data["active_setup"])
 
     def test_global_trusted_device_works_for_multiple_doctor_clinics(self):
         registered, first = self.create_doctor_clinic("First Clinic")

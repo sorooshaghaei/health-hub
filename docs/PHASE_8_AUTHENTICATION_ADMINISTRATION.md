@@ -121,6 +121,12 @@ Both contact verifications are mandatory before clinic creation and operational 
 
 The first trusted-device creation is automatic because the person has just completed the new-account verification flow and has no older trusted device to distinguish from the current browser.
 
+Until the first clinic is created, the clinic-creation screen always exposes
+**Back to account** and **Sign out**. Health Hub also seeds an app-owned account
+history entry before showing this screen, so the browser's first Back action
+returns to Account settings rather than immediately navigating away from the
+application.
+
 ## New Assistant onboarding
 
 The new-Assistant sequence is:
@@ -141,7 +147,18 @@ Assistant setup codes are:
 - one-time use;
 - valid for 24 hours by default;
 - tied to one clinic;
+- accepted without regard to letter case;
 - not global account recovery credentials.
+
+The Doctor sees a new setup code's plaintext only in the response that creates
+it. Clinic team provides a copy control and displays the exact expiry date and
+time. After the dialog is closed or the page is reloaded, the server returns
+only whether an active code exists and its expiry; it never returns the
+plaintext again. The Doctor can choose **Replace setup code**, confirm that the
+current unclaimed code will be invalidated immediately, and receive a new
+one-time plaintext value. Replacing a currently assigned Assistant also
+requires confirmation because that action immediately deactivates the existing
+clinic membership. Production and the Pages demo follow the same lifecycle.
 
 Claiming is idempotent for the Assistant who successfully filled the slot. An
 immediate retry of the same submitted code returns that existing active
@@ -153,7 +170,9 @@ removed from the clinic.
 The join form prevents duplicate submission while a claim is pending. It also
 always exposes **Back to account** and **Sign out**. **Your clinics** is exposed
 when the Assistant already has at least one membership, so a valid global
-account is never trapped on the setup-code screen.
+account is never trapped on the setup-code screen. These actions wrap with
+separate touch targets, and first-clinic onboarding uses the same app-owned
+browser-history fallback as Doctor onboarding.
 
 ## Existing account on a trusted browser
 
