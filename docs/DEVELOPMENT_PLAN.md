@@ -52,7 +52,7 @@ Security/account actions do not use five-second Undo.
 | 5 | Completed consultation behavior | **Complete and reconciled** |
 | 6 | Shared tasks | **Complete and reconciled** |
 | 7 | Private sticky | **Complete and reconciled** |
-| 8 | Authentication, administration, recovery, multi-clinic identity | **Complete, reconciled, and validated** |
+| 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented; release-audit remediation in progress** |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |
@@ -219,6 +219,9 @@ Final contract:
 - passkeys optional, maximum five;
 - sessions remain 12h absolute / 2h inactivity / no Remember Me;
 - OTP defaults remain six digits / 10 minutes / 60-second resend / five failed attempts;
+- pending verification/password challenges restore after reload with the server-derived resend window;
+- pending contact replacements can be explicitly cancelled and their challenges consumed;
+- password forms gate submission on client-known requirements while the backend remains authoritative;
 - broader brute-force/IP throttling is Phase 10.
 
 See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
@@ -239,13 +242,18 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 
 ## Current work
 
-**Product Phase 8 is complete and validated. The approved post-Phase-8 usability work is tracked as five Design Steps so it cannot be confused with the product roadmap:**
+**Product Phases 0–8 and Design Steps 1–5 are implemented. Release-readiness audit remediation is now the active work and is split into reviewable parts with one validated commit per part.**
 
 1. **Design Step 1 — complete:** critical onboarding and Patient-edit data safety;
 2. **Design Step 2 — complete:** workspace usability and visual hierarchy;
 3. **Design Step 3 — complete:** verification, password, and recovery guidance;
 4. **Design Step 4 — complete:** task/settings/dialog accessibility;
 5. **Design Step 5 — complete and validated on `main`:** weekly clinic working days/hours and optional Appointment-time suggestions.
+
+Audit remediation status:
+
+1. **Verification and password lifecycle — implemented:** reload restoration, authoritative resend timing, exact six-digit confirmation, pending contact-replacement cancellation, stale-error clearing, password guidance/validation parity, and submit gating;
+2. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

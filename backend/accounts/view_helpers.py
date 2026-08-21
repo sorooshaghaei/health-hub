@@ -1,5 +1,7 @@
+import math
+from datetime import timedelta
+
 from django.conf import settings
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
@@ -76,14 +78,76 @@ def serialize_user(request, *, membership=None, workspace_role=None):
 
 
 def verification_delivery_payload(challenge, development_code=None):
+    resend_available_at = challenge.created_at + timedelta(
+        seconds=settings.VERIFICATION_RESEND_MIN_AGE
+    )
     payload = {
         "detail": "Verification code sent.",
         "expires_at": challenge.expires_at,
+        "resend_available_at": resend_available_at,
         "resend_after_seconds": settings.VERIFICATION_RESEND_MIN_AGE,
     }
     if development_code:
         payload["development_code"] = development_code
     return payload
+
+
+def verification_challenge_state(user, purpose, *, include_pending_value=False):
+    now = timezone.now()
+    challenge = (
+        VerificationChallenge.objects.filter(
+            user=user,
+            purpose=purpose,
+            consumed_at__isnull=True,
+            expires_at__gt=now,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if challenge is None:
+        return None
+
+    resend_available_at = challenge.created_at + timedelta(
+        seconds=settings.VERIFICATION_RESEND_MIN_AGE
+    )
+    payload = {
+        "channel": challenge.channel,
+        "expires_at": challenge.expires_at,
+        "resend_available_at": resend_available_at,
+        "resend_after_seconds": max(
+            0,
+            math.ceil((resend_available_at - now).total_seconds()),
+        ),
+    }
+    if include_pending_value:
+        payload["pending_value"] = challenge.pending_value
+    return payload
+
+
+def verification_state_payload(user):
+    purpose = VerificationChallenge.Purpose
+    return {
+        "email": verification_challenge_state(user, purpose.EMAIL_VERIFY),
+        "phone": verification_challenge_state(user, purpose.PHONE_VERIFY),
+        "email_change": verification_challenge_state(
+            user,
+            purpose.EMAIL_CHANGE,
+            include_pending_value=True,
+        ),
+        "phone_change": verification_challenge_state(
+            user,
+            purpose.PHONE_CHANGE,
+            include_pending_value=True,
+        ),
+        "password_change": verification_challenge_state(
+            user,
+            purpose.PASSWORD_CHANGE,
+        ),
+        "device_authorize": verification_challenge_state(
+            user,
+            purpose.DEVICE_AUTHORIZE,
+        ),
+    }
 
 
 def reauthenticate_if_needed(request, current_password=None):

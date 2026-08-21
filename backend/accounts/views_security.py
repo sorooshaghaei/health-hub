@@ -1,4 +1,10 @@
+from .password_rules import validate_staff_password
 from .view_helpers import *  # noqa: F401,F403
+
+
+class VerificationStateView(APIView):
+    def get(self, request):
+        return Response(verification_state_payload(request.user))
 
 
 class InitialEmailVerificationRequestView(APIView):
@@ -184,6 +190,36 @@ class PhoneChangeRequestView(ContactChangeRequestView):
     contact_kind = "phone"
 
 
+class ContactChangeCancelView(APIView):
+    contact_kind = None
+
+    def post(self, request):
+        purpose = (
+            VerificationChallenge.Purpose.EMAIL_CHANGE
+            if self.contact_kind == "email"
+            else VerificationChallenge.Purpose.PHONE_CHANGE
+        )
+        VerificationChallenge.objects.filter(
+            user=request.user,
+            purpose=purpose,
+            consumed_at__isnull=True,
+        ).update(consumed_at=timezone.now())
+        return Response(
+            {
+                "detail": f"Pending {self.contact_kind} replacement cancelled.",
+                "user": serialize_user(request),
+            }
+        )
+
+
+class EmailChangeCancelView(ContactChangeCancelView):
+    contact_kind = "email"
+
+
+class PhoneChangeCancelView(ContactChangeCancelView):
+    contact_kind = "phone"
+
+
 class ContactChangeConfirmView(APIView):
     contact_kind = None
 
@@ -351,7 +387,7 @@ class RecoveryResetView(APIView):
         except InvalidRecoveryGrant as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            validate_password(serializer.validated_data["password"], user=grant.user)
+            validate_staff_password(serializer.validated_data["password"], user=grant.user)
         except DjangoValidationError as exc:
             return Response({"password": list(exc.messages)}, status=status.HTTP_400_BAD_REQUEST)
         grant.user.set_password(serializer.validated_data["password"])

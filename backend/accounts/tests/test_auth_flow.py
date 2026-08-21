@@ -298,6 +298,173 @@ class AuthenticationFlowTests(APITestCase):
         )
         self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @override_settings(VERIFICATION_RESEND_MIN_AGE=60)
+    def test_pending_verification_state_restores_after_reload_and_requires_six_digits(self):
+        registered = self.register()
+        token = registered.data["session_token"]
+        headers = self.auth(token)
+        requested = self.client.post(
+            "/api/staff/verify/email/request/",
+            {},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(requested.status_code, status.HTTP_200_OK)
+        self.assertIn("resend_available_at", requested.data)
+
+        restored = self.client.get("/api/staff/verification-state/", **headers)
+        self.assertEqual(restored.status_code, status.HTTP_200_OK)
+        self.assertEqual(restored.data["email"]["channel"], "email")
+        self.assertGreater(restored.data["email"]["resend_after_seconds"], 0)
+        self.assertIsNone(restored.data["phone"])
+
+        incomplete = self.client.post(
+            "/api/staff/verify/email/confirm/",
+            {"code": "12345"},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(incomplete.status_code, status.HTTP_400_BAD_REQUEST)
+
+        confirmed = self.client.post(
+            "/api/staff/verify/email/confirm/",
+            {"code": code_from_message(mail.outbox[-1].body)},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(confirmed.status_code, status.HTTP_200_OK)
+        cleared = self.client.get("/api/staff/verification-state/", **headers)
+        self.assertIsNone(cleared.data["email"])
+
+    def test_pending_contact_replacement_can_be_cancelled_and_code_is_consumed(self):
+        registered, clinic = self.create_doctor_clinic()
+        token = registered.data["session_token"]
+        headers = self.auth(token, clinic.data["device_token"])
+        requested = self.client.post(
+            "/api/staff/email/change/request/",
+            {"value": "pending-doctor@example.com", "current_password": self.password},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(requested.status_code, status.HTTP_200_OK)
+        pending_code = code_from_message(mail.outbox[-1].body)
+
+        restored = self.client.get("/api/staff/verification-state/", **headers)
+        self.assertEqual(restored.data["email_change"]["pending_value"], "pending-doctor@example.com")
+        cancelled = self.client.post(
+            "/api/staff/email/change/cancel/",
+            {},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(cancelled.status_code, status.HTTP_200_OK)
+        self.assertEqual(cancelled.data["user"]["email"], "doctor@example.com")
+        self.assertIsNone(self.client.get("/api/staff/verification-state/", **headers).data["email_change"])
+
+        stale = self.client.post(
+            "/api/staff/email/change/confirm/",
+            {"code": pending_code},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(stale.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(StaffUser.objects.get(pk=registered.data["user"]["id"]).email, "doctor@example.com")
+
+    def test_registration_rejects_password_containing_displayed_personal_information(self):
+        response = self.client.post(
+            "/api/staff/register/",
+            {
+                "role": "doctor",
+                "email": "personal-password@example.com",
+                "phone": "+33699999999",
+                "first_name": "Demo",
+                "last_name": "Doctor",
+                "password": "Strong-demo-password-123",
+                "password_confirm": "Strong-demo-password-123",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
+
+    def test_password_change_and_recovery_enforce_exact_codes_and_personal_information_rule(self):
+        registered, clinic = self.create_doctor_clinic()
+        token = registered.data["session_token"]
+        headers = self.auth(token, clinic.data["device_token"])
+        requested = self.client.post(
+            "/api/staff/password/change/request/",
+            {"channel": "email"},
+            format="json",
+            **headers,
+        )
+        self.assertEqual(requested.status_code, status.HTTP_200_OK)
+        change_code = code_from_message(mail.outbox[-1].body)
+        self.assertEqual(
+            self.client.get("/api/staff/verification-state/", **headers).data["password_change"]["channel"],
+            "email",
+        )
+
+        incomplete = self.client.post(
+            "/api/staff/password/change/confirm/",
+            {
+                "code": change_code[:5],
+                "password": "Strong-clinic-password-456",
+                "password_confirm": "Strong-clinic-password-456",
+            },
+            format="json",
+            **headers,
+        )
+        self.assertEqual(incomplete.status_code, status.HTTP_400_BAD_REQUEST)
+        personal = self.client.post(
+            "/api/staff/password/change/confirm/",
+            {
+                "code": change_code,
+                "password": "Strong-doctor-password-456",
+                "password_confirm": "Strong-doctor-password-456",
+            },
+            format="json",
+            **headers,
+        )
+        self.assertEqual(personal.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", personal.data)
+
+        changed = self.client.post(
+            "/api/staff/password/change/confirm/",
+            {
+                "code": change_code,
+                "password": "Strong-clinic-password-456",
+                "password_confirm": "Strong-clinic-password-456",
+            },
+            format="json",
+            **headers,
+        )
+        self.assertEqual(changed.status_code, status.HTTP_200_OK)
+
+        recovery_requested = self.client.post(
+            "/api/recovery/request/",
+            {"identity": "doctor@example.com", "channel": "email"},
+            format="json",
+        )
+        self.assertEqual(recovery_requested.status_code, status.HTTP_200_OK)
+        recovery_code = code_from_message(mail.outbox[-1].body)
+        recovery_confirmed = self.client.post(
+            "/api/recovery/confirm/",
+            {"identity": "doctor@example.com", "code": recovery_code},
+            format="json",
+        )
+        self.assertEqual(recovery_confirmed.status_code, status.HTTP_200_OK)
+        rejected_reset = self.client.post(
+            "/api/recovery/reset/",
+            {
+                "recovery_token": recovery_confirmed.data["recovery_token"],
+                "password": "Strong-doctor-password-789",
+                "password_confirm": "Strong-doctor-password-789",
+            },
+            format="json",
+        )
+        self.assertEqual(rejected_reset.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", rejected_reset.data)
+
     def test_assistant_cannot_create_clinic_and_joins_with_doctor_setup_code(self):
         doctor, clinic = self.create_doctor_clinic()
         assistant, claim = self.create_assistant_for_clinic(

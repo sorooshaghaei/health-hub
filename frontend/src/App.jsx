@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import AccountSettings from "./AccountSettings.jsx";
 import { ACTIVE_DEVICE_TOKEN_KEY, ApiError, apiRequest } from "./api.js";
 import ClinicWorkingHours from "./ClinicWorkingHours.jsx";
-import { PasswordField, PasswordPair, useResendCountdown } from "./credentialUi.jsx";
+import { PasswordField, PasswordPair, useResendCountdown, verificationCodeComplete, verificationCodeValue } from "./credentialUi.jsx";
+import { passwordRequirements } from "./passwordRules.js";
 import PatientWorkspace from "./PatientWorkspace.jsx";
 import { getPasskey } from "./webauthn.js";
 import { Brand, Button, ErrorMessage, Field, RadioCards, SelectField, TextLink } from "./ui.jsx";
@@ -76,7 +77,7 @@ function LoginForm({ role, onSubmit, onPasskey, onBack, onRecovery }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const label = role === "doctor" ? "Doctor" : "Assistant";
-  function update(event) { setForm((current) => ({ ...current, [event.target.name]: event.target.value })); }
+  function update(event) { setForm((current) => ({ ...current, [event.target.name]: event.target.value })); setError(null); }
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(null);
     try { await onSubmit(form); } catch (reason) { setError(asError(reason, "Sign in failed.")); } finally { setBusy(false); }
@@ -102,7 +103,12 @@ function AccountCreateForm({ role, onSubmit, onBack }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const label = role === "doctor" ? "Doctor" : "Assistant";
-  function update(event) { setForm((current) => ({ ...current, [event.target.name]: event.target.value })); }
+  function update(event) { setForm((current) => ({ ...current, [event.target.name]: event.target.value })); setError(null); }
+  const passwordValid = passwordRequirements(
+    form.password,
+    form.password_confirm,
+    [form.first_name, form.last_name, form.email, form.phone],
+  ).valid;
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(null);
     try { await onSubmit(form); } catch (reason) { setError(asError(reason, "Account could not be created.")); } finally { setBusy(false); }
@@ -123,7 +129,7 @@ function AccountCreateForm({ role, onSubmit, onBack }) {
         onConfirmationChange={update}
         personalValues={[form.first_name, form.last_name, form.email, form.phone]}
       />
-      <Button variant="primary" disabled={busy}>{busy ? "Creating…" : `Create ${label} account`}</Button>
+      <Button variant="primary" disabled={busy || !passwordValid}>{busy ? "Creating…" : `Create ${label} account`}</Button>
     </form>
   </AuthShell>;
 }
@@ -134,6 +140,7 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
   const [phone, setPhone] = useState(() => initialContactState(user.phone));
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState(true);
   const emailResend = useResendCountdown();
   const phoneResend = useResendCountdown();
 
@@ -142,12 +149,29 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
     setPhone((current) => current.editing ? current : { ...current, value: user.phone });
   }, [user.email, user.phone]);
 
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest("/api/staff/verification-state/", { staffToken })
+      .then((payload) => {
+        if (cancelled) return;
+        for (const [kind, setter, countdown] of [["email", setEmail, emailResend], ["phone", setPhone, phoneResend]]) {
+          const challenge = payload[kind];
+          if (!challenge) continue;
+          setter((current) => ({ ...current, sent: true, code: "", dev: challenge.development_code ?? "", editing: false }));
+          countdown.start(challenge);
+        }
+      })
+      .catch((reason) => { if (!cancelled) setError(asError(reason, "Verification status could not be restored.")); })
+      .finally(() => { if (!cancelled) setRestoring(false); });
+    return () => { cancelled = true; };
+  }, [staffToken]);
+
   async function request(kind) {
     setBusy(true); setError(null);
     try {
       const payload = await apiRequest(`/api/staff/verify/${kind}/request/`, { method: "POST", staffToken });
       const setter = kind === "email" ? setEmail : setPhone;
-      setter((current) => ({ ...current, sent: true, dev: payload.development_code ?? "" }));
+      setter((current) => ({ ...current, sent: true, code: "", dev: payload.development_code ?? "" }));
       (kind === "email" ? emailResend : phoneResend).start(payload);
     } catch (reason) { setError(asError(reason, "Verification code could not be sent.")); } finally { setBusy(false); }
   }
@@ -183,15 +207,15 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
     return <>
       <div className="phase8-contact-card">
         <div><strong>{label}</strong><span>{user[kind]} · {verified ? "Verified" : "Verification required"}</span></div>
-        <Button compact type="button" disabled={busy} onClick={() => setter((current) => ({ ...current, editing: true, sent: false, code: "", dev: "", value: user[kind] }))}>Edit {kind}</Button>
+        <Button compact type="button" disabled={busy || restoring} onClick={() => { setError(null); setter((current) => ({ ...current, editing: true, sent: false, code: "", dev: "", value: user[kind] })); }}>Edit {kind}</Button>
       </div>
       {state.editing ? <form className="verification-contact-editor" onSubmit={(event) => saveContact(event, kind, state)}>
-        <Field label={`New ${kind}`} type={kind === "email" ? "email" : "tel"} value={state.value} onChange={(event) => setter({ ...state, value: event.target.value })} autoComplete={kind === "email" ? "email" : "tel"} required />
-        <PasswordField label="Current password" value={state.currentPassword} onChange={(event) => setter({ ...state, currentPassword: event.target.value })} autoComplete="current-password" required />
-        <div className="phase8-inline-actions"><Button variant="primary" compact disabled={busy}>Save {kind}</Button><Button type="button" disabled={busy} onClick={() => setter(initialContactState(user[kind]))}>Cancel</Button></div>
-      </form> : !verified && (!state.sent ? <Button compact type="button" disabled={busy} onClick={() => request(kind)}>{kind === "email" ? "Send code" : "Send SMS code"}</Button> : <div className="verification-contact-editor">
-        <Field label={`${label} verification code`} inputMode="numeric" autoComplete="one-time-code" value={state.code} onChange={(event) => setter({ ...state, code: event.target.value })} required />
-        <div className="verification-code-actions"><Button compact type="button" disabled={busy || !state.code.trim()} onClick={() => confirm(kind, state)}>Verify</Button><Button variant="text" type="button" disabled={busy || countdown.seconds > 0} onClick={() => request(kind)}>{countdown.seconds > 0 ? `Resend code in ${countdown.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => setter({ ...state, editing: true, sent: false, code: "", dev: "", value: user[kind] })}>Change {kind}</Button></div>
+        <Field label={`New ${kind}`} type={kind === "email" ? "email" : "tel"} value={state.value} onChange={(event) => { setter({ ...state, value: event.target.value }); setError(null); }} autoComplete={kind === "email" ? "email" : "tel"} required />
+        <PasswordField label="Current password" value={state.currentPassword} onChange={(event) => { setter({ ...state, currentPassword: event.target.value }); setError(null); }} autoComplete="current-password" required />
+        <div className="phase8-inline-actions"><Button variant="primary" compact disabled={busy}>Save {kind}</Button><Button type="button" disabled={busy} onClick={() => { setError(null); setter(initialContactState(user[kind])); }}>Cancel</Button></div>
+      </form> : !verified && (!state.sent ? <Button compact type="button" disabled={busy || restoring} onClick={() => request(kind)}>{kind === "email" ? "Send code" : "Send SMS code"}</Button> : <div className="verification-contact-editor">
+        <Field label={`${label} verification code`} inputMode="numeric" autoComplete="one-time-code" value={state.code} onChange={(event) => { setter({ ...state, code: verificationCodeValue(event.target.value) }); setError(null); }} maxLength={6} required />
+        <div className="verification-code-actions"><Button compact type="button" disabled={busy || !verificationCodeComplete(state.code)} onClick={() => confirm(kind, state)}>Verify</Button><Button variant="text" type="button" disabled={busy || countdown.seconds > 0} onClick={() => request(kind)}>{countdown.seconds > 0 ? `Resend code in ${countdown.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setError(null); setter({ ...state, editing: true, sent: false, code: "", dev: "", value: user[kind] }); }}>Change {kind}</Button></div>
       </div>)}
       {state.dev && <p className="security-note">Development code: {state.dev}</p>}
     </>;
@@ -214,13 +238,29 @@ function DeviceAuthorization({ staffToken, onAuthorized, onBack }) {
   const [dev, setDev] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState(true);
   const resend = useResendCountdown();
+
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest("/api/staff/verification-state/", { staffToken })
+      .then((payload) => {
+        if (cancelled || !payload.device_authorize) return;
+        setChannel(payload.device_authorize.channel);
+        setSent(true);
+        setDev(payload.device_authorize.development_code ?? "");
+        resend.start(payload.device_authorize);
+      })
+      .catch((reason) => { if (!cancelled) setError(asError(reason, "Device verification status could not be restored.")); })
+      .finally(() => { if (!cancelled) setRestoring(false); });
+    return () => { cancelled = true; };
+  }, [staffToken]);
 
   async function send() {
     setBusy(true); setError(null);
     try {
       const payload = await apiRequest("/api/devices/contact/request/", { method: "POST", staffToken, data: { channel } });
-      setSent(true); setDev(payload.development_code ?? "");
+      setSent(true); setCode(""); setDev(payload.development_code ?? "");
       resend.start(payload);
     } catch (reason) { setError(asError(reason, "Device verification could not be sent.")); } finally { setBusy(false); }
   }
@@ -236,14 +276,14 @@ function DeviceAuthorization({ staffToken, onAuthorized, onBack }) {
   return <AuthShell title="Verify this new device." description="Choose either verified email or SMS. After one successful code, this browser is trusted for your account across all of your clinics." onBack={onBack}>
     <ErrorMessage error={error} />
     <div className="phase8-settings-section">
-      <SelectField label="Verification channel" value={channel} onChange={(event) => { setChannel(event.target.value); setSent(false); setCode(""); setDev(""); }}>
+      <SelectField label="Verification channel" value={channel} disabled={restoring} onChange={(event) => { setChannel(event.target.value); setSent(false); setCode(""); setDev(""); setError(null); }}>
         <option value="email">Verified email</option><option value="sms">Verified SMS</option>
       </SelectField>
-      {!sent ? <Button variant="primary" type="button" disabled={busy || resend.seconds > 0} onClick={send}>{resend.seconds > 0 ? `Send another code in ${resend.seconds}s` : "Send verification code"}</Button> : <>
-        <Field label="Verification code" value={code} onChange={(event) => setCode(event.target.value)} required />
+      {!sent ? <Button variant="primary" type="button" disabled={busy || restoring || resend.seconds > 0} onClick={send}>{resend.seconds > 0 ? `Send another code in ${resend.seconds}s` : "Send verification code"}</Button> : <>
+        <Field label="Verification code" value={code} onChange={(event) => { setCode(verificationCodeValue(event.target.value)); setError(null); }} inputMode="numeric" autoComplete="one-time-code" maxLength={6} required />
         {dev && <p className="security-note">Development code: {dev}</p>}
-        <Button variant="primary" type="button" disabled={busy} onClick={confirm}>Trust this browser</Button>
-        <div className="resend-actions"><Button variant="text" type="button" disabled={busy || resend.seconds > 0} onClick={send}>{resend.seconds > 0 ? `Resend code in ${resend.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setSent(false); setCode(""); setDev(""); }}>Use another channel</Button></div>
+        <Button variant="primary" type="button" disabled={busy || !verificationCodeComplete(code)} onClick={confirm}>Trust this browser</Button>
+        <div className="resend-actions"><Button variant="text" type="button" disabled={busy || resend.seconds > 0} onClick={send}>{resend.seconds > 0 ? `Resend code in ${resend.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setSent(false); setCode(""); setDev(""); setError(null); }}>Use another channel</Button></div>
       </>}
     </div>
   </AuthShell>;
@@ -311,6 +351,7 @@ function ClinicDetails({ membership, user, staffToken, onBack, onOpenWorkspace }
 function RecoveryFlow({ onBack, onComplete }) {
   const [step, setStep] = useState("request"), [identity, setIdentity] = useState(""), [channel, setChannel] = useState("email"), [code, setCode] = useState(""), [recoveryToken, setRecoveryToken] = useState(""), [password, setPassword] = useState(""), [confirm, setConfirm] = useState(""), [error, setError] = useState(null), [busy, setBusy] = useState(false), [method, setMethod] = useState("contact"), [dev, setDev] = useState("");
   const resend = useResendCountdown();
+  const resetPasswordValid = passwordRequirements(password, confirm, [identity]).valid;
   async function sendRecoveryCode() { const payload = await apiRequest("/api/recovery/request/", { method: "POST", data: { identity, channel } }); setDev(payload.development_code ?? ""); resend.start(payload); return payload; }
   async function request(event) { event.preventDefault(); setBusy(true); setError(null); try { if (method === "offline") { const payload = await apiRequest("/api/recovery/code/confirm/", { method: "POST", data: { identity, code } }); setRecoveryToken(payload.recovery_token); setStep("reset"); } else { await sendRecoveryCode(); setStep("confirm"); } } catch (reason) { setError(asError(reason, "Recovery could not be started.")); } finally { setBusy(false); } }
   async function resendCode() { setBusy(true); setError(null); try { await sendRecoveryCode(); } catch (reason) { setError(asError(reason, "Recovery code could not be resent.")); } finally { setBusy(false); } }
@@ -319,13 +360,13 @@ function RecoveryFlow({ onBack, onComplete }) {
   return <AuthShell title="Recover your personal account." description="Use verified email or SMS. Doctor accounts may alternatively use one unused offline recovery code." onBack={onBack}>
     <ErrorMessage error={error} />
     {step === "request" && <form className="form recovery-form" onSubmit={request}>
-      <Field label="Email or phone" value={identity} onChange={(event) => setIdentity(event.target.value)} required />
-      <RadioCards legend="Recovery method" name="recovery-method" value={method} onChange={(event) => { setMethod(event.target.value); setCode(""); }} options={[{ value: "contact", label: "Email or SMS", hint: "Send a code to one verified personal contact." }, { value: "offline", label: "Doctor offline code", hint: "Use one unused code from a Doctor recovery-code set." }]} />
-      {method === "offline" ? <Field label="Offline recovery code" value={code} onChange={(event) => setCode(event.target.value)} required /> : <SelectField label="Recovery channel" value={channel} onChange={(event) => setChannel(event.target.value)}><option value="email">Email</option><option value="sms">SMS</option></SelectField>}
+      <Field label="Email or phone" value={identity} onChange={(event) => { setIdentity(event.target.value); setError(null); }} required />
+      <RadioCards legend="Recovery method" name="recovery-method" value={method} onChange={(event) => { setMethod(event.target.value); setCode(""); setError(null); }} options={[{ value: "contact", label: "Email or SMS", hint: "Send a code to one verified personal contact." }, { value: "offline", label: "Doctor offline code", hint: "Use one unused code from a Doctor recovery-code set." }]} />
+      {method === "offline" ? <Field label="Offline recovery code" value={code} onChange={(event) => { setCode(event.target.value); setError(null); }} required /> : <SelectField label="Recovery channel" value={channel} onChange={(event) => { setChannel(event.target.value); setError(null); }}><option value="email">Email</option><option value="sms">SMS</option></SelectField>}
       <Button variant="primary" disabled={busy || (method === "contact" && resend.seconds > 0)}>{method === "contact" && resend.seconds > 0 ? `Send another code in ${resend.seconds}s` : "Continue"}</Button>
     </form>}
-    {step === "confirm" && <form className="form" onSubmit={verify}><p className="security-note">If the account and chosen verified channel exist, a code has been sent.</p><Field label="Recovery code" value={code} onChange={(event) => setCode(event.target.value)} inputMode="numeric" autoComplete="one-time-code" required />{dev && <p className="security-note">Development code: {dev}</p>}<Button variant="primary" disabled={busy}>Verify code</Button><div className="resend-actions"><Button variant="text" type="button" disabled={busy || resend.seconds > 0} onClick={resendCode}>{resend.seconds > 0 ? `Resend code in ${resend.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setStep("request"); setCode(""); setDev(""); }}>Change email, phone, or method</Button></div></form>}
-    {step === "reset" && <form className="form" onSubmit={reset}><PasswordPair password={password} confirmation={confirm} onPasswordChange={(event) => setPassword(event.target.value)} onConfirmationChange={(event) => setConfirm(event.target.value)} personalValues={[identity]} passwordLabel="New password" confirmationLabel="Confirm new password" /><Button variant="primary" disabled={busy}>Reset password</Button></form>}
+    {step === "confirm" && <form className="form" onSubmit={verify}><p className="security-note">If the account and chosen verified channel exist, a code has been sent.</p><Field label="Recovery code" value={code} onChange={(event) => { setCode(verificationCodeValue(event.target.value)); setError(null); }} inputMode="numeric" autoComplete="one-time-code" maxLength={6} required />{dev && <p className="security-note">Development code: {dev}</p>}<Button variant="primary" disabled={busy || !verificationCodeComplete(code)}>Verify code</Button><div className="resend-actions"><Button variant="text" type="button" disabled={busy || resend.seconds > 0} onClick={resendCode}>{resend.seconds > 0 ? `Resend code in ${resend.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setStep("request"); setCode(""); setDev(""); setError(null); }}>Change email, phone, or method</Button></div></form>}
+    {step === "reset" && <form className="form" onSubmit={reset}><PasswordPair password={password} confirmation={confirm} onPasswordChange={(event) => { setPassword(event.target.value); setError(null); }} onConfirmationChange={(event) => { setConfirm(event.target.value); setError(null); }} personalValues={[identity]} passwordLabel="New password" confirmationLabel="Confirm new password" /><Button variant="primary" disabled={busy || !resetPasswordValid}>Reset password</Button></form>}
   </AuthShell>;
 }
 

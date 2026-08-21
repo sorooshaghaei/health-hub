@@ -215,7 +215,7 @@ Verification-code defaults are:
 - minimum 60 seconds between resend requests;
 - maximum five failed attempts.
 
-After a code is sent, the interface displays the remaining resend delay and enables **Resend code** when the server-provided window reaches zero. The person may return to change the email, phone, channel, or recovery method without being forced to complete a stale code flow.
+After a code is sent, the interface displays the remaining resend delay and enables **Resend code** when the server-provided window reaches zero. Authenticated onboarding, new-device authorization, contact-change, and password-change screens restore an unexpired pending challenge and its server-derived resend window after reload. Code confirmation remains disabled until the complete six-digit value is present. The person may return to change the email, phone, channel, or recovery method without being forced to complete a stale code flow.
 
 The new-account verification screen always provides **Edit email**, **Edit phone**, and **Sign out**. Correcting a contact requires the current password, consumes outstanding verification/change challenges for that contact, and clears only that contact's verification timestamp. The other contact's verification state is preserved. Once both contacts are verified, later contact replacement uses Account settings and the normal sensitive-operation flow.
 
@@ -247,7 +247,7 @@ Changing personal email or phone requires an explicit fresh reauthentication by 
 
 A successful explicit reauthentication remains valid for 10 minutes by default so the person can complete the contact-change flow without repeated prompts.
 
-The new email/phone value must then be verified before it replaces the old value. The former verified contact receives a best-effort security notice after the change.
+The new email/phone value must then be verified before it replaces the old value. Account settings restores the pending replacement after reload and shows the pending value. The person may edit it or explicitly cancel it. Cancellation consumes the pending challenge, clears the draft/code/countdown in the interface, and leaves the verified contact unchanged. The former verified contact receives a best-effort security notice after a completed change.
 
 Because contact data belongs to the global personal account, the changed value applies across every clinic membership.
 
@@ -257,7 +257,7 @@ A normal signed-in password change is confirmed using one verified personal cont
 
 The person chooses verified email or verified SMS, verifies the code, and supplies a new password that passes Django password validation.
 
-New-password forms show the active requirements before submission, update requirement and strength feedback while the person types, confirm whether both entries match, and provide an accessible **Show/Hide** control for each password field. The production backend remains authoritative for minimum length, personal-attribute similarity, common-password, and entirely-numeric checks.
+New-password forms show the active requirements before submission, update requirement and strength feedback while the person types, confirm whether both entries match, and provide an accessible **Show/Hide** control for each password field. A password with any client-known displayed requirement failure is labelled **Invalid**, never **Strong**. Password submission remains disabled until the client-known checks and confirmation match pass. The production backend remains authoritative for minimum length, common-password, and entirely-numeric checks and also rejects passwords containing the account's name, email, or phone tokens.
 
 Successful password change:
 
@@ -435,6 +435,9 @@ The demo uses `VITE_DEMO_API=true` to replace only the backend transport with a 
 - Assistant setup-code membership;
 - 24-hour setup-code validity;
 - global trusted-device simulation;
+- pending challenge restoration and resend timing;
+- contact-replacement cancellation;
+- displayed password-rule enforcement;
 - clinic selection and workspace authorization;
 - clinic-only Assistant removal/replacement;
 - Doctor destructive account cascade;

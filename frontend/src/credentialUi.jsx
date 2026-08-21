@@ -1,4 +1,6 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useState } from "react";
+
+import { passwordRequirements } from "./passwordRules.js";
 import "./credentialUi.css";
 
 export function useResendCountdown() {
@@ -11,9 +13,15 @@ export function useResendCountdown() {
   }, [seconds]);
 
   function start(payloadOrSeconds = 60) {
-    const value = typeof payloadOrSeconds === "number"
+    const availableAt = typeof payloadOrSeconds === "object"
+      ? payloadOrSeconds?.resend_available_at
+      : null;
+    const absoluteSeconds = availableAt
+      ? Math.max(0, Math.ceil((new Date(availableAt).getTime() - Date.now()) / 1000))
+      : null;
+    const value = absoluteSeconds ?? (typeof payloadOrSeconds === "number"
       ? payloadOrSeconds
-      : payloadOrSeconds?.resend_after_seconds;
+      : payloadOrSeconds?.resend_after_seconds);
     setSeconds(Math.max(0, Number.isFinite(Number(value)) ? Math.ceil(Number(value)) : 60));
   }
 
@@ -40,13 +48,12 @@ export function PasswordField({ label, hint, id: providedId, className = "", ...
   </div>;
 }
 
-function personalTokens(values) {
-  return values.flatMap((value) => {
-    const normalized = String(value || "").toLowerCase();
-    const personalPart = normalized.includes("@") ? normalized.split("@", 1)[0] : normalized;
-    return personalPart.match(/[a-z0-9]+/g) || [];
-  })
-    .filter((value) => value.length >= 3);
+export function verificationCodeValue(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 6);
+}
+
+export function verificationCodeComplete(value) {
+  return /^\d{6}$/.test(String(value || ""));
 }
 
 function Requirement({ state, children }) {
@@ -66,21 +73,16 @@ export function PasswordPair({
   passwordLabel = "Password",
   confirmationLabel = "Confirm password",
 }) {
-  const tokens = useMemo(() => personalTokens(personalValues), [personalValues]);
-  const normalized = String(password || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const hasPassword = Boolean(password);
-  const longEnough = String(password || "").length >= 8;
-  const notNumeric = hasPassword && !/^\d+$/.test(password);
-  const avoidsPersonal = hasPassword && !tokens.some((token) => normalized.includes(token.replace(/[^a-z0-9]/g, "")));
-  const matches = Boolean(confirmation) && password === confirmation;
-  const score = [
+  const {
+    avoidsPersonal,
+    hasPassword,
     longEnough,
-    String(password || "").length >= 12,
-    /[a-z]/.test(password) && /[A-Z]/.test(password),
-    /\d/.test(password),
-    /[^A-Za-z0-9]/.test(password),
-  ].filter(Boolean).length;
-  const strength = !hasPassword ? "Not entered" : score >= 4 ? "Strong" : score >= 3 ? "Fair" : "Weak";
+    matches,
+    notKnownCommon,
+    notNumeric,
+    score,
+    strength,
+  } = passwordRequirements(password, confirmation, personalValues);
 
   return <div className="password-pair">
     <PasswordField
@@ -90,7 +92,7 @@ export function PasswordPair({
       onChange={onPasswordChange}
       autoComplete="new-password"
       required
-      aria-invalid={hasPassword && (!longEnough || !notNumeric || !avoidsPersonal)}
+      aria-invalid={hasPassword && (!longEnough || !notNumeric || !avoidsPersonal || !notKnownCommon)}
     />
     <div className="password-guidance" aria-live="polite">
       <div className="password-strength">
@@ -101,7 +103,7 @@ export function PasswordPair({
         <Requirement state={!hasPassword ? "pending" : longEnough ? "pass" : "fail"}>At least 8 characters</Requirement>
         <Requirement state={!hasPassword ? "pending" : notNumeric ? "pass" : "fail"}>Not entirely numeric</Requirement>
         <Requirement state={!hasPassword ? "pending" : avoidsPersonal ? "pass" : "fail"}>Does not include your name, email, or phone</Requirement>
-        <Requirement state="pending">Common passwords are rejected when submitted</Requirement>
+        <Requirement state={!hasPassword ? "pending" : notKnownCommon ? "pending" : "fail"}>Additional common-password checks run when submitted</Requirement>
       </ul>
     </div>
     <PasswordField

@@ -41,8 +41,8 @@ async function registerVerified(role, email, phone) {
       last_name: role === "doctor" ? "Doctor" : "Assistant",
       email,
       phone,
-      password: "Strong-demo-password-123",
-      password_confirm: "Strong-demo-password-123",
+      password: "Strong-clinic-password-123",
+      password_confirm: "Strong-clinic-password-123",
     },
   });
   await verifyContact(registered.session_token, "email");

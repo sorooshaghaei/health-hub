@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, DEMO_MODE, apiRequest } from "./api.js";
-import { PasswordField, PasswordPair, useResendCountdown } from "./credentialUi.jsx";
+import { PasswordField, PasswordPair, useResendCountdown, verificationCodeComplete, verificationCodeValue } from "./credentialUi.jsx";
+import { passwordRequirements } from "./passwordRules.js";
 import Dialog from "./Dialog.jsx";
 import { createPasskey, getPasskey } from "./webauthn.js";
 import { Button, ErrorMessage, Field, SelectField } from "./ui.jsx";
@@ -10,12 +11,17 @@ function errorOf(error, fallback) {
   return error instanceof ApiError ? error : new ApiError(error?.message || fallback);
 }
 
+function emptyContactState(kind = "email") {
+  return { kind, value: "", password: "", code: "", requested: false, devCode: "", passkeyReauthenticated: false };
+}
+
 export default function AccountSettings({ user, staffToken, onOpen, onUserChange, onAccountDeleted }) {
   const [open, setOpen] = useState(false), [tab, setTab] = useState("profile"), [error, setError] = useState(null);
   const [dangerOpen, setDangerOpen] = useState(false);
   const [profile, setProfile] = useState({ first_name: user.first_name ?? "", last_name: user.last_name ?? "" });
-  const [contact, setContact] = useState({ kind: "email", value: "", password: "", code: "", requested: false, devCode: "", passkeyReauthenticated: false });
+  const [contact, setContact] = useState(() => emptyContactState());
   const [password, setPassword] = useState({ channel: "email", code: "", password: "", confirm: "", requested: false, devCode: "" });
+  const [verificationState, setVerificationState] = useState({});
   const [passkeys, setPasskeys] = useState([]), [removePassword, setRemovePassword] = useState("");
   const [recovery, setRecovery] = useState({ remaining: 0, codes: [] });
   const [deletion, setDeletion] = useState({ clinics: [], password: "", confirmation: "", passkeyReauthenticated: false, loading: false, deleting: false });
@@ -23,6 +29,46 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
   const passwordResend = useResendCountdown();
 
   useEffect(() => { setProfile({ first_name: user.first_name ?? "", last_name: user.last_name ?? "" }); }, [user]);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    apiRequest("/api/staff/verification-state/", { staffToken })
+      .then((payload) => {
+        if (cancelled) return;
+        setVerificationState(payload);
+        const pendingKind = payload.email_change ? "email" : payload.phone_change ? "phone" : null;
+        if (pendingKind) {
+          const challenge = payload[`${pendingKind}_change`];
+          setContact({
+            ...emptyContactState(pendingKind),
+            value: challenge.pending_value ?? "",
+            requested: true,
+            devCode: challenge.development_code ?? "",
+          });
+          contactResend.start(challenge);
+        } else {
+          setContact((current) => current.requested ? emptyContactState(current.kind) : current);
+          contactResend.reset();
+        }
+        if (payload.password_change) {
+          setPassword((current) => ({
+            ...current,
+            channel: payload.password_change.channel,
+            code: "",
+            requested: true,
+            devCode: payload.password_change.development_code ?? "",
+          }));
+          passwordResend.start(payload.password_change);
+        } else {
+          setPassword((current) => current.requested
+            ? { channel: current.channel, code: "", password: "", confirm: "", requested: false, devCode: "" }
+            : current);
+          passwordResend.reset();
+        }
+      })
+      .catch((reason) => { if (!cancelled) setError(errorOf(reason, "Pending verification status could not be restored.")); });
+    return () => { cancelled = true; };
+  }, [open, staffToken]);
   useEffect(() => {
     if (!open) return;
     if (tab === "passkeys" && !DEMO_MODE) apiRequest("/api/passkeys/", { staffToken }).then((payload) => setPasskeys(payload.passkeys ?? [])).catch((reason) => setError(errorOf(reason, "Passkeys could not be loaded.")));
@@ -62,6 +108,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
         data: { value: contact.value, ...(contact.password ? { current_password: contact.password } : {}) },
       });
       setContact((current) => ({ ...current, requested: true, devCode: payload.development_code ?? "" }));
+      setVerificationState((current) => ({ ...current, [`${contact.kind}_change`]: { ...payload, pending_value: contact.value } }));
       contactResend.start(payload);
     } catch (reason) { setError(errorOf(reason, "Contact change could not be started. Reauthenticate with your current password or a passkey first.")); }
   }
@@ -71,9 +118,37 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
     try {
       const payload = await apiRequest(`/api/staff/${contact.kind}/change/confirm/`, { method: "POST", staffToken, data: { code: contact.code } });
       onUserChange(payload.user);
-      setContact({ kind: contact.kind, value: "", password: "", code: "", requested: false, devCode: "", passkeyReauthenticated: false });
+      setVerificationState((current) => ({ ...current, [`${contact.kind}_change`]: null }));
+      setContact(emptyContactState(contact.kind));
       contactResend.reset();
     } catch (reason) { setError(errorOf(reason, "Contact change could not be confirmed.")); }
+  }
+
+  async function cancelContact() {
+    setError(null);
+    try {
+      await apiRequest(`/api/staff/${contact.kind}/change/cancel/`, { method: "POST", staffToken });
+      setVerificationState((current) => ({ ...current, [`${contact.kind}_change`]: null }));
+      setContact(emptyContactState(contact.kind));
+      contactResend.reset();
+    } catch (reason) { setError(errorOf(reason, "Pending contact replacement could not be cancelled.")); }
+  }
+
+  function selectContactKind(kind) {
+    const challenge = verificationState[`${kind}_change`];
+    setError(null);
+    if (!challenge) {
+      setContact(emptyContactState(kind));
+      contactResend.reset();
+      return;
+    }
+    setContact({
+      ...emptyContactState(kind),
+      value: challenge.pending_value ?? "",
+      requested: true,
+      devCode: challenge.development_code ?? "",
+    });
+    contactResend.start(challenge);
   }
 
   async function requestPassword(event) {
@@ -81,6 +156,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
     try {
       const payload = await apiRequest("/api/staff/password/change/request/", { method: "POST", staffToken, data: { channel: password.channel } });
       setPassword((current) => ({ ...current, requested: true, devCode: payload.development_code ?? "" }));
+      setVerificationState((current) => ({ ...current, password_change: { ...payload, channel: password.channel } }));
       passwordResend.start(payload);
     } catch (reason) { setError(errorOf(reason, "Password verification could not be sent.")); }
   }
@@ -90,6 +166,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
     try {
       await apiRequest("/api/staff/password/change/confirm/", { method: "POST", staffToken, data: { code: password.code, password: password.password, password_confirm: password.confirm } });
       setPassword({ channel: "email", code: "", password: "", confirm: "", requested: false, devCode: "" });
+      setVerificationState((current) => ({ ...current, password_change: null }));
       passwordResend.reset();
     } catch (reason) { setError(errorOf(reason, "Password could not be changed.")); }
   }
@@ -137,6 +214,11 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
   }
 
   const tabs = ["profile", "security", "passkeys", "recovery"];
+  const passwordValid = passwordRequirements(
+    password.password,
+    password.confirm,
+    [user.first_name, user.last_name, user.email, user.phone],
+  ).valid;
   return <>
     {open && <Dialog
       className="device-modal phase8-account-modal"
@@ -164,9 +246,61 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
       </nav>
       <ErrorMessage error={error} />
 
-      {tab === "profile" && <div className="phase8-settings-section"><form className="form" onSubmit={saveProfile}><div className="field-row"><Field label="First name" value={profile.first_name} onChange={(event) => setProfile({ ...profile, first_name: event.target.value })} required /><Field label="Last name" value={profile.last_name} onChange={(event) => setProfile({ ...profile, last_name: event.target.value })} required /></div><Button variant="primary">Save profile</Button></form><div className="phase8-contact-card"><strong>Email</strong><span>{user.email} · {user.email_verified ? "Verified" : "Not verified"}</span></div><div className="phase8-contact-card"><strong>Phone</strong><span>{user.phone} · {user.phone_verified ? "Verified" : "Not verified"}</span></div><form className="form" onSubmit={contact.requested ? confirmContact : requestContact}><SelectField label="Change contact" value={contact.kind} onChange={(event) => { setContact({ ...contact, kind: event.target.value, requested: false, code: "", devCode: "", passkeyReauthenticated: false }); contactResend.reset(); }}><option value="email">Email</option><option value="phone">Phone</option></SelectField>{!contact.requested ? <><Field label={`New ${contact.kind}`} value={contact.value} onChange={(event) => setContact({ ...contact, value: event.target.value })} required /><PasswordField label="Current password" value={contact.password} onChange={(event) => setContact({ ...contact, password: event.target.value })} autoComplete="current-password" /><Button type="button" onClick={() => explicitPasskeyReauth(false)}>Use passkey instead</Button>{contact.passkeyReauthenticated && <p className="device-success">Passkey reauthentication complete for the next 10 minutes.</p>}<Button variant="primary" disabled={contactResend.seconds > 0}>{contactResend.seconds > 0 ? `Send another code in ${contactResend.seconds}s` : "Send verification code"}</Button></> : <><Field label="Verification code" value={contact.code} onChange={(event) => setContact({ ...contact, code: event.target.value })} inputMode="numeric" autoComplete="one-time-code" required />{contact.devCode && <p className="security-note">Development code: {contact.devCode}</p>}<Button variant="primary">Confirm change</Button><div className="resend-actions"><Button variant="text" type="button" disabled={contactResend.seconds > 0} onClick={requestContact}>{contactResend.seconds > 0 ? `Resend code in ${contactResend.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" onClick={() => { setContact({ ...contact, requested: false, code: "", devCode: "" }); }}>Change {contact.kind}</Button></div></>}</form></div>}
+      {tab === "profile" && <div className="phase8-settings-section">
+        <form className="form" onSubmit={saveProfile}>
+          <div className="field-row">
+            <Field label="First name" value={profile.first_name} onChange={(event) => { setProfile({ ...profile, first_name: event.target.value }); setError(null); }} required />
+            <Field label="Last name" value={profile.last_name} onChange={(event) => { setProfile({ ...profile, last_name: event.target.value }); setError(null); }} required />
+          </div>
+          <Button variant="primary">Save profile</Button>
+        </form>
+        <div className="phase8-contact-card"><strong>Email</strong><span>{user.email} · {user.email_verified ? "Verified" : "Not verified"}</span></div>
+        <div className="phase8-contact-card"><strong>Phone</strong><span>{user.phone} · {user.phone_verified ? "Verified" : "Not verified"}</span></div>
+        <form className="form" onSubmit={contact.requested ? confirmContact : requestContact}>
+          <SelectField label="Change contact" value={contact.kind} onChange={(event) => selectContactKind(event.target.value)}>
+            <option value="email">Email</option><option value="phone">Phone</option>
+          </SelectField>
+          {!contact.requested ? <>
+            <Field label={`New ${contact.kind}`} value={contact.value} onChange={(event) => { setContact({ ...contact, value: event.target.value }); setError(null); }} required />
+            <PasswordField label="Current password" value={contact.password} onChange={(event) => { setContact({ ...contact, password: event.target.value }); setError(null); }} autoComplete="current-password" />
+            <Button type="button" onClick={() => explicitPasskeyReauth(false)}>Use passkey instead</Button>
+            {contact.passkeyReauthenticated && <p className="device-success">Passkey reauthentication complete for the next 10 minutes.</p>}
+            <Button variant="primary" disabled={contactResend.seconds > 0}>{contactResend.seconds > 0 ? `Send another code in ${contactResend.seconds}s` : "Send verification code"}</Button>
+            {verificationState[`${contact.kind}_change`] && <Button variant="text" type="button" onClick={cancelContact}>Cancel pending replacement</Button>}
+          </> : <>
+            <p className="security-note">Pending {contact.kind}: {contact.value}</p>
+            <Field label="Verification code" value={contact.code} onChange={(event) => { setContact({ ...contact, code: verificationCodeValue(event.target.value) }); setError(null); }} inputMode="numeric" autoComplete="one-time-code" maxLength={6} required />
+            {contact.devCode && <p className="security-note">Development code: {contact.devCode}</p>}
+            <Button variant="primary" disabled={!verificationCodeComplete(contact.code)}>Confirm change</Button>
+            <div className="resend-actions">
+              <Button variant="text" type="button" disabled={contactResend.seconds > 0} onClick={requestContact}>{contactResend.seconds > 0 ? `Resend code in ${contactResend.seconds}s` : "Resend code"}</Button>
+              <Button variant="text" type="button" onClick={() => { setContact({ ...contact, requested: false, code: "", devCode: "" }); setError(null); }}>Edit new {contact.kind}</Button>
+              <Button variant="text" type="button" onClick={cancelContact}>Cancel replacement</Button>
+            </div>
+          </>}
+        </form>
+      </div>}
 
-      {tab === "security" && <div className="phase8-settings-section"><h3>Change password</h3><p>Confirm a password change through one of your verified contacts.</p><form className="form" onSubmit={password.requested ? confirmPassword : requestPassword}>{!password.requested ? <><SelectField label="Verification channel" value={password.channel} onChange={(event) => setPassword({ ...password, channel: event.target.value })}><option value="email">Email</option><option value="sms">SMS</option></SelectField><Button variant="primary" disabled={passwordResend.seconds > 0}>{passwordResend.seconds > 0 ? `Send another code in ${passwordResend.seconds}s` : "Send code"}</Button></> : <><Field label="Verification code" value={password.code} onChange={(event) => setPassword({ ...password, code: event.target.value })} inputMode="numeric" autoComplete="one-time-code" required />{password.devCode && <p className="security-note">Development code: {password.devCode}</p>}<PasswordPair password={password.password} confirmation={password.confirm} onPasswordChange={(event) => setPassword({ ...password, password: event.target.value })} onConfirmationChange={(event) => setPassword({ ...password, confirm: event.target.value })} personalValues={[user.first_name, user.last_name, user.email, user.phone]} passwordLabel="New password" confirmationLabel="Confirm new password" /><Button variant="primary">Change password</Button><div className="resend-actions"><Button variant="text" type="button" disabled={passwordResend.seconds > 0} onClick={requestPassword}>{passwordResend.seconds > 0 ? `Resend code in ${passwordResend.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" onClick={() => { setPassword({ ...password, requested: false, code: "", devCode: "" }); }}>Change verification channel</Button></div></>}</form><p className="security-note">Changing your password signs out your other sessions but keeps trusted devices.</p></div>}
+      {tab === "security" && <div className="phase8-settings-section">
+        <h3>Change password</h3>
+        <p>Confirm a password change through one of your verified contacts.</p>
+        <form className="form" onSubmit={password.requested ? confirmPassword : requestPassword}>
+          {!password.requested ? <>
+            <SelectField label="Verification channel" value={password.channel} onChange={(event) => { setPassword({ ...password, channel: event.target.value }); setError(null); }}><option value="email">Email</option><option value="sms">SMS</option></SelectField>
+            <Button variant="primary" disabled={passwordResend.seconds > 0}>{passwordResend.seconds > 0 ? `Send another code in ${passwordResend.seconds}s` : "Send code"}</Button>
+          </> : <>
+            <Field label="Verification code" value={password.code} onChange={(event) => { setPassword({ ...password, code: verificationCodeValue(event.target.value) }); setError(null); }} inputMode="numeric" autoComplete="one-time-code" maxLength={6} required />
+            {password.devCode && <p className="security-note">Development code: {password.devCode}</p>}
+            <PasswordPair password={password.password} confirmation={password.confirm} onPasswordChange={(event) => { setPassword({ ...password, password: event.target.value }); setError(null); }} onConfirmationChange={(event) => { setPassword({ ...password, confirm: event.target.value }); setError(null); }} personalValues={[user.first_name, user.last_name, user.email, user.phone]} passwordLabel="New password" confirmationLabel="Confirm new password" />
+            <Button variant="primary" disabled={!verificationCodeComplete(password.code) || !passwordValid}>Change password</Button>
+            <div className="resend-actions">
+              <Button variant="text" type="button" disabled={passwordResend.seconds > 0} onClick={requestPassword}>{passwordResend.seconds > 0 ? `Resend code in ${passwordResend.seconds}s` : "Resend code"}</Button>
+              <Button variant="text" type="button" onClick={() => { setPassword({ ...password, requested: false, code: "", devCode: "" }); setError(null); }}>Change verification channel</Button>
+            </div>
+          </>}
+        </form>
+        <p className="security-note">Changing your password signs out your other sessions but keeps trusted devices.</p>
+      </div>}
 
       {tab === "passkeys" && <div className="phase8-settings-section">{DEMO_MODE ? <p>Real passkey enrollment is unavailable in the browser-only demo.</p> : <><div className="phase8-settings-row"><div><h3>Passkeys</h3><p>Optional biometric/device sign-in. Up to five passkeys.</p></div><Button variant="primary" compact type="button" onClick={addPasskey}>Add passkey</Button></div><PasswordField label="Current password for removal (or reauthenticate with another passkey)" value={removePassword} onChange={(event) => setRemovePassword(event.target.value)} autoComplete="current-password" />{passkeys.map((item) => <div className="phase8-contact-card" key={item.id}><div><strong>{item.name}</strong><span>Added {new Date(item.created_at).toLocaleDateString()}</span></div><Button type="button" onClick={() => removePasskey(item.id)}>Remove</Button></div>)}</>}</div>}
 

@@ -10,11 +10,11 @@ This is the handoff entry point for a new chat or development session.
 - Clarify product/workflow changes with the product owner before implementing them.
 - Do not re-ask decisions already explicit in the current product-phase or design-step specifications.
 - Reconcile specification, implementation, tests, browser adapter, and handoff documentation together.
-- Phase 8 is complete and validated. Do not begin Phase 9 until its behavior is explicitly clarified.
+- Phase 8 is implemented, but release-readiness audit remediation remains active. Do not begin Phase 9 until the audit parts are complete and Phase 9 behavior is explicitly clarified.
 
 ## Current phase status
 
-Phases 0–8 have approved product contracts, implementation alignment, and completed validation on `main`.
+Phases 0–8 have approved product contracts and are implemented on `main`. Release-readiness audit corrections are being applied in separately validated parts with one commit per part.
 
 - Phase 0 — Foundation: reconciled to the final permanent-role/global-device architecture.
 - Phase 1 — Patient records: reconciled.
@@ -24,7 +24,7 @@ Phases 0–8 have approved product contracts, implementation alignment, and comp
 - Phase 5 — Completed consultation behavior: reconciled.
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
-- Phase 8 — Authentication/administration/security: implemented, documentation reconciled, source-audited, and validated.
+- Phase 8 — Authentication/administration/security: implemented; verification/password lifecycle audit corrections complete, remaining audit corrections pending.
 - Phase 9 — not started; clarification required before implementation.
 
 The post-Phase-8 usability corrections are named **Design Steps**, not phases:
@@ -155,13 +155,13 @@ OTP defaults:
 - 60-second resend minimum;
 - maximum five failed attempts.
 
-Code-entry screens expose a server-driven resend countdown and a way to change the relevant contact/channel. During new-account verification, staff may correct either contact with their current password; only the edited contact loses verification, its stale challenges are consumed, and Sign out remains available.
+Pending onboarding, new-device, contact-change, and password-change challenges are restored from server state after reload, including the authoritative resend window. Code confirmation remains disabled until all six digits are present. During new-account verification, staff may correct either contact with their current password; only the edited contact loses verification, its stale challenges are consumed, and Sign out remains available.
 
-Email/phone changes require explicit fresh password or passkey reauthentication. Normal login does not count. Explicit reauth remains valid for 10 minutes by default.
+Email/phone changes require explicit fresh password or passkey reauthentication. Normal login does not count. Explicit reauth remains valid for 10 minutes by default. A pending replacement can be edited or explicitly cancelled; cancellation consumes the pending challenge without changing the verified contact.
 
 Password change uses one verified email/SMS code, preserves current session, revokes other sessions, and does not remove device trust.
 
-New-password pairs show Django-aligned requirements, live strength/match feedback, and accessible Show/Hide controls.
+New-password pairs show Django-aligned requirements, live strength/match feedback, and accessible Show/Hide controls. A known requirement failure cannot be labelled **Strong**, and submission remains disabled until client-known requirements and the confirmation match pass. The backend also enforces that a password does not contain the account's name, email, or phone tokens.
 
 Routine Account settings are separated from permanent Doctor-account deletion in a dedicated Danger zone dialog. Account, device, clinic-team, task, and consultation dialogs share focus entry, Tab containment, Escape handling, and opener-focus restoration.
 
@@ -360,6 +360,4 @@ It does not claim real security infrastructure. Real Patient information must ne
 
 ## Next action
 
-Design Steps 1–5 are complete. Stop before Product Phase 9 and clarify its complete product contract before implementation.
-
-After the Design Steps are complete, stop before Product Phase 9. Phase 9 has not started and requires its own clarification pass before implementation.
+Continue the approved release-readiness audit remediation one part and one validated commit at a time. Stop before Product Phase 9; it has not started and requires its own clarification pass before implementation.

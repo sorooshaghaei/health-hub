@@ -1,6 +1,7 @@
 import { demoApiRequest as demoOperationalApiRequest } from "./demoApi.js";
 import { fail, hashSecret, randomToken } from "./demoApiBase.js";
 import { demoTaskApiRequest } from "./demoTasks.js";
+import { passwordRequirements } from "./passwordRules.js";
 
 const AUTH_STORE_KEY = "health-hub.demo-auth.v2";
 const LEGACY_STORE_KEY = "health-hub.demo-store.v1";
@@ -131,7 +132,14 @@ function validateIdentityFields(store, data, excludeUserId = null) {
   if (store.accounts.some((a) => a.id !== excludeUserId && a.phone === phone)) fail({ phone: ["This phone number is already in use. Sign in instead."] });
   return { first_name, last_name, email, phone };
 }
-function validatePassword(password, confirmation) { if (password !== confirmation) fail({ password_confirm: ["Passwords do not match."] }); if (typeof password !== "string" || password.length < 8) fail({ password: ["Use at least 8 characters for the password."] }); if (/^\d+$/.test(password)) fail({ password: ["This password is entirely numeric."] }); }
+function validatePassword(password, confirmation, personalValues = []) {
+  const checks = passwordRequirements(password, confirmation, personalValues);
+  if (!checks.matches) fail({ password_confirm: ["Passwords do not match."] });
+  if (!checks.longEnough) fail({ password: ["Use at least 8 characters for the password."] });
+  if (!checks.notNumeric) fail({ password: ["This password is entirely numeric."] });
+  if (!checks.avoidsPersonal) fail({ password: ["The password is too similar to your personal information."] });
+  if (!checks.notKnownCommon) fail({ password: ["This password is too common."] });
+}
 function issueSession(store, userId, { clinicId = null, workspaceRole = null, deviceId = null } = {}) {
   const token = randomToken("demo-account");
   store.sessions[token] = { user_id: userId, clinic_id: clinicId, workspace_role: workspaceRole, device_id: deviceId, reauthenticated_at: null, created_at: nowIso() };
@@ -156,6 +164,30 @@ function currentTrustedDevice(store, session, account) {
 function recentReauth(session) { return Boolean(session.reauthenticated_at && Date.now() - new Date(session.reauthenticated_at).getTime() <= REAUTH_TTL_MS); }
 
 function challengeKey(userId, purpose) { return `${userId}:${purpose}`; }
+function challengeState(store, account, purpose, { includePendingValue = false } = {}) {
+  const challenge = store.challenges[challengeKey(account.id, purpose)];
+  if (!challenge || Date.now() > new Date(challenge.expires_at).getTime()) return null;
+  const resendAvailableAt = new Date(new Date(challenge.created_at).getTime() + RESEND_MIN_MS).toISOString();
+  return {
+    channel: challenge.channel,
+    expires_at: challenge.expires_at,
+    resend_available_at: resendAvailableAt,
+    resend_after_seconds: Math.max(0, Math.ceil((new Date(resendAvailableAt).getTime() - Date.now()) / 1000)),
+    development_code: challenge.code,
+    ...(includePendingValue ? { pending_value: challenge.pending_value ?? "" } : {}),
+  };
+}
+function verificationState(store, staffToken) {
+  const { account } = sessionFor(store, staffToken);
+  return {
+    email: challengeState(store, account, "email_verify"),
+    phone: challengeState(store, account, "phone_verify"),
+    email_change: challengeState(store, account, "email_change", { includePendingValue: true }),
+    phone_change: challengeState(store, account, "phone_change", { includePendingValue: true }),
+    password_change: challengeState(store, account, "password_change"),
+    device_authorize: challengeState(store, account, "device_authorize"),
+  };
+}
 function issueChallenge(store, account, { purpose, channel, pendingValue = null }) {
   if (channel === "email" && !account.email) fail({ detail: "No email address is available." });
   if (channel === "sms" && !account.phone) fail({ detail: "No phone number is available." });
@@ -166,10 +198,18 @@ function issueChallenge(store, account, { purpose, channel, pendingValue = null 
   const challenge = { code: sixDigitCode(), channel, pending_value: pendingValue, created_at: nowIso(), expires_at: expiresIn(CHALLENGE_TTL_MS) };
   store.challenges[challengeKey(account.id, purpose)] = challenge; return challenge;
 }
-function challengeResponse(challenge) { return { detail: "Verification code sent.", expires_at: challenge.expires_at, resend_after_seconds: RESEND_MIN_MS / 1000, development_code: challenge.code }; }
+function challengeResponse(challenge) {
+  return {
+    detail: "Verification code sent.",
+    expires_at: challenge.expires_at,
+    resend_available_at: new Date(new Date(challenge.created_at).getTime() + RESEND_MIN_MS).toISOString(),
+    resend_after_seconds: RESEND_MIN_MS / 1000,
+    development_code: challenge.code,
+  };
+}
 function consumeChallenge(store, account, purpose, code) {
   const key = challengeKey(account.id, purpose), challenge = store.challenges[key];
-  if (!challenge || challenge.code !== clean(code) || Date.now() > new Date(challenge.expires_at).getTime()) fail({ detail: "Verification code is invalid or expired." });
+  if (!/^\d{6}$/.test(String(code || "")) || !challenge || challenge.code !== code || Date.now() > new Date(challenge.expires_at).getTime()) fail({ detail: "Verification code is invalid or expired." });
   delete store.challenges[key]; return challenge;
 }
 
@@ -204,7 +244,8 @@ function isOperationalPath(pathname) { return pathname.startsWith("/api/patients
 
 async function registerStaff(store, data) {
   if (!["doctor", "assistant"].includes(data.role)) fail({ role: ["Choose Doctor or Assistant."] });
-  validatePassword(data.password, data.password_confirm); const identity = validateIdentityFields(store, data);
+  const identity = validateIdentityFields(store, data);
+  validatePassword(data.password, data.password_confirm, [identity.first_name, identity.last_name, identity.email, identity.phone]);
   const account = { id: crypto.randomUUID(), role: data.role, ...identity, password_hash: await hashSecret(data.password), email_verified_at: null, phone_verified_at: null, private_note: "", is_active: true, dormant_since: null, anonymized_at: null, created_at: nowIso() };
   store.accounts.push(account); const token = issueSession(store, account.id); saveAuthStore(store);
   return { user: publicUser(store, account, store.sessions[token]), session_token: token, expires_at: null };
@@ -330,13 +371,19 @@ function contactChangeConfirm(store, staffToken, kind, code) {
   const { session, account } = sessionFor(store, staffToken); if (!recentReauth(session)) fail({ detail: "Reauthenticate with your password or a passkey first." }, 403); const challenge = consumeChallenge(store, account, kind === "email" ? "email_change" : "phone_change", code);
   if (kind === "email") { account.email = challenge.pending_value; account.email_verified_at = nowIso(); } else { account.phone = challenge.pending_value; account.phone_verified_at = nowIso(); } saveAuthStore(store); return { user: publicUser(store, account, session) };
 }
+function contactChangeCancel(store, staffToken, kind) {
+  const { session, account } = sessionFor(store, staffToken);
+  delete store.challenges[challengeKey(account.id, kind === "email" ? "email_change" : "phone_change")];
+  saveAuthStore(store);
+  return { detail: `Pending ${kind} replacement cancelled.`, user: publicUser(store, account, session) };
+}
 function passwordChangeRequest(store, staffToken, data) { const { account } = sessionFor(store, staffToken); const challenge = issueChallenge(store, account, { purpose: "password_change", channel: data.channel }); saveAuthStore(store); return challengeResponse(challenge); }
-async function passwordChangeConfirm(store, staffToken, data) { const { account } = sessionFor(store, staffToken); validatePassword(data.password, data.password_confirm); consumeChallenge(store, account, "password_change", data.code); account.password_hash = await hashSecret(data.password); for (const [token, s] of Object.entries(store.sessions)) if (s.user_id === account.id && token !== staffToken) delete store.sessions[token]; saveAuthStore(store); return { detail: "Password changed. Other sessions were signed out." }; }
+async function passwordChangeConfirm(store, staffToken, data) { const { account } = sessionFor(store, staffToken); validatePassword(data.password, data.password_confirm, [account.first_name, account.last_name, account.email, account.phone]); consumeChallenge(store, account, "password_change", data.code); account.password_hash = await hashSecret(data.password); for (const [token, s] of Object.entries(store.sessions)) if (s.user_id === account.id && token !== staffToken) delete store.sessions[token]; saveAuthStore(store); return { detail: "Password changed. Other sessions were signed out." }; }
 
 function recoveryRequest(store, data) { const account = findAccountByIdentity(store, data.identity); let challenge = null; if (account) { try { challenge = issueChallenge(store, account, { purpose: "password_recovery", channel: data.channel }); } catch { challenge = null; } } saveAuthStore(store); return { detail: "If the account and verified channel exist, a recovery code was sent.", resend_after_seconds: RESEND_MIN_MS / 1000, ...(challenge ? { development_code: challenge.code } : {}) }; }
 function recoveryConfirm(store, data) { const account = findAccountByIdentity(store, data.identity); if (!account) fail({ detail: "Recovery code is invalid or expired." }); try { consumeChallenge(store, account, "password_recovery", data.code); } catch { fail({ detail: "Recovery code is invalid or expired." }); } const token = randomToken("demo-recovery"); store.recovery_grants[token] = { user_id: account.id, expires_at: expiresIn(RECOVERY_TTL_MS) }; saveAuthStore(store); return { recovery_token: token, expires_at: store.recovery_grants[token].expires_at }; }
 function offlineRecoveryConfirm(store, data) { const account = findAccountByIdentity(store, data.identity), codes = account ? store.recovery_codes[account.id] ?? [] : [], entry = codes.find((item) => !item.used_at && item.code === clean(data.code)); if (!account || account.role !== "doctor" || !entry) fail({ detail: "Recovery code is invalid or already used." }); entry.used_at = nowIso(); const token = randomToken("demo-recovery"); store.recovery_grants[token] = { user_id: account.id, expires_at: expiresIn(RECOVERY_TTL_MS) }; saveAuthStore(store); return { recovery_token: token, expires_at: store.recovery_grants[token].expires_at }; }
-async function recoveryReset(store, data) { const grant = store.recovery_grants[data.recovery_token]; if (!grant || Date.now() > new Date(grant.expires_at).getTime()) fail({ detail: "Recovery authorization is invalid or expired." }); validatePassword(data.password, data.password_confirm); const account = accountFor(store, grant.user_id); if (!account) fail({ detail: "Recovery authorization is invalid or expired." }); account.password_hash = await hashSecret(data.password); for (const [token, s] of Object.entries(store.sessions)) if (s.user_id === account.id) delete store.sessions[token]; delete store.recovery_grants[data.recovery_token]; saveAuthStore(store); return { detail: "Password reset complete. Sign in again." }; }
+async function recoveryReset(store, data) { const grant = store.recovery_grants[data.recovery_token]; if (!grant || Date.now() > new Date(grant.expires_at).getTime()) fail({ detail: "Recovery authorization is invalid or expired." }); const account = accountFor(store, grant.user_id); if (!account) fail({ detail: "Recovery authorization is invalid or expired." }); validatePassword(data.password, data.password_confirm, [account.first_name, account.last_name, account.email, account.phone]); account.password_hash = await hashSecret(data.password); for (const [token, s] of Object.entries(store.sessions)) if (s.user_id === account.id) delete store.sessions[token]; delete store.recovery_grants[data.recovery_token]; saveAuthStore(store); return { detail: "Password reset complete. Sign in again." }; }
 function recoveryCodes(store, staffToken, method) { const { account } = sessionFor(store, staffToken); if (account.role !== "doctor") fail({ detail: "Offline recovery codes are available only to Doctors." }, 403); if (method === "GET") { const current = store.recovery_codes[account.id] ?? []; return { remaining: current.filter((item) => !item.used_at).length }; } const codes = Array.from({ length: RECOVERY_CODE_COUNT }, () => recoveryCode()); store.recovery_codes[account.id] = codes.map((code) => ({ code, used_at: null })); saveAuthStore(store); return { codes, remaining: codes.length }; }
 
 function currentAssistantMembership(store, clinicId) { return store.memberships.find((m) => m.clinic_id === clinicId && m.is_active !== false && accountFor(store, m.user_id)?.role === "assistant") ?? null; }
@@ -385,6 +432,7 @@ export async function demoPhase8ApiRequest(path, { method = "GET", data = {}, st
   if (pathname === "/api/staff/verify/email/confirm/" && method === "POST") return initialVerificationConfirm(store, staffToken, "email", data.code);
   if (pathname === "/api/staff/verify/phone/request/" && method === "POST") return initialVerificationRequest(store, staffToken, "phone");
   if (pathname === "/api/staff/verify/phone/confirm/" && method === "POST") return initialVerificationConfirm(store, staffToken, "phone", data.code);
+  if (pathname === "/api/staff/verification-state/" && method === "GET") return verificationState(store, staffToken);
   if (pathname === "/api/staff/verification-contact/" && method === "PATCH") return verificationContactUpdate(store, staffToken, data);
   if (pathname === "/api/devices/contact/request/" && method === "POST") return deviceAuthorizationRequest(store, staffToken, data);
   if (pathname === "/api/devices/contact/confirm/" && method === "POST") return deviceAuthorizationConfirm(store, staffToken, data);
@@ -395,8 +443,10 @@ export async function demoPhase8ApiRequest(path, { method = "GET", data = {}, st
   if (pathname === "/api/staff/reauthenticate/password/" && method === "POST") return reauthenticatePassword(store, staffToken, data.password);
   if (pathname === "/api/staff/email/change/request/" && method === "POST") return contactChangeRequest(store, staffToken, "email", data);
   if (pathname === "/api/staff/email/change/confirm/" && method === "POST") return contactChangeConfirm(store, staffToken, "email", data.code);
+  if (pathname === "/api/staff/email/change/cancel/" && method === "POST") return contactChangeCancel(store, staffToken, "email");
   if (pathname === "/api/staff/phone/change/request/" && method === "POST") return contactChangeRequest(store, staffToken, "phone", data);
   if (pathname === "/api/staff/phone/change/confirm/" && method === "POST") return contactChangeConfirm(store, staffToken, "phone", data.code);
+  if (pathname === "/api/staff/phone/change/cancel/" && method === "POST") return contactChangeCancel(store, staffToken, "phone");
   if (pathname === "/api/staff/password/change/request/" && method === "POST") return passwordChangeRequest(store, staffToken, data);
   if (pathname === "/api/staff/password/change/confirm/" && method === "POST") return passwordChangeConfirm(store, staffToken, data);
   if (pathname === "/api/recovery/request/" && method === "POST") return recoveryRequest(store, data);

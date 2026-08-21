@@ -41,8 +41,21 @@ test("verification and password forms expose correction, resend, guidance, and r
   assert.match(credentials, /export function PasswordPair/);
   assert.match(credentials, /At least 8 characters/);
   assert.match(credentials, /Not entirely numeric/);
-  assert.match(credentials, /Common passwords are rejected when submitted/);
+  assert.match(credentials, /Additional common-password checks run when submitted/);
+  assert.match(app, /verificationCodeComplete/);
+  assert.match(app, /\/api\/staff\/verification-state\//);
   assert.match(credentials, /aria-label=\{`\$\{visible \? "Hide" : "Show"\}/);
+});
+
+test("pending account contact replacement can be restored, edited, or explicitly cancelled", async () => {
+  const account = await source("../src/AccountSettings.jsx");
+
+  assert.match(account, /\/api\/staff\/verification-state\//);
+  assert.match(account, /\/change\/cancel\//);
+  assert.match(account, />Cancel replacement</);
+  assert.match(account, />Edit new \{contact\.kind\}</);
+  assert.match(account, /verificationCodeComplete\(contact\.code\)/);
+  assert.match(account, /passwordValid/);
 });
 
 test("mobile authentication replaces the oversized hero with a compact titled header", async () => {

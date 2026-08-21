@@ -10,7 +10,7 @@ Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
 ## Current status
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented, specification-aligned, merged, and validated on `main`. Product Phase 9 has not started and requires separate clarification.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`, but release-readiness audit remediation is still in progress. The verification/password lifecycle part is implemented; the remaining approved audit parts are pending. Product Phase 9 has not started and requires separate clarification.**
 
 Source-of-truth documents:
 
@@ -103,8 +103,10 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - Doctor offline recovery uses ten one-time codes; regeneration invalidates unused previous codes.
 - Passkeys are optional, maximum five.
 - OTP defaults are six digits, 10-minute expiry, 60-second resend minimum, five failed attempts.
-- Verification screens show the resend countdown, allow contact correction with isolated re-verification, and always retain a sign-out escape.
-- New-password forms provide live requirements, match/strength feedback, and accessible Show/Hide controls; recovery methods are mutually exclusive.
+- Pending onboarding, device-authorization, contact-change, and password-change challenges restore their code-entry state and server-derived resend countdown after reload.
+- Verification submissions require the complete six-digit code. Verification screens allow contact correction with isolated re-verification and always retain a sign-out escape.
+- A pending Account-settings email/phone replacement can be edited or explicitly cancelled; cancellation consumes its challenge and leaves the verified contact unchanged.
+- New-password forms provide live requirements, match/strength feedback, accessible Show/Hide controls, and remain disabled until the client-known requirements and confirmation match pass. Production validation remains authoritative.
 - Routine Account settings are separate from the Doctor-account Danger zone, and modal surfaces share focus containment, Escape, and opener-focus restoration.
 - Broader login/recovery/IP throttling is deferred to Phase 10 production hardening.
 

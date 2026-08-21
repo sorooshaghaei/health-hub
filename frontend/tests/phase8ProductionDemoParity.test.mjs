@@ -36,8 +36,8 @@ async function createVerifiedDoctor() {
       last_name: "Doctor",
       email: "doctor@example.com",
       phone: "+33123456789",
-      password: "Strong-demo-password-123",
-      password_confirm: "Strong-demo-password-123",
+      password: "Strong-clinic-password-123",
+      password_confirm: "Strong-clinic-password-123",
     },
   });
   await verifyContact(registered.session_token, "email");
@@ -57,8 +57,8 @@ async function createVerifiedAssistant({
       last_name: "Assistant",
       email,
       phone,
-      password: "Strong-demo-password-123",
-      password_confirm: "Strong-demo-password-123",
+      password: "Strong-clinic-password-123",
+      password_confirm: "Strong-clinic-password-123",
     },
   });
   await verifyContact(registered.session_token, "email");
@@ -91,13 +91,26 @@ test("browser onboarding contact correction preserves the other verification sta
       last_name: "Assistant",
       email: "mistyped@example.com",
       phone: "+33123456789",
-      password: "Strong-demo-password-123",
-      password_confirm: "Strong-demo-password-123",
+      password: "Strong-clinic-password-123",
+      password_confirm: "Strong-clinic-password-123",
     },
   });
   const token = registered.session_token;
   const firstRequest = await demoPhase8ApiRequest("/api/staff/verify/email/request/", { method: "POST", staffToken: token });
   assert.equal(firstRequest.resend_after_seconds, 60);
+  assert.match(firstRequest.resend_available_at, /^\d{4}-\d{2}-\d{2}T/);
+  const restored = await demoPhase8ApiRequest("/api/staff/verification-state/", { staffToken: token });
+  assert.equal(restored.email.development_code, firstRequest.development_code);
+  assert.equal(restored.email.channel, "email");
+  assert.ok(restored.email.resend_after_seconds > 0);
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/staff/verify/email/confirm/", {
+      method: "POST",
+      staffToken: token,
+      data: { code: firstRequest.development_code.slice(0, 5) },
+    }),
+    (error) => error?.payload?.detail === "Verification code is invalid or expired.",
+  );
   await assert.rejects(
     demoPhase8ApiRequest("/api/staff/verify/email/request/", { method: "POST", staffToken: token }),
     (error) => error?.payload?.detail === "Wait before requesting another verification code.",
@@ -113,7 +126,7 @@ test("browser onboarding contact correction preserves the other verification sta
   const corrected = await demoPhase8ApiRequest("/api/staff/verification-contact/", {
     method: "PATCH",
     staffToken: token,
-    data: { kind: "email", value: "corrected@example.com", current_password: "Strong-demo-password-123" },
+    data: { kind: "email", value: "corrected@example.com", current_password: "Strong-clinic-password-123" },
   });
   assert.equal(corrected.user.email, "corrected@example.com");
   assert.equal(corrected.user.email_verified, false);
@@ -133,10 +146,118 @@ test("browser onboarding contact correction preserves the other verification sta
   const phoneCorrected = await demoPhase8ApiRequest("/api/staff/verification-contact/", {
     method: "PATCH",
     staffToken: token,
-    data: { kind: "phone", value: "+33987654321", current_password: "Strong-demo-password-123" },
+    data: { kind: "phone", value: "+33987654321", current_password: "Strong-clinic-password-123" },
   });
   assert.equal(phoneCorrected.user.email_verified, true);
   assert.equal(phoneCorrected.user.phone_verified, false);
+});
+
+test("browser pending contact replacement restores and cancellation consumes its code", async () => {
+  localStorage.clear();
+  const { registered } = await createVerifiedDoctor();
+  const requested = await demoPhase8ApiRequest("/api/staff/email/change/request/", {
+    method: "POST",
+    staffToken: registered.session_token,
+    data: { value: "replacement@example.com", current_password: "Strong-clinic-password-123" },
+  });
+  const restored = await demoPhase8ApiRequest("/api/staff/verification-state/", {
+    staffToken: registered.session_token,
+  });
+  assert.equal(restored.email_change.pending_value, "replacement@example.com");
+  assert.equal(restored.email_change.development_code, requested.development_code);
+
+  const cancelled = await demoPhase8ApiRequest("/api/staff/email/change/cancel/", {
+    method: "POST",
+    staffToken: registered.session_token,
+  });
+  assert.equal(cancelled.user.email, "doctor@example.com");
+  const cleared = await demoPhase8ApiRequest("/api/staff/verification-state/", {
+    staffToken: registered.session_token,
+  });
+  assert.equal(cleared.email_change, null);
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/staff/email/change/confirm/", {
+      method: "POST",
+      staffToken: registered.session_token,
+      data: { code: requested.development_code },
+    }),
+    (error) => error?.payload?.detail === "Verification code is invalid or expired.",
+  );
+});
+
+test("browser registration enforces the displayed personal-information password rule", async () => {
+  localStorage.clear();
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/staff/register/", {
+      method: "POST",
+      data: {
+        role: "doctor",
+        first_name: "Demo",
+        last_name: "Doctor",
+        email: "personal-password@example.com",
+        phone: "+33111111111",
+        password: "Strong-demo-password-123",
+        password_confirm: "Strong-demo-password-123",
+      },
+    }),
+    (error) => error?.payload?.password?.[0] === "The password is too similar to your personal information.",
+  );
+});
+
+test("browser password change and recovery reuse exact-code and personal-information rules", async () => {
+  localStorage.clear();
+  const { registered } = await createVerifiedDoctor();
+  const requested = await demoPhase8ApiRequest("/api/staff/password/change/request/", {
+    method: "POST",
+    staffToken: registered.session_token,
+    data: { channel: "email" },
+  });
+  const restored = await demoPhase8ApiRequest("/api/staff/verification-state/", {
+    staffToken: registered.session_token,
+  });
+  assert.equal(restored.password_change.development_code, requested.development_code);
+
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/staff/password/change/confirm/", {
+      method: "POST",
+      staffToken: registered.session_token,
+      data: {
+        code: requested.development_code,
+        password: "Strong-doctor-password-456",
+        password_confirm: "Strong-doctor-password-456",
+      },
+    }),
+    (error) => error?.payload?.password?.[0] === "The password is too similar to your personal information.",
+  );
+  await demoPhase8ApiRequest("/api/staff/password/change/confirm/", {
+    method: "POST",
+    staffToken: registered.session_token,
+    data: {
+      code: requested.development_code,
+      password: "Strong-clinic-password-456",
+      password_confirm: "Strong-clinic-password-456",
+    },
+  });
+
+  const recoveryRequested = await demoPhase8ApiRequest("/api/recovery/request/", {
+    method: "POST",
+    data: { identity: "doctor@example.com", channel: "email" },
+  });
+  const recoveryConfirmed = await demoPhase8ApiRequest("/api/recovery/confirm/", {
+    method: "POST",
+    data: { identity: "doctor@example.com", code: recoveryRequested.development_code },
+  });
+  await assert.rejects(
+    demoPhase8ApiRequest("/api/recovery/reset/", {
+      method: "POST",
+      data: {
+        recovery_token: recoveryConfirmed.recovery_token,
+        password: "Strong-doctor-password-789",
+        password_confirm: "Strong-doctor-password-789",
+      },
+    }),
+    (error) => error?.payload?.password?.[0] === "The password is too similar to your personal information.",
+  );
 });
 
 test("browser Phase 8 uses permanent roles, account-first clinic creation, and global device trust", async () => {
@@ -173,7 +294,7 @@ test("browser Phase 8 uses permanent roles, account-first clinic creation, and g
     data: {
       role: "doctor",
       identity: "+33123456789",
-      password: "Strong-demo-password-123",
+      password: "Strong-clinic-password-123",
     },
   });
   assert.equal(trustedLogin.user.role, "doctor");
@@ -187,7 +308,7 @@ test("browser Phase 8 uses permanent roles, account-first clinic creation, and g
       data: {
         role: "assistant",
         identity: "doctor@example.com",
-        password: "Strong-demo-password-123",
+        password: "Strong-clinic-password-123",
       },
     }),
     (error) => error?.payload?.non_field_errors?.[0] === "Role, email/phone, or password is incorrect.",
@@ -199,7 +320,7 @@ test("browser Phase 8 uses permanent roles, account-first clinic creation, and g
       data: {
         role: "doctor",
         username: "doctor@example.com",
-        password: "Strong-demo-password-123",
+        password: "Strong-clinic-password-123",
       },
     }),
     (error) => error?.payload?.non_field_errors?.[0] === "Role, email/phone, or password is incorrect.",
@@ -288,7 +409,7 @@ test("new browser authorizes once and that trusted device works across Doctor cl
 
   const untrusted = await demoPhase8ApiRequest("/api/staff/login/", {
     method: "POST",
-    data: { role: "doctor", identity: "doctor@example.com", password: "Strong-demo-password-123" },
+    data: { role: "doctor", identity: "doctor@example.com", password: "Strong-clinic-password-123" },
   });
   assert.equal(untrusted.user.device_trusted, false);
   assert.equal(untrusted.user.has_trusted_devices, true);

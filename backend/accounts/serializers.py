@@ -1,12 +1,12 @@
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from rest_framework import serializers
 
 from .models import Clinic, ClinicWorkingHour, PasskeyCredential, StaffMembership, StaffUser, TrustedDevice
+from .password_rules import validate_staff_password
 from .services import normalize_staff_phone
 
 
@@ -182,7 +182,7 @@ class StaffRegistrationSerializer(serializers.Serializer):
             role=attrs["role"],
         )
         try:
-            validate_password(attrs["password"], user=candidate)
+            validate_staff_password(attrs["password"], user=candidate)
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"password": list(exc.messages)})
         return attrs
@@ -267,7 +267,10 @@ class VerificationRequestSerializer(serializers.Serializer):
 
 
 class VerificationConfirmSerializer(serializers.Serializer):
-    code = serializers.CharField(min_length=6, max_length=12, trim_whitespace=True)
+    code = serializers.RegexField(
+        r"^\d{6}$",
+        error_messages={"invalid": "Enter the complete six-digit verification code."},
+    )
 
 
 class VerificationContactUpdateSerializer(serializers.Serializer):
@@ -282,7 +285,10 @@ class ContactChangeRequestSerializer(serializers.Serializer):
 
 
 class PasswordChangeConfirmSerializer(serializers.Serializer):
-    code = serializers.CharField(min_length=6, max_length=12)
+    code = serializers.RegexField(
+        r"^\d{6}$",
+        error_messages={"invalid": "Enter the complete six-digit verification code."},
+    )
     password = serializers.CharField(trim_whitespace=False, write_only=True)
     password_confirm = serializers.CharField(trim_whitespace=False, write_only=True)
 
@@ -290,7 +296,7 @@ class PasswordChangeConfirmSerializer(serializers.Serializer):
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
         try:
-            validate_password(attrs["password"], user=self.context.get("user"))
+            validate_staff_password(attrs["password"], user=self.context.get("user"))
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"password": list(exc.messages)})
         return attrs
@@ -303,7 +309,10 @@ class RecoveryRequestSerializer(serializers.Serializer):
 
 class RecoveryConfirmSerializer(serializers.Serializer):
     identity = serializers.CharField(max_length=254)
-    code = serializers.CharField(min_length=6, max_length=16)
+    code = serializers.RegexField(
+        r"^\d{6}$",
+        error_messages={"invalid": "Enter the complete six-digit recovery code."},
+    )
 
 
 class RecoveryResetSerializer(serializers.Serializer):
