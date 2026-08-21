@@ -19,12 +19,14 @@ Patient identity is **clinic-scoped**, not global. The same real-world person ap
 | --- | --- | --- |
 | Full name | Yes | Stored without generated suffixes. |
 | Gender | Yes | `Man` or `Woman`. |
-| Country | Yes | Compact selector shows flag and country name. Iran defaults. |
-| Phone number | Yes | The selected calling code is shown beside the large national-number input; normalized national and E.164 values are stored. |
+| Phone country or region | Yes | Compact selector shows flag and country name. Iran defaults. |
+| Phone number | Yes | Accepts a domestic number or a full international number matching the selected country or region. Canonical national and E.164 values are stored. |
 | Date of birth | No | May be empty. |
 | Patient note | No | Shared plain text attached to the Patient. |
 
 The Patient profile displays one combined phone value. Separate Country code and National number cards are not shown.
+
+Patient phone parsing and validation use libphonenumber metadata in both the frontend demo and production backend. Domestic trunk prefixes such as the French leading `0` are accepted correctly, while an entered international country code must match the selector. The backend remains authoritative and stores the canonical E.164 value used by search, duplicate detection, and Appointment snapshots.
 
 Every active Patient API representation includes
 `country_calling_code`, `phone_number`, and `phone_e164`. The edit form also

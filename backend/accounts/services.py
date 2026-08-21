@@ -11,6 +11,8 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
+from health_hub.phone_numbers import normalize_international_phone
+
 from .delivery import deliver_verification_code
 from .models import (
     AssistantSetupToken,
@@ -63,16 +65,7 @@ def hash_short_code(value, *, namespace="verification"):
 
 
 def normalize_staff_phone(value):
-    raw = str(value or "").strip()
-    cleaned = "".join(ch for ch in raw if ch not in " .()-")
-    if cleaned.startswith("00"):
-        cleaned = f"+{cleaned[2:]}"
-    if not cleaned.startswith("+") or not cleaned[1:].isdigit():
-        raise ValueError("Enter a valid international phone number beginning with +.")
-    digits = cleaned[1:]
-    if len(digits) < 7 or len(digits) > 15 or digits.startswith("0"):
-        raise ValueError("Enter a valid international phone number.")
-    return f"+{digits}"
+    return normalize_international_phone(value)
 
 
 def device_details_from_user_agent(user_agent):

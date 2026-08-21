@@ -1,21 +1,9 @@
 import { browserTimeZone, dateValueInTimeZone, timeValueInTimeZone } from "./clinicTime.js";
-import { patientPhoneParts } from "./patientPhoneFormats.js";
+import { normalizePatientPhone, patientPhoneParts } from "./patientPhoneFormats.js";
 
 const STORE_KEY = "health-hub.demo-store.v1";
 
 const UNDO_WINDOW_MS = 5000;
-
-const TRUNK_ZERO_CODES = new Set(["+33", "+44", "+49", "+90", "+98", "+971"]);
-
-const NATIONAL_LENGTHS = {
-  "+1": [10, 10],
-  "+33": [9, 9],
-  "+44": [9, 10],
-  "+49": [7, 11],
-  "+90": [10, 10],
-  "+98": [10, 10],
-  "+971": [8, 9],
-};
 
 function emptyStore() {
   return {
@@ -259,33 +247,11 @@ function requireDoctorWorkspace(session) {
 }
 
 function normalizePhone(countryCallingCode, phoneNumber) {
-  let code = clean(countryCallingCode).replace(/[\s().-]+/g, "");
-  if (code.startsWith("00")) code = `+${code.slice(2)}`;
-  if (!/^\+[1-9]\d{0,3}$/.test(code)) {
-    fail({ country_calling_code: ["Choose a valid country calling code, such as +98."] });
+  try {
+    return normalizePatientPhone(countryCallingCode, phoneNumber);
+  } catch (error) {
+    fail({ phone_number: [error.message] });
   }
-
-  let national = clean(phoneNumber).replace(/[\s().-]+/g, "");
-  if (national.startsWith("00")) national = `+${national.slice(2)}`;
-  if (national.startsWith("+")) {
-    if (!national.startsWith(code)) {
-      fail({ phone_number: ["The phone number country code must match the selected calling code."] });
-    }
-    national = national.slice(code.length);
-  }
-  if (TRUNK_ZERO_CODES.has(code) && national.startsWith("0")) national = national.slice(1);
-  if (!/^\d+$/.test(national)) fail({ phone_number: ["Enter a valid national phone number."] });
-
-  const [minimum, maximum] = NATIONAL_LENGTHS[code] ?? [6, 14];
-  if (national.length < minimum || national.length > maximum) {
-    const message = minimum === maximum
-      ? `Phone numbers for ${code} must contain ${minimum} national digits.`
-      : `Phone numbers for ${code} must contain between ${minimum} and ${maximum} national digits.`;
-    fail({ phone_number: [message] });
-  }
-  const e164 = `${code}${national}`;
-  if (e164.length > 16) fail({ phone_number: ["The international phone number is too long."] });
-  return { country_calling_code: code, phone_number: national, phone_e164: e164 };
 }
 
 function validatePatient(data, current = null) {

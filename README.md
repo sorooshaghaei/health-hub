@@ -46,6 +46,7 @@ Workspace rules:
 There is no shared clinic password and no username login. Sign-in uses selected permanent role plus email or phone + password, with optional passkeys.
 
 Both personal email and phone must be verified before clinic operational data opens.
+Personal phone values use full international input and are normalized to E.164 before storage.
 
 ## Authentication flow
 
@@ -123,7 +124,8 @@ That timezone determines clinic **today**, today's Appointments, check-in eligib
 ### Patients
 
 - clinic-scoped reusable Patient records;
-- full name, `Man`/`Woman`, country/phone, optional DOB, optional shared Patient note;
+- full name, `Man`/`Woman`, phone country or region plus domestic/international phone input, optional DOB, optional shared Patient note;
+- Patient phone validation uses country metadata and stores one canonical E.164 value while retaining the selected country and national number;
 - Iran `+98` default;
 - automatic search + one duplicate warning;
 - Doctor workspace may edit approved Patient data;

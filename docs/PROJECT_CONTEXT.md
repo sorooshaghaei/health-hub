@@ -17,14 +17,14 @@ This is the handoff entry point for a new chat or development session.
 Phases 0–8 have approved product contracts and are implemented on `main`. Release-readiness audit corrections are being applied in separately validated parts with one commit per part.
 
 - Phase 0 — Foundation: reconciled to the final permanent-role/global-device architecture.
-- Phase 1 — Patient records: reconciled.
+- Phase 1 — Patient records: reconciled; metadata-backed international phone normalization complete.
 - Phase 2 — Appointments: reconciled.
 - Phase 3 — Check-in/live queue and clinic operational timezone: reconciled.
 - Phase 4 — Room ready/consultation handoff: reconciled.
 - Phase 5 — Completed consultation behavior: reconciled.
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
-- Phase 8 — Authentication/administration/security: implemented; verification/password lifecycle and multi-account trusted-device/recovery-routing audit corrections complete, remaining audit corrections pending.
+- Phase 8 — Authentication/administration/security: implemented; verification/password lifecycle, multi-account trusted-device/recovery-routing, and personal-phone normalization audit corrections complete, remaining audit corrections pending.
 - Phase 9 — not started; clarification required before implementation.
 
 The post-Phase-8 usability corrections are named **Design Steps**, not phases:
@@ -149,7 +149,7 @@ Default session policy:
 
 ## Contact, password, passkey, and recovery rules
 
-Both personal email and phone are mandatory and must be verified before clinic operational access.
+Both personal email and phone are mandatory and must be verified before clinic operational access. Personal phones require international input and are validated with country metadata before canonical E.164 storage. Patient phones retain the approved country selector, accept domestic or matching international input, and use the same metadata-backed E.164 normalization in production and demo paths.
 
 OTP defaults:
 

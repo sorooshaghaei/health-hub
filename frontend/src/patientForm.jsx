@@ -4,6 +4,7 @@ import { ApiError } from "./api.js";
 import {
   COUNTRY_CODES,
   countryForCallingCode,
+  normalizePatientPhone,
   patientPhoneParts,
   phonePlaceholderForCallingCode,
 } from "./patientPhoneFormats.js";
@@ -72,7 +73,7 @@ export function PatientFields({ form, onChange, includeNote = true, includeName 
         </SelectField>
         <div className="patient-phone-row">
           <label className="field patient-country-field">
-            <span>Country</span>
+            <span>Phone country or region</span>
             <select name="country_calling_code" value={form.country_calling_code} onChange={update} required>
               {COUNTRY_CODES.map(({ flag, country, code }) => (
                 <option value={code} key={`${country}-${code}`}>{flag} {country}</option>
@@ -88,7 +89,7 @@ export function PatientFields({ form, onChange, includeNote = true, includeName 
                 name="phone_number"
                 value={form.phone_number}
                 onChange={update}
-                inputMode="numeric"
+                inputMode="tel"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
@@ -98,7 +99,7 @@ export function PatientFields({ form, onChange, includeNote = true, includeName 
                 required
               />
             </span>
-            <small>Enter the national number without the country code.</small>
+            <small>Enter a domestic number or a matching full international number. Health Hub saves it in E.164 format.</small>
           </label>
         </div>
         <Field label="Date of birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={update} />
@@ -154,8 +155,10 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
     setError(null);
     setSubmitting(true);
     try {
+      const phone = normalizePatientPhone(form.country_calling_code, form.phone_number);
       await onSave({
         ...form,
+        ...phone,
         date_of_birth: form.date_of_birth || null,
         confirm_duplicate: confirmDuplicate,
       });
@@ -163,7 +166,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
       if (requestError instanceof ApiError && requestError.status === 409 && requestError.fields?.code === "possible_duplicate") {
         setWarning(requestError.fields);
       } else {
-        setError(requestError instanceof ApiError ? requestError : new ApiError("Something went wrong."));
+        setError(requestError instanceof ApiError ? requestError : new ApiError(requestError?.message || "Something went wrong."));
       }
     } finally {
       setSubmitting(false);

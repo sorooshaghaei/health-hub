@@ -385,7 +385,7 @@ test("browser Assistant setup claim is idempotent and enters the workspace", asy
 
   const otherAssistant = await createVerifiedAssistant({
     email: "other-assistant@example.com",
-    phone: "+33876543210",
+    phone: "+33987654320",
   });
   await assert.rejects(
     demoPhase8ApiRequest("/api/clinic/assistant/setup/claim/", {

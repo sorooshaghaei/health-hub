@@ -1,3 +1,5 @@
+import { tryNormalizeInternationalPhone } from "./phoneNumbers.js";
+
 export const ACTIVE_DEVICE_TOKEN_KEY = "health-hub.active-device-token";
 export const TRUSTED_DEVICE_REGISTRY_KEY = "health-hub.trusted-device-credentials.v1";
 
@@ -8,8 +10,8 @@ function storageAvailable() {
 function normalizeIdentity(value) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized.includes("@")) return normalized;
-  const compact = normalized.replace(/[ .()\-]/g, "");
-  return compact.startsWith("00") ? `+${compact.slice(2)}` : compact;
+  return tryNormalizeInternationalPhone(normalized)
+    ?? normalized.replace(/[ .()\-]/g, "").replace(/^00/, "+");
 }
 
 function readRegistry() {

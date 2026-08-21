@@ -208,6 +208,8 @@ An untrusted global session may exist temporarily for contact verification or ne
 
 Personal email and phone are both required for new staff accounts.
 
+Personal phone fields require full international input and use libphonenumber metadata for validation. Formatting characters and a leading `00` international prefix are accepted; the stored account value is canonical E.164. The production backend is authoritative, and the frontend applies the same normalization before account registration or phone replacement.
+
 Both must be verified before clinic operational data may open.
 
 Verification-code defaults are:

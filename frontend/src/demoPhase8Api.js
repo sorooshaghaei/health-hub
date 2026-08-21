@@ -2,6 +2,7 @@ import { demoApiRequest as demoOperationalApiRequest } from "./demoApi.js";
 import { fail, hashSecret, randomToken } from "./demoApiBase.js";
 import { demoTaskApiRequest } from "./demoTasks.js";
 import { passwordRequirements } from "./passwordRules.js";
+import { normalizeInternationalPhone } from "./phoneNumbers.js";
 
 const AUTH_STORE_KEY = "health-hub.demo-auth.v2";
 const LEGACY_STORE_KEY = "health-hub.demo-store.v1";
@@ -65,10 +66,11 @@ function normalizeWorkingHours(value) {
 }
 function normalizeEmail(value) { return clean(value).toLowerCase(); }
 function normalizePhone(value) {
-  let phone = clean(value).replace(/[\s().-]+/g, "");
-  if (phone.startsWith("00")) phone = `+${phone.slice(2)}`;
-  if (!/^\+[1-9]\d{6,14}$/.test(phone)) fail({ phone: ["Enter a valid international phone number, such as +33123456789."] });
-  return phone;
+  try {
+    return normalizeInternationalPhone(value);
+  } catch (error) {
+    fail({ phone: [error.message] });
+  }
 }
 function nowIso() { return new Date().toISOString(); }
 function expiresIn(milliseconds) { return new Date(Date.now() + milliseconds).toISOString(); }

@@ -7,6 +7,7 @@ import { PasswordField, PasswordPair, useResendCountdown, verificationCodeComple
 import { ACTIVE_DEVICE_TOKEN_KEY, clearActiveTrustedDevice, forgetTrustedDevice, refreshTrustedDeviceIdentity, rememberTrustedDevice, trustedDeviceTokenForIdentity } from "./deviceCredentials.js";
 import { passwordRequirements } from "./passwordRules.js";
 import PatientWorkspace from "./PatientWorkspace.jsx";
+import { normalizeInternationalPhone } from "./phoneNumbers.js";
 import { getPasskey } from "./webauthn.js";
 import { Brand, Button, ErrorMessage, Field, RadioCards, SelectField, TextLink } from "./ui.jsx";
 import "./deviceAccess.css";
@@ -112,7 +113,9 @@ function AccountCreateForm({ role, onSubmit, onBack }) {
   ).valid;
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(null);
-    try { await onSubmit(form); } catch (reason) { setError(asError(reason, "Account could not be created.")); } finally { setBusy(false); }
+    try {
+      await onSubmit({ ...form, phone: normalizeInternationalPhone(form.phone) });
+    } catch (reason) { setError(asError(reason, "Account could not be created.")); } finally { setBusy(false); }
   }
   return <AuthShell title={`Create your ${label} account.`} description="Your role is permanent. Both personal email and phone must be verified before clinic access." onBack={onBack}>
     <form className="form" onSubmit={submit}>
@@ -122,7 +125,7 @@ function AccountCreateForm({ role, onSubmit, onBack }) {
         <Field label="Last name" name="last_name" value={form.last_name} onChange={update} required />
       </div>
       <Field label="Personal email" name="email" type="email" value={form.email} onChange={update} autoComplete="email" required />
-      <Field label="Personal phone" name="phone" value={form.phone} onChange={update} placeholder="+33…" autoComplete="tel" required />
+      <Field label="Personal phone" name="phone" value={form.phone} onChange={update} placeholder="+33 6 12 34 56 78" hint="Use the full international format beginning with +." inputMode="tel" autoComplete="tel" required />
       <PasswordPair
         password={form.password}
         confirmation={form.password_confirm}
@@ -191,10 +194,11 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
   async function saveContact(event, kind, state) {
     event.preventDefault(); setBusy(true); setError(null);
     try {
+      const value = kind === "phone" ? normalizeInternationalPhone(state.value) : state.value;
       const payload = await apiRequest("/api/staff/verification-contact/", {
         method: "PATCH",
         staffToken,
-        data: { kind, value: state.value, current_password: state.currentPassword },
+        data: { kind, value, current_password: state.currentPassword },
       });
       onUser(payload.user);
       (kind === "email" ? setEmail : setPhone)(initialContactState(payload.user[kind]));
@@ -211,7 +215,7 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
         <Button compact type="button" disabled={busy || restoring} onClick={() => { setError(null); setter((current) => ({ ...current, editing: true, sent: false, code: "", dev: "", value: user[kind] })); }}>Edit {kind}</Button>
       </div>
       {state.editing ? <form className="verification-contact-editor" onSubmit={(event) => saveContact(event, kind, state)}>
-        <Field label={`New ${kind}`} type={kind === "email" ? "email" : "tel"} value={state.value} onChange={(event) => { setter({ ...state, value: event.target.value }); setError(null); }} autoComplete={kind === "email" ? "email" : "tel"} required />
+        <Field label={kind === "email" ? "New email" : "New phone number"} type={kind === "email" ? "email" : "tel"} value={state.value} onChange={(event) => { setter({ ...state, value: event.target.value }); setError(null); }} hint={kind === "phone" ? "Use the full international format beginning with +." : undefined} inputMode={kind === "phone" ? "tel" : undefined} autoComplete={kind === "email" ? "email" : "tel"} required />
         <PasswordField label="Current password" value={state.currentPassword} onChange={(event) => { setter({ ...state, currentPassword: event.target.value }); setError(null); }} autoComplete="current-password" required />
         <div className="phase8-inline-actions"><Button variant="primary" compact disabled={busy}>Save {kind}</Button><Button type="button" disabled={busy} onClick={() => { setError(null); setter(initialContactState(user[kind])); }}>Cancel</Button></div>
       </form> : !verified && (!state.sent ? <Button compact type="button" disabled={busy || restoring} onClick={() => request(kind)}>{kind === "email" ? "Send code" : "Send SMS code"}</Button> : <div className="verification-contact-editor">

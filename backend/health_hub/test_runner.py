@@ -16,8 +16,8 @@ ORIGINAL_GENERIC = APIClient.generic
 
 
 def fixture_phone(email):
-    digits = str(int(hashlib.sha256(email.encode("utf-8")).hexdigest()[:12], 16))
-    return f"+1{digits[-14:].zfill(14)}"
+    line_number = int(hashlib.sha256(email.encode("utf-8")).hexdigest()[:12], 16) % 10_000
+    return f"+1202555{line_number:04d}"
 
 
 def patched_generic(client, method, path, data="", content_type="application/octet-stream", secure=False, **extra):

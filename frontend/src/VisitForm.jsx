@@ -4,6 +4,7 @@ import { ApiError, apiRequest } from "./api.js";
 import { appointmentPatientPayload, shouldSuggestPatients } from "./appointmentPatientFlow.js";
 import { dateValueInTimeZone } from "./clinicTime.js";
 import { suggestedAppointmentTimes, workingHoursForDate } from "./clinicWorkingHours.js";
+import { normalizePatientPhone } from "./patientPhoneFormats.js";
 import {
   DuplicateWarning,
   PatientFields,
@@ -213,6 +214,19 @@ export default function VisitForm({
       return;
     }
 
+    let normalizedPatientDraft = patientDraft;
+    if (!workflowStarted && !selectedPatient) {
+      try {
+        normalizedPatientDraft = {
+          ...patientDraft,
+          ...normalizePatientPhone(patientDraft.country_calling_code, patientDraft.phone_number),
+        };
+      } catch (phoneError) {
+        setError(new ApiError(phoneError.message));
+        return;
+      }
+    }
+
     const data = {
       date: schedule.date,
       scheduled_time: schedule.scheduled_time,
@@ -224,7 +238,7 @@ export default function VisitForm({
       visit,
       selectedPatient,
       patientChanged,
-      patientDraft,
+      patientDraft: normalizedPatientDraft,
       confirmDuplicate,
     }));
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError, DEMO_MODE, apiRequest } from "./api.js";
 import { PasswordField, PasswordPair, useResendCountdown, verificationCodeComplete, verificationCodeValue } from "./credentialUi.jsx";
 import { passwordRequirements } from "./passwordRules.js";
+import { normalizeInternationalPhone } from "./phoneNumbers.js";
 import Dialog from "./Dialog.jsx";
 import { createPasskey, getPasskey } from "./webauthn.js";
 import { Button, ErrorMessage, Field, SelectField } from "./ui.jsx";
@@ -103,12 +104,13 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
   async function requestContact(event) {
     event.preventDefault(); setError(null);
     try {
+      const value = contact.kind === "phone" ? normalizeInternationalPhone(contact.value) : contact.value;
       const payload = await apiRequest(`/api/staff/${contact.kind}/change/request/`, {
         method: "POST", staffToken,
-        data: { value: contact.value, ...(contact.password ? { current_password: contact.password } : {}) },
+        data: { value, ...(contact.password ? { current_password: contact.password } : {}) },
       });
-      setContact((current) => ({ ...current, requested: true, devCode: payload.development_code ?? "" }));
-      setVerificationState((current) => ({ ...current, [`${contact.kind}_change`]: { ...payload, pending_value: contact.value } }));
+      setContact((current) => ({ ...current, value, requested: true, devCode: payload.development_code ?? "" }));
+      setVerificationState((current) => ({ ...current, [`${contact.kind}_change`]: { ...payload, pending_value: value } }));
       contactResend.start(payload);
     } catch (reason) { setError(errorOf(reason, "Contact change could not be started. Reauthenticate with your current password or a passkey first.")); }
   }
@@ -261,7 +263,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
             <option value="email">Email</option><option value="phone">Phone</option>
           </SelectField>
           {!contact.requested ? <>
-            <Field label={`New ${contact.kind}`} value={contact.value} onChange={(event) => { setContact({ ...contact, value: event.target.value }); setError(null); }} required />
+            <Field label={contact.kind === "email" ? "New email" : "New phone number"} type={contact.kind === "email" ? "email" : "tel"} value={contact.value} onChange={(event) => { setContact({ ...contact, value: event.target.value }); setError(null); }} hint={contact.kind === "phone" ? "Use the full international format beginning with +." : undefined} inputMode={contact.kind === "phone" ? "tel" : undefined} autoComplete={contact.kind === "email" ? "email" : "tel"} required />
             <PasswordField label="Current password" value={contact.password} onChange={(event) => { setContact({ ...contact, password: event.target.value }); setError(null); }} autoComplete="current-password" />
             <Button type="button" onClick={() => explicitPasskeyReauth(false)}>Use passkey instead</Button>
             {contact.passkeyReauthenticated && <p className="device-success">Passkey reauthentication complete for the next 10 minutes.</p>}
