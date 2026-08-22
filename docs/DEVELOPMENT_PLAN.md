@@ -93,6 +93,7 @@ See [`PHASE_1_PATIENT_RECORDS.md`](PHASE_1_PATIENT_RECORDS.md).
 ## Phase 2 — Appointments
 
 - Patient, date, scheduled time, optional reason;
+- new Appointment creation searches existing Patients first and reveals new-Patient fields only after an explicit choice;
 - one active Appointment maximum per Patient per clinic date;
 - unplanned same-day arrival = normal same-day Appointment followed by check-in;
 - Assistant workspace administers Appointments;
@@ -263,7 +264,8 @@ Audit remediation status:
 4. **Conflict-free task editing — implemented:** the in-card edit form replaces that task's normal details and mutation/comment controls until Save or Cancel and patches the same task identity;
 5. **Clinic onboarding and Assistant setup codes — implemented:** safe account/sign-out exits and browser history, one-time plaintext with exact expiry and Copy, reload-safe active-code status, confirmed rotation/replacement, and production/demo parity;
 6. **Private sticky safety — implemented:** no Reset control, viewport-constrained pointer/keyboard movement and resizing, reachable header/Minimize controls, and a reserved bottom-right Undo lane;
-7. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+7. **Appointment creation simplification — implemented:** dedicated existing-Patient search, explicit existing/new choice, and deferred new-Patient fields with clear creation wording;
+8. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

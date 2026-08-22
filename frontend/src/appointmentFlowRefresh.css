@@ -20,39 +20,17 @@
   font-size: 12px;
 }
 
-.patient-picker__results--overlay {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 7px);
-  right: 0;
-  left: 0;
+.patient-search-results {
   display: grid;
-  max-height: 310px;
-  overflow-y: auto;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.patient-search-results__label {
   margin: 0;
-  padding: 7px;
-  border: 1px solid #dce6e0;
-  border-radius: 14px;
-  background: white;
-  box-shadow: 0 18px 45px rgba(31, 54, 43, 0.18);
-}
-
-.patient-picker__results--overlay button {
-  align-items: center;
-  border: 0;
-  padding: 11px 12px;
-}
-
-.patient-picker__results--overlay button + button {
-  border-top: 1px solid #edf1ee;
-  border-radius: 0;
-}
-
-.patient-picker__results--overlay button:hover,
-.patient-picker__results--overlay button:focus-visible {
-  border-color: transparent;
-  background: var(--surface-soft);
-  outline: none;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .patient-suggestion__identity,
@@ -88,6 +66,57 @@
 
 .patient-suggestion__details span + span {
   margin-top: 4px;
+}
+
+.patient-picker__results button:focus-visible {
+  border-color: var(--green);
+  outline: 3px solid rgba(23, 100, 72, 0.14);
+  outline-offset: 1px;
+}
+
+.patient-suggestion__select {
+  flex: 0 0 auto;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.patient-picker__create-choice,
+.patient-picker__new-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.patient-picker__create-choice {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.patient-picker__create-choice strong,
+.patient-picker__create-choice span {
+  display: block;
+}
+
+.patient-picker__create-choice strong {
+  font-size: 13px;
+}
+
+.patient-picker__create-choice span,
+.patient-picker__new-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.patient-picker__new-heading {
+  margin-bottom: 16px;
+}
+
+.patient-picker__new-heading p {
+  margin: 0;
 }
 
 .selected-patient__actions {
@@ -133,7 +162,22 @@
     justify-content: flex-end;
   }
 
-  .patient-picker__results--overlay button {
+  .patient-picker__results button {
     align-items: flex-start;
+  }
+
+  .patient-suggestion__details {
+    display: none;
+  }
+
+  .patient-picker__create-choice,
+  .patient-picker__new-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .patient-picker__create-choice .secondary-button,
+  .patient-picker__new-heading .text-button {
+    align-self: flex-start;
   }
 }

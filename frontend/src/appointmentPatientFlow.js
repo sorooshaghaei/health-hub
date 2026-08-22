@@ -1,5 +1,10 @@
 export const PATIENT_SUGGESTION_MIN_CHARACTERS = 2;
 
+export const PATIENT_PICKER_MODE = Object.freeze({
+  SEARCH: "search",
+  CREATE: "create",
+});
+
 export function shouldSuggestPatients(fullName) {
   return fullName.trim().length >= PATIENT_SUGGESTION_MIN_CHARACTERS;
 }
@@ -9,6 +14,7 @@ export function appointmentPatientPayload({
   visit,
   selectedPatient,
   patientChanged,
+  patientPickerMode,
   patientDraft,
   confirmDuplicate = false,
 }) {
@@ -18,6 +24,8 @@ export function appointmentPatientPayload({
     if (!visit || patientChanged) return { patient_id: selectedPatient.id };
     return {};
   }
+
+  if (patientPickerMode !== PATIENT_PICKER_MODE.CREATE) return {};
 
   return {
     new_patient: {

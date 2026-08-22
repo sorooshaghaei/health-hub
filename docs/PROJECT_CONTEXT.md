@@ -269,6 +269,7 @@ A travelling browser does not change the clinic's operational day.
 ### Appointments
 
 - Patient, date, scheduled time, optional reason;
+- new Appointment creation searches the active clinic's Patients first; the complete new-Patient form appears only after **Create new patient** is chosen;
 - one active Appointment maximum per Patient per clinic date;
 - no walk-in type; unplanned arrival = normal same-day Appointment then check-in;
 - Patient/date lock after check-in;

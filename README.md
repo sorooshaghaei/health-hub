@@ -140,6 +140,7 @@ That timezone determines clinic **today**, today's Appointments, check-in eligib
 ### Appointments
 
 - Patient, date, scheduled time, optional reason;
+- new Appointment creation starts with existing-Patient search, then explicitly selects an existing Patient or reveals the new-Patient form;
 - one active Appointment maximum per Patient per clinic date;
 - unplanned same-day arrival = normal same-day Appointment followed by check-in;
 - Assistant workspace administers Appointments;

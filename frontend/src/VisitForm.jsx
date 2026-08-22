@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { ApiError, apiRequest } from "./api.js";
-import { appointmentPatientPayload, shouldSuggestPatients } from "./appointmentPatientFlow.js";
+import {
+  PATIENT_PICKER_MODE,
+  appointmentPatientPayload,
+  shouldSuggestPatients,
+} from "./appointmentPatientFlow.js";
 import { dateValueInTimeZone } from "./clinicTime.js";
 import { suggestedAppointmentTimes, workingHoursForDate } from "./clinicWorkingHours.js";
 import { normalizePatientPhone } from "./patientPhoneFormats.js";
@@ -63,7 +67,12 @@ function SameDayAppointmentWarning({ conflict, onOpenExisting }) {
 
 function PatientSuggestion({ patient, onSelect }) {
   return (
-    <button type="button" role="option" onClick={() => onSelect(patient)}>
+    <button
+      type="button"
+      role="option"
+      aria-label={`Select existing Patient ${patient.full_name}`}
+      onClick={() => onSelect(patient)}
+    >
       <span className="patient-suggestion__identity">
         <strong>{patient.full_name}</strong>
         <span>{patient.phone_e164 || "No phone recorded"}</span>
@@ -72,6 +81,7 @@ function PatientSuggestion({ patient, onSelect }) {
         <span>{patient.gender}</span>
         {patient.date_of_birth && <span>{formatDate(patient.date_of_birth)}</span>}
       </span>
+      <span className="patient-suggestion__select" aria-hidden="true">Select</span>
     </button>
   );
 }
@@ -95,6 +105,8 @@ export default function VisitForm({
   });
   const [selectedPatient, setSelectedPatient] = useState(visit?.patient ?? null);
   const [patientChanged, setPatientChanged] = useState(false);
+  const [patientPickerMode, setPatientPickerMode] = useState(PATIENT_PICKER_MODE.SEARCH);
+  const [patientSearch, setPatientSearch] = useState("");
   const [patientDraft, setPatientDraft] = useState(emptyPatient());
   const [matches, setMatches] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -108,12 +120,15 @@ export default function VisitForm({
   const [workingHoursLoaded, setWorkingHoursLoaded] = useState(false);
   const [workingHoursUnavailable, setWorkingHoursUnavailable] = useState(false);
 
-  const typedName = patientDraft.full_name.trim();
+  const typedName = patientSearch.trim();
   const clinicToday = dateValueInTimeZone(clinic?.timezone || "UTC");
   const selectedDayHours = workingHoursForDate(workingHours, schedule.date);
   const timeSuggestions = selectedDayHours
     ? suggestedAppointmentTimes(selectedDayHours.start_time, selectedDayHours.end_time)
     : [];
+  const patientChoicePending = !workflowStarted
+    && !selectedPatient
+    && patientPickerMode !== PATIENT_PICKER_MODE.CREATE;
 
   useEffect(() => {
     setWorkingHours([]);
@@ -139,7 +154,12 @@ export default function VisitForm({
   }, [workflowStarted, clinic?.id, staffToken]);
 
   useEffect(() => {
-    if (workflowStarted || selectedPatient || !shouldSuggestPatients(typedName)) {
+    if (
+      workflowStarted
+      || selectedPatient
+      || patientPickerMode !== PATIENT_PICKER_MODE.SEARCH
+      || !shouldSuggestPatients(typedName)
+    ) {
       setMatches([]);
       setSearching(false);
       setSearchCompleted(false);
@@ -178,10 +198,11 @@ export default function VisitForm({
       cancelled = true;
       globalThis.clearTimeout(timer);
     };
-  }, [workflowStarted, selectedPatient, typedName, staffToken]);
+  }, [workflowStarted, selectedPatient, patientPickerMode, typedName, staffToken]);
 
   function selectPatient(patient) {
     setSelectedPatient(patient);
+    setPatientPickerMode(PATIENT_PICKER_MODE.SEARCH);
     setPatientChanged(!visit || patient.id !== visit.patient.id);
     setMatches([]);
     setSearchCompleted(false);
@@ -193,9 +214,30 @@ export default function VisitForm({
   function changePatient() {
     setSelectedPatient(null);
     setPatientChanged(true);
+    setPatientPickerMode(PATIENT_PICKER_MODE.SEARCH);
+    setPatientSearch("");
     setPatientDraft(emptyPatient());
     setMatches([]);
     setSearchCompleted(false);
+    setWarning(null);
+    setSameDayConflict(null);
+    setError(null);
+  }
+
+  function createNewPatient() {
+    setPatientPickerMode(PATIENT_PICKER_MODE.CREATE);
+    setPatientDraft({ ...emptyPatient(), full_name: typedName });
+    setMatches([]);
+    setSearchCompleted(false);
+    setWarning(null);
+    setSameDayConflict(null);
+    setError(null);
+  }
+
+  function returnToPatientSearch() {
+    setPatientSearch(patientDraft.full_name);
+    setPatientPickerMode(PATIENT_PICKER_MODE.SEARCH);
+    setPatientDraft(emptyPatient());
     setWarning(null);
     setSameDayConflict(null);
     setError(null);
@@ -209,8 +251,21 @@ export default function VisitForm({
   }
 
   async function save(confirmDuplicate = false) {
-    if (!workflowStarted && !selectedPatient && !patientDraft.full_name.trim()) {
-      setError(new ApiError("Enter the Patient name or choose an existing Patient."));
+    if (
+      !workflowStarted
+      && !selectedPatient
+      && patientPickerMode !== PATIENT_PICKER_MODE.CREATE
+    ) {
+      setError(new ApiError("Select an existing Patient or choose Create new patient."));
+      return;
+    }
+
+    if (
+      !workflowStarted
+      && patientPickerMode === PATIENT_PICKER_MODE.CREATE
+      && !patientDraft.full_name.trim()
+    ) {
+      setError(new ApiError("Enter the new Patient's full name."));
       return;
     }
 
@@ -238,6 +293,7 @@ export default function VisitForm({
       visit,
       selectedPatient,
       patientChanged,
+      patientPickerMode,
       patientDraft: normalizedPatientDraft,
       confirmDuplicate,
     }));
@@ -284,12 +340,12 @@ export default function VisitForm({
     <form className="visit-form" onSubmit={(event) => { event.preventDefault(); save(false); }}>
       <div className="patient-section-heading">
         <div>
-          <p className="eyebrow">{visit ? "Edit appointment" : "New appointment"}</p>
-          <h3>{visit ? "Edit appointment" : "Schedule appointment"}</h3>
+          <p className="eyebrow">{visit ? "Edit appointment" : "Appointment details"}</p>
+          <h3>{visit ? "Edit appointment" : "New appointment"}</h3>
           <p>
             {workflowStarted
               ? "The Patient and appointment date are locked after check-in. Scheduled time and reason can still be corrected."
-              : "Start with the Patient name. Existing Patients are suggested automatically while you type."}
+              : "Search for an existing Patient first, or choose to create a new Patient after the search."}
           </p>
         </div>
       </div>
@@ -306,7 +362,15 @@ export default function VisitForm({
         <div className="patient-picker__heading">
           <div>
             <p className="eyebrow">Patient</p>
-            <h4>{workflowStarted ? "Checked-in Patient" : selectedPatient ? "Selected Patient" : "Patient information"}</h4>
+            <h4>
+              {workflowStarted
+                ? "Checked-in Patient"
+                : selectedPatient
+                  ? "Selected Patient"
+                  : patientPickerMode === PATIENT_PICKER_MODE.CREATE
+                    ? "New Patient"
+                    : "Find Patient"}
+            </h4>
           </div>
         </div>
 
@@ -327,32 +391,61 @@ export default function VisitForm({
               <button className="text-button" type="button" onClick={changePatient}>Change</button>
             </div>
           </div>
-        ) : (
+        ) : patientPickerMode === PATIENT_PICKER_MODE.CREATE ? (
           <div className="inline-patient-form">
+            <div className="patient-picker__new-heading">
+              <p>Enter the information for a new reusable Patient profile.</p>
+              <button className="text-button" type="button" onClick={returnToPatientSearch}>
+                Back to patient search
+              </button>
+            </div>
+            <PatientFields form={patientDraft} onChange={updatePatientDraft} />
+          </div>
+        ) : (
+          <div className="patient-search-workflow">
             <div className="patient-name-entry">
               <Field
-                label="Full name"
-                name="full_name"
-                value={patientDraft.full_name}
-                onChange={(event) => updatePatientDraft("full_name", event.target.value)}
+                label="Search existing patients"
+                name="patient_search"
+                value={patientSearch}
+                onChange={(event) => {
+                  setPatientSearch(event.target.value);
+                  setError(null);
+                }}
                 autoComplete="off"
-                placeholder="Start typing the Patient name"
-                required
-                autoFocus
+                placeholder="Type at least 2 characters"
+                autoFocus={!visit}
               />
               {searching && <span className="patient-name-entry__status">Searching…</span>}
-              {!!matches.length && (
-                <div className="patient-picker__results patient-picker__results--overlay" role="listbox" aria-label="Matching existing Patients">
-                  {matches.map((patient) => (
-                    <PatientSuggestion patient={patient} onSelect={selectPatient} key={patient.id} />
-                  ))}
-                </div>
-              )}
             </div>
-            {shouldSuggestPatients(typedName) && searchCompleted && !searching && !matches.length && (
-              <p className="patient-picker__status">No existing Patient found. Continue below to create a new profile.</p>
+            {!shouldSuggestPatients(typedName) && (
+              <p className="patient-picker__status">Enter at least 2 characters to search this clinic's Patients.</p>
             )}
-            <PatientFields form={patientDraft} onChange={updatePatientDraft} includeName={false} />
+            {shouldSuggestPatients(typedName) && searchCompleted && !searching && (
+              <div className="patient-search-results">
+                {!!matches.length ? (
+                  <>
+                    <p className="patient-search-results__label">Select existing patient</p>
+                    <div className="patient-picker__results" role="listbox" aria-label="Matching existing Patients">
+                      {matches.map((patient) => (
+                        <PatientSuggestion patient={patient} onSelect={selectPatient} key={patient.id} />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className="patient-picker__status patient-picker__status--empty">No existing Patient found.</p>
+                )}
+                <div className="patient-picker__create-choice">
+                  <div>
+                    <strong>Not an existing Patient?</strong>
+                    <span>Create a new reusable profile with the full Patient form.</span>
+                  </div>
+                  <button className="secondary-button" type="button" onClick={createNewPatient}>
+                    Create new patient
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -406,8 +499,12 @@ export default function VisitForm({
 
       <div className="form-actions">
         <button className="secondary-button" type="button" onClick={onCancel}>Cancel</button>
-        <button className="primary-button primary-button--compact" type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : visit ? "Save appointment" : "Add appointment"}
+        <button
+          className="primary-button primary-button--compact"
+          type="submit"
+          disabled={submitting || patientChoicePending}
+        >
+          {submitting ? "Saving…" : visit ? "Save appointment" : "Create appointment"}
         </button>
       </div>
     </form>

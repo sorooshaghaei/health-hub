@@ -79,18 +79,20 @@ An Assistant account cannot open Doctor workspace.
 
 ## Patient-first Appointment form
 
-The create and edit forms show the Patient section before date, scheduled time, and visit reason. There is no separate first choice between “existing Patient” and “new Patient.”
+The create and edit forms show the Patient section before date, scheduled time, and visit reason. New Appointment creation starts with a dedicated existing-Patient search rather than displaying the complete new-Patient form.
 
-The Assistant types directly into the full-name field. After two typed characters, matching active Patients from the current clinic appear in a floating suggestion list over the form. Each suggestion shows:
+After two typed characters, matching active Patients from the current clinic appear in a result list. The Assistant then explicitly chooses either **Select existing patient** from those results or **Create new patient**. Each existing-Patient result shows:
 
 - full name;
 - phone;
 - gender;
 - date of birth when available.
 
-Selecting a suggestion attaches the Appointment to that clinic's Patient record and collapses the Patient section into a compact selected-Patient card with **Change** and **Open profile** actions. Patient details are not edited from the Appointment form.
+Selecting an existing Patient attaches the Appointment to that clinic's Patient record and collapses the Patient section into a compact selected-Patient card with **Change** and **Open profile** actions. Patient details are not edited from the Appointment form.
 
-When no suggestion is selected, the Assistant continues filling gender, country/phone, optional date of birth, and optional Patient note in the same form. Patient and Appointment creation occurs atomically. The standard duplicate warning and explicit separate-profile action remain active. If the selected Patient already has an Appointment on the chosen date, the form shows the existing Appointment and provides **Open appointment**.
+The full name, gender, country/phone, optional date of birth, and optional Patient note fields remain hidden until the Assistant explicitly chooses **Create new patient**. The searched name is carried into the new profile and remains editable. Patient and Appointment creation then occurs atomically. The standard duplicate warning and explicit separate-profile action remain active. If the selected Patient already has an Appointment on the chosen date, the form shows the existing Appointment and provides **Open appointment**.
+
+The creation heading and action wording is **Appointment details** / **New appointment** / **Create appointment**. Edit wording remains separate.
 
 No Patient or Appointment suggestion is sourced from another clinic.
 
