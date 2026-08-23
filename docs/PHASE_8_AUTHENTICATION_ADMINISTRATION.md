@@ -95,12 +95,12 @@ Authentication and account-administration controls use the shared UI components 
 - **Forgot password?** appears only on the actual sign-in form. It is a normal text link and never reuses `.back-button`.
 - Recovery uses mutually exclusive radio cards for verified email/SMS versus a Doctor offline code, followed by the shared select-field control where applicable.
 - On screens up to 900px wide, the large desktop authentication introduction collapses to a compact roughly 100–140px header. The current screen title remains visible; the long decorative description is hidden.
-- Workspace headers use one account menu at every width for Clinics, Account, Clinic team, trusted devices, and Sign out. This avoids duplicating the same action components in separate desktop and mobile trees.
+- Workspace headers use one account menu at every width for Clinics, Account, Clinic team, trusted devices, and Sign out. The trigger exposes menu state, Up/Down/Home/End move through its actions, outside activation closes it, and Escape closes it and returns focus to the visible Account trigger. This avoids duplicating the same action components in separate desktop and mobile trees.
 - The Doctor/Assistant workspace switch remains directly visible. At widths up to 1200px the secondary clinic/workspace context collapses, leaving the brand, workspace switch when applicable, and account trigger.
 - The clinic name appears once in the wide header and in the account-menu identity. It is not repeated beside the page title with an unlabeled status dot.
 - Doctor access to the Assistant workspace has a persistent **Viewing Assistant workspace as Doctor administrator** banner and a direct **Return to Doctor workspace** action.
-- Account settings keeps routine Profile, Security, Passkeys, and Recovery sections together. Permanent Doctor-account deletion is isolated in a visually distinct Danger zone and opens a separate final-review dialog.
-- Account, trusted-device, clinic-team, task-creation, and consultation-detail dialogs share focus entry, Tab containment, Escape handling, and focus restoration. Visual × controls have contextual accessible names.
+- Account settings keeps routine Profile, Security, Passkeys, and Recovery sections together. Permanent Doctor-account deletion is isolated in a visually distinct Danger zone and opens a nested final-review dialog while Account settings remains mounted beneath it.
+- Account, trusted-device, clinic-team, task-creation, Patient-deletion, and consultation-detail dialogs share a topmost-dialog stack. The app and any parent dialog become inert and hidden from assistive technology, focus enters and remains in the top dialog, Escape affects only that dialog when closing is allowed, and closing restores focus to a connected visible opener. Visual × controls have contextual accessible names.
 
 These are shared production/Pages UI rules; the browser demo must not maintain a separate layout.
 
@@ -406,7 +406,7 @@ Only Doctor accounts have the destructive self-service account-deletion operatio
 
 Before deletion, the UI/API identifies all clinics owned by that Doctor.
 
-The destructive flow is not an ordinary Account settings tab. Account settings links to a separate **Danger zone** review dialog so routine profile/security work and permanent deletion cannot be confused.
+The destructive flow is not an ordinary Account settings tab. Account settings opens a nested **Danger zone** review dialog so routine profile/security work and permanent deletion cannot be confused. Account settings remains mounted but inert beneath the review; closing the review returns focus to **Review account deletion**, while closing Account settings returns focus to the visible workspace Account trigger.
 
 Deletion requires:
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiRequest } from "./api.js";
 import Dialog from "./Dialog.jsx";
 import { TaskCard, TaskForm } from "./TaskParts.jsx";
+import { ErrorMessage } from "./ui.jsx";
 
 export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegisterUndo, onOpenPatient, refreshVersion }) {
   const [openTasks, setOpen] = useState([]), [completedTasks, setDone] = useState([]), [patients, setPatients] = useState([]);
@@ -84,7 +85,7 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
     const active = view === panelView;
     return <div id={`task-panel-${panelView}`} role="tabpanel" aria-labelledby={`task-tab-${panelView}`} tabIndex={active ? 0 : -1} hidden={!active}>
       {active && <>
-        {error && !creating && <div className="task-error" role="alert">{error.message}</div>}
+        {error && !creating && <ErrorMessage error={error} focus className="task-error" />}
         {loading ? <div className="task-loading"><div className="loader" aria-label="Loading tasks" /></div> : tasks.length ? <div className="task-list">{tasks.map((task) => {
           const editingTask = formTask?.id === task.id;
           return <TaskCard key={task.id} task={task} user={user} doctor={doctorAccount} expanded={expanded === task.id} editing={editingTask} taskEditActive={taskEditActive} editForm={editingTask ? <TaskForm key={task.id} task={formTask} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} /> : null} toggle={() => setExpanded((id) => id === task.id ? null : task.id)} done={markDone} edit={startTaskEdit} remove={deleteTask} openPatient={onOpenPatient} comments={commentProps(task)} />;
@@ -101,6 +102,6 @@ export default function TaskWorkspace({ user, staffToken, doctorAccount, onRegis
     </div>
     {renderTaskPanel("open", openTasks)}
     {renderTaskPanel("history", completedTasks)}
-    {doctorAccount && creating && <Dialog backdropClassName="task-modal" className="task-modal__dialog" ariaLabel="New task" returnFocusSelector="#new-task-trigger" canClose={!saving} onClose={() => setFormTask(undefined)}>{error && <div className="task-error" role="alert">{error.message}</div>}<TaskForm key="new" task={null} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} /></Dialog>}
+    {doctorAccount && creating && <Dialog backdropClassName="task-modal" className="task-modal__dialog" ariaLabel="New task" returnFocusSelector="#new-task-trigger" canClose={!saving} onClose={() => setFormTask(undefined)}><ErrorMessage error={error} focus className="task-error" /><TaskForm key="new" task={null} patients={patients} saving={saving} onSave={saveTask} onCancel={() => setFormTask(undefined)} /></Dialog>}
   </section>;
 }

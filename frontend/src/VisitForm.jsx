@@ -350,7 +350,7 @@ export default function VisitForm({
         </div>
       </div>
 
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error} focus />
       <SameDayAppointmentWarning conflict={sameDayConflict} onOpenExisting={onOpenExisting} />
       <DuplicateWarning
         warning={warning}
@@ -463,27 +463,28 @@ export default function VisitForm({
               type="date"
               value={schedule.date}
               onChange={(event) => {
+                setError(null);
                 setSameDayConflict(null);
                 setSchedule((current) => ({ ...current, date: event.target.value }));
               }}
               disabled={workflowStarted}
               required
             />
-            {!workflowStarted && <div className="visit-date-control__actions"><button className="text-button" type="button" disabled={schedule.date === clinicToday} onClick={() => { setSameDayConflict(null); setSchedule((current) => ({ ...current, date: clinicToday })); }}>Today</button></div>}
+            {!workflowStarted && <div className="visit-date-control__actions"><button className="text-button" type="button" disabled={schedule.date === clinicToday} onClick={() => { setError(null); setSameDayConflict(null); setSchedule((current) => ({ ...current, date: clinicToday })); }}>Today</button></div>}
           </div>
           <Field
             label="Scheduled time"
             name="scheduled_time"
             type="time"
             value={schedule.scheduled_time}
-            onChange={(event) => setSchedule((current) => ({ ...current, scheduled_time: event.target.value }))}
+            onChange={(event) => { setError(null); setSchedule((current) => ({ ...current, scheduled_time: event.target.value })); }}
             required
           />
           {!workflowStarted && workingHoursLoaded && (
             <div className="appointment-time-guidance">
               {workingHoursConfigured && !selectedDayHours && schedule.date && <p className="appointment-working-warning" role="status">This is not a working day for this clinic.</p>}
               {workingHoursUnavailable && <p className="appointment-hours-unavailable">Working hours could not be loaded. Enter the time manually.</p>}
-              {!!timeSuggestions.length && <div className="appointment-time-suggestions" aria-label="Suggested appointment times"><span>Suggested times</span>{timeSuggestions.map((time) => <button type="button" key={time} aria-pressed={schedule.scheduled_time === time} onClick={() => setSchedule((current) => ({ ...current, scheduled_time: time }))}>{time}</button>)}</div>}
+              {!!timeSuggestions.length && <div className="appointment-time-suggestions" aria-label="Suggested appointment times"><span>Suggested times</span>{timeSuggestions.map((time) => <button type="button" key={time} aria-pressed={schedule.scheduled_time === time} onClick={() => { setError(null); setSchedule((current) => ({ ...current, scheduled_time: time })); }}>{time}</button>)}</div>}
             </div>
           )}
         </div>
@@ -491,7 +492,7 @@ export default function VisitForm({
           label="Visit reason"
           name="reason"
           value={schedule.reason}
-          onChange={(event) => setSchedule((current) => ({ ...current, reason: event.target.value }))}
+          onChange={(event) => { setError(null); setSchedule((current) => ({ ...current, reason: event.target.value })); }}
           rows="3"
           hint="Optional."
         />

@@ -91,7 +91,7 @@ function LoginForm({ role, onSubmit, onPasskey, onBack, onRecovery }) {
   }
   return <AuthShell title={`Sign in as ${label}.`} description="Use your personal email or phone and password. A trusted browser does not require another verification code." onBack={onBack}>
     <form className="form" onSubmit={submit}>
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error} focus />
       <Field label="Email or phone" name="identity" value={form.identity} onChange={update} autoComplete="username" required />
       <PasswordField label="Password" name="password" value={form.password} onChange={update} autoComplete="current-password" required />
       <Button variant="primary" disabled={busy}>{busy ? "Please wait…" : "Sign in"}</Button>
@@ -120,7 +120,7 @@ function AccountCreateForm({ role, onSubmit, onBack }) {
   }
   return <AuthShell title={`Create your ${label} account.`} description="Your role is permanent. Both personal email and phone must be verified before clinic access." onBack={onBack}>
     <form className="form" onSubmit={submit}>
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error} focus />
       <div className="field-row">
         <Field label="First name" name="first_name" value={form.first_name} onChange={update} required />
         <Field label="Last name" name="last_name" value={form.last_name} onChange={update} required />
@@ -228,7 +228,7 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
   }
 
   return <AuthShell title="Verify your email and phone." description="Both contacts are required. Correct either contact here; only the contact you edit will need verification again.">
-    <ErrorMessage error={error} />
+    <ErrorMessage error={error} focus />
     <div className="phase8-verification-grid">
       {renderContact("email", email, setEmail, emailResend)}
       {renderContact("phone", phone, setPhone, phoneResend)}
@@ -280,7 +280,7 @@ function DeviceAuthorization({ staffToken, onAuthorized, onBack }) {
   }
 
   return <AuthShell title="Verify this new device." description="Choose either verified email or SMS. After one successful code, this browser is trusted for your account across all of your clinics." onBack={onBack}>
-    <ErrorMessage error={error} />
+    <ErrorMessage error={error} focus />
     <div className="phase8-settings-section">
       <SelectField label="Verification channel" value={channel} disabled={restoring} onChange={(event) => { setChannel(event.target.value); setSent(false); setCode(""); setDev(""); setError(null); }}>
         <option value="email">Verified email</option><option value="sms">Verified SMS</option>
@@ -304,7 +304,7 @@ function ClinicCreateForm({ title = "Create your clinic.", onSubmit, onBack, onA
     try { await onSubmit(name); } catch (reason) { setError(asError(reason, "Clinic could not be created.")); } finally { setBusy(false); }
   }
   return <AuthShell title={title} description="Only a Doctor account can create a clinic. Your current browser becomes trusted automatically if this is your first clinic." onBack={onBack}>
-    <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Clinic name" value={name} onChange={(event) => setName(event.target.value)} required /><Button variant="primary" disabled={busy}>{busy ? "Creating…" : "Create clinic"}</Button></form>
+    <form className="form" onSubmit={submit}><ErrorMessage error={error} focus /><Field label="Clinic name" value={name} onChange={(event) => { setName(event.target.value); setError(null); }} required /><Button variant="primary" disabled={busy}>{busy ? "Creating…" : "Create clinic"}</Button></form>
     {(onAccount || onSignOut) && <div className="auth-form-links">
       {onAccount && <TextLink onClick={onAccount}>Back to account</TextLink>}
       {onSignOut && <TextLink onClick={onSignOut}>Sign out</TextLink>}
@@ -324,7 +324,7 @@ function AssistantJoinForm({ onSubmit, onAccount, onClinics, onSignOut, addition
     try { await onSubmit(code); } catch (reason) { setError(asError(reason, "Clinic could not be joined.")); } finally { submitting.current = false; setBusy(false); }
   }
   return <AuthShell title={additional ? "Join another clinic." : "Join your clinic."} description="Enter the one-time setup code created by that clinic's Doctor. The code is valid for 24 hours.">
-    <form className="form" onSubmit={submit}><ErrorMessage error={error} /><Field label="Assistant setup code" value={code} onChange={(event) => setCode(event.target.value)} placeholder="ABCDE-12345" required /><Button variant="primary" disabled={busy}>{busy ? "Joining…" : "Join clinic"}</Button></form>
+    <form className="form" onSubmit={submit}><ErrorMessage error={error} focus /><Field label="Assistant setup code" value={code} onChange={(event) => { setCode(event.target.value); setError(null); }} placeholder="ABCDE-12345" required /><Button variant="primary" disabled={busy}>{busy ? "Joining…" : "Join clinic"}</Button></form>
     <div className="auth-form-links">
       <TextLink onClick={onAccount}>Back to account</TextLink>
       {additional && <TextLink onClick={onClinics}>Your clinics</TextLink>}
@@ -369,7 +369,7 @@ function RecoveryFlow({ role, onBack, onComplete }) {
   async function verify(event) { event.preventDefault(); setBusy(true); setError(null); try { const payload = await apiRequest("/api/recovery/confirm/", { method: "POST", data: { identity, code } }); setRecoveryToken(payload.recovery_token); setStep("reset"); } catch (reason) { setError(asError(reason, "Recovery code is invalid or expired.")); } finally { setBusy(false); } }
   async function reset(event) { event.preventDefault(); setBusy(true); setError(null); try { await apiRequest("/api/recovery/reset/", { method: "POST", data: { recovery_token: recoveryToken, password, password_confirm: confirm } }); onComplete(); } catch (reason) { setError(asError(reason, "Password could not be reset.")); } finally { setBusy(false); } }
   return <AuthShell title="Recover your personal account." description={doctorRecovery ? "Use verified email or SMS, or one unused Doctor offline recovery code." : "Use your verified personal email address or phone number."} onBack={onBack}>
-    <ErrorMessage error={error} />
+    <ErrorMessage error={error} focus />
     {step === "request" && <form className="form recovery-form" onSubmit={request}>
       <Field label="Email or phone" value={identity} onChange={(event) => { setIdentity(event.target.value); setError(null); }} required />
       {doctorRecovery && <RadioCards legend="Recovery method" name="recovery-method" value={method} onChange={(event) => { setMethod(event.target.value); setCode(""); setError(null); }} options={[{ value: "contact", label: "Email or SMS", hint: "Send a code to one verified personal contact." }, { value: "offline", label: "Doctor offline code", hint: "Use one unused code from a Doctor recovery-code set." }]} />}

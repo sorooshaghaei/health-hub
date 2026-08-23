@@ -1,6 +1,8 @@
 import { useState } from "react";
 
+import Dialog from "./Dialog.jsx";
 import { formatDate, formatPatientPhone, formatTime } from "./patientForm.jsx";
+import { ErrorMessage } from "./ui.jsx";
 
 const STATUS_LABELS = {
   planned: "Planned",
@@ -67,13 +69,27 @@ export default function PatientDetail({
   canManageAppointments,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  function closeDeleteConfirmation() {
+    if (deleting) return;
+    setConfirmDelete(false);
+    setDeleteError(null);
+  }
+
+  async function confirmPatientDeletion() {
+    setDeleteError(null);
+    const result = await onDelete();
+    if (result) setDeleteError(result);
+  }
+
   return (
     <div className="patient-detail">
       <div className="patient-detail__topbar">
         <button className="back-button back-button--inline" type="button" onClick={onBack}>← Patients</button>
         <div className="patient-detail__actions">
           {canEditPatient && <button className="secondary-button" type="button" onClick={onEdit}>Edit profile</button>}
-          {canDeletePatient && <button className="danger-button" type="button" onClick={() => setConfirmDelete(true)}>Delete profile</button>}
+          {canDeletePatient && <button id="delete-patient-trigger" className="danger-button" type="button" aria-haspopup="dialog" onClick={() => { setDeleteError(null); setConfirmDelete(true); }}>Delete profile</button>}
         </div>
       </div>
       <div className="patient-profile-heading">
@@ -122,14 +138,30 @@ export default function PatientDetail({
       </section>
 
       {canDeletePatient && confirmDelete && (
-        <div className="delete-confirmation" role="alertdialog" aria-modal="true" aria-label="Delete patient">
-          <strong>Delete this active Patient profile?</strong>
-          <p>Current and future appointments must be deleted first. Past appointments remain historical.</p>
-          <div className="form-actions">
-            <button className="secondary-button" type="button" onClick={() => setConfirmDelete(false)}>Cancel</button>
-            <button className="danger-button" type="button" disabled={deleting} onClick={onDelete}>{deleting ? "Deleting…" : "Delete Patient"}</button>
+        <Dialog
+          className="device-modal patient-delete-dialog"
+          role="alertdialog"
+          ariaLabelledBy="delete-patient-title"
+          ariaDescribedBy="delete-patient-description"
+          canClose={!deleting}
+          returnFocusSelector="#delete-patient-trigger, #patient-search-input"
+          onClose={closeDeleteConfirmation}
+        >
+          <div className="device-modal__header">
+            <div>
+              <p className="eyebrow">Patient profile</p>
+              <h2 id="delete-patient-title">Delete {patient.full_name}?</h2>
+              <p id="delete-patient-description">Current and future appointments must be deleted first. Past appointments remain historical.</p>
+            </div>
+            <button className="device-icon-button" type="button" disabled={deleting} onClick={closeDeleteConfirmation} aria-label={`Close deletion confirmation for ${patient.full_name}`}>×</button>
           </div>
-        </div>
+          <ErrorMessage error={deleteError} focus />
+          <p className="patient-delete-dialog__warning">This removes the active Patient profile. You can Undo a successful deletion for five seconds.</p>
+          <div className="form-actions">
+            <button className="secondary-button" type="button" disabled={deleting} data-dialog-initial-focus="true" onClick={closeDeleteConfirmation}>Cancel</button>
+            <button className="danger-button" type="button" disabled={deleting} onClick={confirmPatientDeletion}>{deleting ? "Deleting…" : `Delete ${patient.full_name}`}</button>
+          </div>
+        </Dialog>
       )}
     </div>
   );

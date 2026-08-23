@@ -178,7 +178,7 @@ Password change uses one verified email/SMS code, preserves current session, rev
 
 New-password pairs show Django-aligned requirements, live strength/match feedback, and accessible Show/Hide controls. A known requirement failure cannot be labelled **Strong**, and submission remains disabled until client-known requirements and the confirmation match pass. The backend also enforces that a password does not contain the account's name, email, or phone tokens.
 
-Routine Account settings are separated from permanent Doctor-account deletion in a dedicated Danger zone dialog. Account, device, clinic-team, task, and consultation dialogs share focus entry, Tab containment, Escape handling, and opener-focus restoration.
+The workspace Account menu supports Up/Down/Home/End navigation and Escape-to-trigger focus restoration. Routine Account settings are separated from permanent Doctor-account deletion in a nested Danger zone dialog. A shared topmost-dialog stack makes the app and parent dialogs inert, contains focus, applies Escape only to the active dialog, and restores focus to a connected visible opener.
 
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
@@ -264,6 +264,7 @@ A travelling browser does not change the clinic's operational day.
 - Assistant workspace may create/edit/delete;
 - Doctor in Assistant workspace gets Assistant-side administrator controls;
 - current/future Appointments block Patient deletion;
+- Patient deletion uses the shared alert dialog, keeps blocking errors inside that confirmation, and returns focus to the delete trigger or Patient search after the dialog closes;
 - eligible deletion has five-second Undo.
 
 ### Appointments
@@ -289,7 +290,8 @@ PLANNED → CHECKED_IN
 - Assistant queue shows phone; Doctor queue omits it;
 - check-in has five-second Undo;
 - three-second polling;
-- compact New Task dialog with focus management, complete Open/History tab semantics, and explicitly named comment fields.
+- compact New Task dialog with focus management, complete Open/History tab semantics, and task-contextual comment fields;
+- repeated Undo, task, and comment controls have action/resource-specific accessible names while preserving short visible labels.
 
 ### Consultation
 
@@ -329,6 +331,7 @@ OPEN → DONE
 - former Assistant attribution preserved;
 - task/comment delete five-second Undo;
 - red attention dot only; no general task notification system;
+- repeated task/comment actions and Undo notifications expose resource-specific accessible names;
 - existing-task editing replaces that card's normal details and action/comment controls until Save or Cancel, then updates the same task identity;
 - three-second polling.
 

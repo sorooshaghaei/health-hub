@@ -70,8 +70,8 @@ export default function usePatientWorkspace({ user, staffToken }) {
 
   async function deletePatient() {
     if (!canCreateDeletePatients || !selectedPatient) return; setDeleting(true); setError(null);
-    try { const p = selectedPatient, d = await apiRequest(`/api/patients/${p.id}/`, { method: "DELETE", staffToken }); registerUndo({ id: `patient-delete:${p.id}:${Date.now()}`, kind: "patient_delete", resourceId: p.id, message: `${p.full_name} deleted.`, undoUntil: d.undo_until }); setSelectedPatient(null); setPatientVisits([]); setPatientView("list"); await loadPatients(search); }
-    catch (e) { setError(asError(e, "Patient could not be deleted.")); }
+    try { const p = selectedPatient, d = await apiRequest(`/api/patients/${p.id}/`, { method: "DELETE", staffToken }); registerUndo({ id: `patient-delete:${p.id}:${Date.now()}`, kind: "patient_delete", resourceId: p.id, message: `${p.full_name} deleted.`, undoUntil: d.undo_until }); setSelectedPatient(null); setPatientVisits([]); setPatientView("list"); await loadPatients(search); return null; }
+    catch (e) { return asError(e, "Patient could not be deleted."); }
     finally { setDeleting(false); }
   }
   async function deleteVisit(visit) {

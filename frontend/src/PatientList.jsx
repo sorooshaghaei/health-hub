@@ -15,6 +15,7 @@ export default function PatientList({
       <div className="patient-toolbar">
         <div className="patient-search patient-search--live">
           <input
+            id="patient-search-input"
             type="search"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}

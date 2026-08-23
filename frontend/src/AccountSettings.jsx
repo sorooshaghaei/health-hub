@@ -225,7 +225,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
     {open && <Dialog
       className="device-modal phase8-account-modal"
       onClose={() => setOpen(false)}
-      returnFocusSelector="#account-settings-trigger"
+      returnFocusSelector="#workspace-account-trigger"
       ariaLabelledBy="account-settings-title"
       ariaDescribedBy="account-settings-description"
     >
@@ -246,7 +246,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
           onClick={() => { setTab(name); setError(null); }}
         >{name[0].toUpperCase() + name.slice(1)}</button>)}
       </nav>
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error} focus />
 
       {tab === "profile" && <div className="phase8-settings-section">
         <form className="form" onSubmit={saveProfile}>
@@ -314,14 +314,13 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
           <h3 id="danger-zone-summary-title">Delete Doctor account</h3>
           <p>Account deletion is kept separate from everyday profile and security settings.</p>
         </div>
-        <Button type="button" variant="danger" onClick={() => { setOpen(false); setDangerOpen(true); setError(null); }}>Review account deletion</Button>
+        <Button type="button" variant="danger" onClick={() => { setDangerOpen(true); setError(null); }}>Review account deletion</Button>
       </section>}
     </Dialog>}
 
     {dangerOpen && user.role === "doctor" && <Dialog
       className="device-modal phase8-danger-dialog"
       onClose={() => setDangerOpen(false)}
-      returnFocusSelector="#account-settings-trigger"
       canClose={!deletion.deleting}
       ariaLabelledBy="danger-zone-title"
       ariaDescribedBy="danger-zone-description"
@@ -334,23 +333,23 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
         </div>
         <button type="button" className="device-icon-button" aria-label="Close account danger zone" disabled={deletion.deleting} onClick={() => setDangerOpen(false)}>×</button>
       </div>
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error} focus />
       <div className="phase8-settings-section">
         <p>This permanently deletes every clinic owned by this Doctor account and the Patient, appointment, queue, consultation, and task data inside those clinics. Connected Assistant memberships are removed, but Assistant personal accounts are not deleted.</p>
         {deletion.loading ? <p>Loading affected clinics…</p> : <div className="phase8-clinic-list">{deletion.clinics.map((clinic) => <div className="phase8-contact-card" key={clinic.id}><strong>{clinic.name}</strong><span>Clinic and clinic data will be permanently deleted.</span></div>)}</div>}
         <form className="form" onSubmit={deleteDoctorAccount}>
-          <PasswordField label="Current password" value={deletion.password} onChange={(event) => setDeletion({ ...deletion, password: event.target.value })} autoComplete="current-password" />
+          <PasswordField label="Current password" value={deletion.password} onChange={(event) => { setDeletion({ ...deletion, password: event.target.value }); setError(null); }} autoComplete="current-password" />
           <Button type="button" onClick={() => explicitPasskeyReauth(true)}>Use passkey instead</Button>
           {deletion.passkeyReauthenticated && <p className="device-success">Passkey reauthentication complete for the next 10 minutes.</p>}
-          <Field label="Type DELETE to confirm" value={deletion.confirmation} onChange={(event) => setDeletion({ ...deletion, confirmation: event.target.value })} required />
+          <Field label="Type DELETE to confirm" value={deletion.confirmation} onChange={(event) => { setDeletion({ ...deletion, confirmation: event.target.value }); setError(null); }} required />
           <div className="phase8-danger-dialog__actions">
-            <Button type="button" disabled={deletion.deleting} onClick={() => { setDangerOpen(false); setOpen(true); setError(null); }}>Back to account settings</Button>
+            <Button type="button" disabled={deletion.deleting} onClick={() => { setDangerOpen(false); setError(null); }}>Back to account settings</Button>
             <Button variant="danger" className="phase8-danger-action" disabled={deletion.deleting}>{deletion.deleting ? "Deleting…" : "Permanently delete account and clinics"}</Button>
           </div>
         </form>
       </div>
     </Dialog>}
 
-    <Button id="account-settings-trigger" type="button" onClick={openSettings} disabled={open || dangerOpen}>Account</Button>
+    <Button id="account-settings-trigger" role="menuitem" type="button" onClick={openSettings} disabled={open || dangerOpen}>Account</Button>
   </>;
 }

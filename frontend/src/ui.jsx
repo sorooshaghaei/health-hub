@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 export function Brand({ compact = false }) {
   return (
     <div className={`brand ${compact ? "brand--compact" : ""}`}>
@@ -10,9 +12,15 @@ export function Brand({ compact = false }) {
   );
 }
 
-export function ErrorMessage({ error }) {
+export function ErrorMessage({ error, focus = false, className = "" }) {
+  const alertRef = useRef(null);
+  useEffect(() => {
+    if (!error || !focus) return undefined;
+    const frame = window.requestAnimationFrame(() => alertRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [error, focus]);
   if (!error) return null;
-  return <div className="alert alert--error" role="alert">{error.message}</div>;
+  return <div ref={alertRef} className={`alert alert--error${className ? ` ${className}` : ""}`} role="alert" tabIndex={focus ? -1 : undefined}>{error.message}</div>;
 }
 
 export function Button({ variant = "secondary", compact = false, className = "", ...props }) {

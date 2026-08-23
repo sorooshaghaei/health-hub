@@ -1,7 +1,13 @@
-[role="dialog"]:focus {
+[data-dialog-layer="true"] {
+  z-index: 1200 !important;
+}
+
+[role="dialog"]:focus,
+[role="alertdialog"]:focus {
   outline: none;
 }
 
-[role="dialog"]:focus-visible {
+[role="dialog"]:focus-visible,
+[role="alertdialog"]:focus-visible {
   box-shadow: 0 0 0 4px rgb(23 100 72 / 0.16), 0 24px 70px rgb(15 23 42 / 0.24);
 }

@@ -88,6 +88,7 @@ button:disabled { cursor: wait; opacity: 0.62; }
 .text-button:hover { color: var(--ink); }
 .alert { margin-bottom: 18px; padding: 12px 14px; border-radius: 11px; font-size: 13px; line-height: 1.5; }
 .alert--error { background: var(--danger-light); border: 1px solid #efc5c0; color: #8b3229; }
+.alert:focus-visible { outline: 3px solid rgba(163, 59, 49, 0.22); outline-offset: 2px; }
 .role-card { grid-template-columns: 52px 1fr auto; gap: 18px; padding: 21px; border-radius: 18px; }
 .role-card__badge { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 15px; font-weight: 850; font-size: 18px; }
 .role-card__badge--doctor { background: var(--green-light); color: var(--green-dark); }
@@ -196,8 +197,8 @@ button:disabled { cursor: wait; opacity: 0.62; }
 .patient-facts dd { margin: 6px 0 0; font-size: 13px; font-weight: 800; }
 .patient-note-card { border: 1px solid #e4ebe6; border-radius: 14px; background: var(--surface-soft); padding: 17px; }
 .patient-note-card p:last-child { margin: 9px 0 0; white-space: pre-wrap; color: #394841; font-size: 13px; line-height: 1.6; }
-.delete-confirmation { margin-top: 18px; border: 1px solid #efc5c0; border-radius: 14px; background: var(--danger-light); padding: 17px; color: #7e2f27; }
-.delete-confirmation p { margin: 8px 0 0; font-size: 12px; line-height: 1.5; }
+.patient-delete-dialog { max-width: 560px; }
+.patient-delete-dialog__warning { margin: 0; border: 1px solid #efc5c0; border-radius: 14px; background: var(--danger-light); padding: 14px; color: #7e2f27; font-size: 13px; line-height: 1.55; }
 
 @media (max-width: 1200px) {
   .workspace-header { grid-template-columns: 1fr auto; }

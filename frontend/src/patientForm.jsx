@@ -147,6 +147,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
   const [submitting, setSubmitting] = useState(false);
 
   function update(name, value) {
+    setError(null);
     setWarning(null);
     setForm((current) => ({ ...current, [name]: value }));
   }
@@ -182,7 +183,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
           <p>{patient ? "Update the Patient information shared by both workspaces." : "Create the reusable Patient profile here. Appointments are managed from Schedule."}</p>
         </div>
       </div>
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error} focus />
       <DuplicateWarning
         warning={warning}
         onUseExisting={(match) => onUseExisting(match.id)}

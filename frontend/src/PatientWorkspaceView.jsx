@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AccountSettings from "./AccountSettings.jsx";
 import ClinicTeam from "./ClinicTeam.jsx";
 import PatientDetail from "./PatientDetail.jsx";
@@ -13,11 +13,79 @@ import { Brand, ErrorMessage } from "./ui.jsx";
 
 export default function PatientWorkspaceView({ user, staffToken, onSignOut, onSwitchClinic, onSwitchWorkspace, onUserChange, onAccountDeleted, controller: c }) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef(null);
+  const accountTriggerRef = useRef(null);
   const { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients: canCreate, canManageAppointments: canManage, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits } = c;
   const eyebrow = section === "schedule" ? "Appointments and live queue" : section === "tasks" ? "Shared tasks" : "Patient records";
   const workspace = doctorWorkspace ? "Doctor workspace" : "Assistant workspace";
   const intro = doctorWorkspace ? "Follow the queue, prepare the room, update Patient records, and manage tasks." : doctorAccount ? "Manage Assistant-side appointments, queue handoff, Patient records, and tasks." : "Manage appointments, check-in, queue handoff, Patient records, and tasks.";
   const accountLabel = doctorAccount ? assistantWorkspace ? "Doctor · Administrator access" : "Doctor · Administrator" : "Assistant";
+
+  useEffect(() => {
+    if (!accountMenuOpen) return undefined;
+
+    function closeAndReturnFocus() {
+      setAccountMenuOpen(false);
+      window.requestAnimationFrame(() => accountTriggerRef.current?.focus());
+    }
+
+    function menuItems() {
+      return [...(accountMenuRef.current?.querySelectorAll("[role='menuitem']:not([disabled])") ?? [])];
+    }
+
+    function onKeyDown(event) {
+      const menu = accountMenuRef.current;
+      if (!menu) return;
+      if (event.key === "Escape" && (menu.contains(document.activeElement) || accountTriggerRef.current === document.activeElement)) {
+        event.preventDefault();
+        closeAndReturnFocus();
+        return;
+      }
+      if (!menu.contains(document.activeElement)) return;
+      const items = menuItems();
+      const current = items.indexOf(document.activeElement);
+      let next = null;
+      if (event.key === "ArrowDown") next = current < 0 ? 0 : (current + 1) % items.length;
+      if (event.key === "ArrowUp") next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
+      if (event.key === "Home") next = 0;
+      if (event.key === "End") next = items.length - 1;
+      if (next === null || !items.length) return;
+      event.preventDefault();
+      items[next].focus();
+    }
+
+    function onPointerDown(event) {
+      if (!accountMenuRef.current?.contains(event.target) && !accountTriggerRef.current?.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    }
+
+    function onFocusIn(event) {
+      if (!accountMenuRef.current?.contains(event.target) && event.target !== accountTriggerRef.current) {
+        setAccountMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("focusin", onFocusIn, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("focusin", onFocusIn, true);
+    };
+  }, [accountMenuOpen]);
+
+  function openAccountMenuFromKeyboard(event) {
+    if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+    event.preventDefault();
+    setAccountMenuOpen(true);
+    window.requestAnimationFrame(() => {
+      const items = [...(accountMenuRef.current?.querySelectorAll("[role='menuitem']:not([disabled])") ?? [])];
+      items[event.key === "ArrowUp" ? items.length - 1 : 0]?.focus();
+    });
+  }
+
   return <div className="workspace">
     <header className="workspace-header">
       <Brand compact />
@@ -25,16 +93,16 @@ export default function PatientWorkspaceView({ user, staffToken, onSignOut, onSw
       <div className="workspace-header__actions">
         {doctorAccount && <button className="workspace-switch-button" type="button" aria-label={assistantWorkspace ? "Return to Doctor workspace" : "Open Assistant workspace"} onClick={onSwitchWorkspace}><span className="workspace-switch-button__full">{assistantWorkspace ? "Return to Doctor workspace" : "Assistant workspace"}</span><span className="workspace-switch-button__compact" aria-hidden="true">{assistantWorkspace ? "Doctor" : "Assistant"}</span></button>}
         <div className="workspace-account-menu">
-        <button className="workspace-menu-trigger" type="button" aria-controls="workspace-account-actions" aria-expanded={accountMenuOpen} onClick={() => setAccountMenuOpen((open) => !open)}>
+        <button ref={accountTriggerRef} id="workspace-account-trigger" className="workspace-menu-trigger" type="button" aria-controls="workspace-account-actions" aria-expanded={accountMenuOpen} aria-haspopup="menu" onKeyDown={openAccountMenuFromKeyboard} onClick={() => setAccountMenuOpen((open) => !open)}>
           <span className="workspace-menu-trigger__label">Account</span><span aria-hidden="true">⋮</span>
         </button>
-        <div className="workspace-account-menu__panel" id="workspace-account-actions" hidden={!accountMenuOpen}>
-          <div className="workspace-account-menu__identity"><strong>{user.display_name}</strong><span>{accountLabel}</span><small>{user.clinic.name}</small></div>
-          <button type="button" onClick={() => { setAccountMenuOpen(false); onSwitchClinic(); }}>Clinics</button>
+        <div ref={accountMenuRef} className="workspace-account-menu__panel" id="workspace-account-actions" role="menu" aria-labelledby="workspace-account-trigger" hidden={!accountMenuOpen}>
+          <div className="workspace-account-menu__identity" role="presentation"><strong>{user.display_name}</strong><span>{accountLabel}</span><small>{user.clinic.name}</small></div>
+          <button role="menuitem" type="button" onClick={() => { setAccountMenuOpen(false); onSwitchClinic(); }}>Clinics</button>
           <AccountSettings user={user} staffToken={staffToken} onOpen={() => setAccountMenuOpen(false)} onUserChange={onUserChange} onAccountDeleted={onAccountDeleted}/>
           <ClinicTeam user={user} staffToken={staffToken} onOpen={() => setAccountMenuOpen(false)}/>
           <TrustedDevices staffToken={staffToken} onOpen={() => setAccountMenuOpen(false)}/>
-          <button type="button" onClick={() => { setAccountMenuOpen(false); onSignOut(); }}>Sign out</button>
+          <button role="menuitem" type="button" onClick={() => { setAccountMenuOpen(false); onSignOut(); }}>Sign out</button>
         </div>
         </div>
       </div>

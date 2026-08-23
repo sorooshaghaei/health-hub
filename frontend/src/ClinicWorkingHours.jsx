@@ -58,6 +58,7 @@ export default function ClinicWorkingHours({ clinic, editable, staffToken }) {
   }, [clinic.id, staffToken]);
 
   function updateRow(weekday, change) {
+    setError(null);
     setSaved(false);
     setRows((current) => current.map((row) => row.value === weekday ? { ...row, ...change } : row));
   }
@@ -109,7 +110,7 @@ export default function ClinicWorkingHours({ clinic, editable, staffToken }) {
         {!editable && <span className="clinic-hours-readonly">Read only</span>}
       </div>
 
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error} focus={editable} />
       {!configured && !editable && <p className="clinic-hours-empty">The Doctor has not configured working days and hours yet.</p>}
 
       {editable ? (

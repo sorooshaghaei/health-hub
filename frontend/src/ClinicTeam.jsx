@@ -94,9 +94,9 @@ export default function ClinicTeam({ user, staffToken, onOpen }) {
     ? "Replacing the current Assistant immediately deactivates their membership in this clinic and ends their clinic sessions. Their global account and other clinic memberships are not changed."
     : "Replacing this setup code immediately invalidates the current unclaimed code. Anyone holding it will no longer be able to use it.";
 
-  const modal = <Dialog onClose={closeModal} returnFocusSelector="#clinic-team-trigger" ariaLabelledBy="clinic-team-title" ariaDescribedBy="clinic-team-description">
+  const modal = <Dialog onClose={closeModal} returnFocusSelector="#workspace-account-trigger" ariaLabelledBy="clinic-team-title" ariaDescribedBy="clinic-team-description">
     <div className="device-modal__header"><div><p className="eyebrow">Current clinic</p><h2 id="clinic-team-title">Clinic team</h2><p id="clinic-team-description">This Doctor controls the Assistant membership for this clinic only. Removing or replacing an Assistant never deletes that person's global Assistant account or their access to other clinics.</p></div><button className="device-icon-button" type="button" disabled={busy} onClick={closeModal} aria-label="Close clinic team">×</button></div>
-    <ErrorMessage error={error} />
+    <ErrorMessage error={error} focus />
     {assistant ? <div className="phase8-contact-card"><div><strong>{assistant.display_name}</strong><span>{assistant.email} · {assistant.phone}</span></div></div> : <p>No Assistant is currently assigned to this clinic.</p>}
     <div className="phase8-settings-section">
       <h3>{assistant ? "Replace Assistant" : "Add Assistant"}</h3>
@@ -116,7 +116,7 @@ export default function ClinicTeam({ user, staffToken, onOpen }) {
     {assistant && <div className="phase8-settings-section"><h3>Help with normal password recovery</h3><p>Recovery is sent to the Assistant's own verified contact. If they have lost every personal recovery method, replace their clinic membership instead; the Doctor cannot take over the global account.</p><SelectField label="Recovery channel" value={channel} onChange={(event) => setChannel(event.target.value)}><option value="email">Verified email</option><option value="sms">Verified SMS</option></SelectField><Button type="button" disabled={busy} onClick={recovery}>Send recovery instructions</Button></div>}
   </Dialog>;
   return <>
-    <Button id="clinic-team-trigger" type="button" disabled={open} onClick={() => { setOpen(true); onOpen?.(); }}>Clinic team</Button>
+    <Button id="clinic-team-trigger" role="menuitem" type="button" disabled={open} onClick={() => { setOpen(true); onOpen?.(); }}>Clinic team</Button>
     {open && modal}
   </>;
 }

@@ -93,6 +93,8 @@ Patient deletion is an internal soft deletion with no visible archive state.
 
 - deletion is available only from Assistant workspace, including when a Doctor account opens that workspace as administrator;
 - current and future Appointments must be deleted first;
+- the confirmation is a shared modal alert dialog with focus containment and a safe Cancel-first focus target;
+- a blocked or failed deletion is announced and focused inside that confirmation, while correcting an active form field clears its obsolete submission error;
 - past Appointments remain historical through Patient identity snapshots;
 - the deleted Patient immediately disappears from active search and selection;
 - a five-second **Undo** restores the Patient exactly;

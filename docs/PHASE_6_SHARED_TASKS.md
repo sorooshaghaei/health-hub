@@ -93,7 +93,7 @@ Clicking **New task** opens the create form in a compact modal dialog. The Open 
 
 The modal uses the shared accessible dialog behavior: focus enters the title field, Tab remains contained, Escape and Cancel close it when a save is not in progress, and focus returns to **New task**. The presentation does not change task fields or permissions.
 
-Open and History expose complete tab semantics, including selected state, associated tab panels, and Left/Right/Home/End keyboard navigation. New- and edit-comment textareas have explicit accessible names rather than relying on placeholder text.
+Open and History expose complete tab semantics, including selected state, associated tab panels, and Left/Right/Home/End keyboard navigation. New- and edit-comment textareas have explicit task/comment context rather than relying on placeholder text. Repeated Done, Edit, Delete, comment, and Undo controls retain their short visible labels while their accessible names identify the affected task, comment author/excerpt, or action.
 
 ## Existing task edit UX
 

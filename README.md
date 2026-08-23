@@ -112,7 +112,8 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - First-clinic Doctor and Assistant screens always provide account and sign-out exits. Health Hub seeds an in-app history entry so the browser's first Back action returns to account settings instead of immediately leaving the app.
 - A pending Account-settings email/phone replacement can be edited or explicitly cancelled; cancellation consumes its challenge and leaves the verified contact unchanged.
 - New-password forms provide live requirements, match/strength feedback, accessible Show/Hide controls, and remain disabled until the client-known requirements and confirmation match pass. Production validation remains authoritative.
-- Routine Account settings are separate from the Doctor-account Danger zone, and modal surfaces share focus containment, Escape, and opener-focus restoration.
+- The Account menu supports arrow-key navigation and closes on Escape with focus returned to its visible Account trigger.
+- Routine Account settings stay open beneath the Doctor-account Danger zone. Only the top dialog is interactive; modal surfaces isolate the background, contain focus, close on Escape when allowed, and restore focus to a visible opener.
 - Broader login/recovery/IP throttling is deferred to Phase 10 production hardening.
 
 ## Clinic operational timezone
@@ -134,6 +135,7 @@ That timezone determines clinic **today**, today's Appointments, check-in eligib
 - Assistant workspace administers Patient creation/deletion;
 - Doctor in Assistant workspace gets Assistant-side administrator controls;
 - current/future Appointments block Patient deletion;
+- Patient deletion uses a contained confirmation dialog; a failed deletion is announced and focused inside that dialog rather than above the Patient page;
 - deletion has five-second Undo;
 - Patient records never merge across clinics.
 
@@ -205,6 +207,7 @@ OPEN → DONE
 - no general task notification system beyond the red dot;
 - authenticated three-second polling;
 - New task remains a compact dialog with keyboard focus management; Open/History and comment fields expose complete accessible semantics.
+- repeated Done/Edit/Delete/comment and Undo controls retain short visible text while their accessible names identify the affected task, comment, Patient, or action;
 - editing an existing task replaces that card's normal details and conflicting controls until Save or Cancel, and saves back to the same task.
 
 ### Private sticky

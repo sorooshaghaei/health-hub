@@ -10,7 +10,7 @@ function UndoItem({ action, busy, onUndo, onExpire }) {
   return (
     <div className="undo-toast" role="status">
       <span>{action.message}</span>
-      <button type="button" disabled={busy} onClick={() => onUndo(action)}>
+      <button type="button" aria-label={`Undo: ${action.message}`} disabled={busy} onClick={() => onUndo(action)}>
         {busy ? "Undoing…" : "Undo"}
       </button>
     </div>

@@ -30,12 +30,15 @@ function Comments({ task, user, props }) {
     <div className="task-comments__heading"><strong>Comments</strong><span>{task.comments.length}</span></div>
     {task.comments.length ? <div className="task-comment-list">{task.comments.map((c) => {
       const own = c.author?.id === user.id, edit = editing?.id === c.id;
+      const author = c.author?.display_name ?? "Clinic staff";
+      const excerpt = c.body.trim().replace(/\s+/g, " ").slice(0, 60);
+      const commentLabel = `comment by ${author}${excerpt ? `: ${excerpt}` : ""}`;
       return <article className="task-comment" key={c.id}>
-        <div className="task-comment__meta"><strong>{c.author?.display_name ?? "Clinic staff"}</strong><span>{formatTaskDateTime(c.created_at)}{c.edited_at ? " · Edited" : ""}</span></div>
-        {edit ? <div className="task-comment-edit"><textarea aria-label="Edit comment" rows={3} value={editing.body} onChange={(e) => setEditing({ id: c.id, body: e.target.value })} /><div className="task-comment__actions"><button className="secondary-button" type="button" onClick={() => setEditing(null)}>Cancel</button><button className="primary-button" type="button" disabled={saving} onClick={() => saveEdit(c.id)}>Save</button></div></div> : <><p>{c.body}</p>{own && <div className="task-comment__actions"><button className="text-button" type="button" onClick={() => setEditing({ id: c.id, body: c.body })}>Edit</button><button className="text-button text-button--danger" type="button" onClick={() => remove(c)}>Delete</button></div>}</>}
+        <div className="task-comment__meta"><strong>{author}</strong><span>{formatTaskDateTime(c.created_at)}{c.edited_at ? " · Edited" : ""}</span></div>
+        {edit ? <div className="task-comment-edit"><textarea aria-label={`Edit ${commentLabel}`} rows={3} value={editing.body} onChange={(e) => setEditing({ id: c.id, body: e.target.value })} /><div className="task-comment__actions"><button className="secondary-button" type="button" aria-label={`Cancel editing ${commentLabel}`} onClick={() => setEditing(null)}>Cancel</button><button className="primary-button" type="button" aria-label={`Save ${commentLabel}`} disabled={saving} onClick={() => saveEdit(c.id)}>Save</button></div></div> : <><p>{c.body}</p>{own && <div className="task-comment__actions"><button className="text-button" type="button" aria-label={`Edit ${commentLabel}`} onClick={() => setEditing({ id: c.id, body: c.body })}>Edit</button><button className="text-button text-button--danger" type="button" aria-label={`Delete ${commentLabel}`} onClick={() => remove(c)}>Delete</button></div>}</>}
       </article>;
     })}</div> : <p className="task-muted">No comments yet.</p>}
-    <div className="task-comment-compose"><textarea aria-label="New comment" rows={2} placeholder="Add a comment" value={draft} onChange={(e) => setDraft(e.target.value)} /><button className="secondary-button" type="button" disabled={saving || !draft.trim()} onClick={add}>Comment</button></div>
+    <div className="task-comment-compose"><textarea aria-label={`New comment on ${task.title}`} rows={2} placeholder="Add a comment" value={draft} onChange={(e) => setDraft(e.target.value)} /><button className="secondary-button" type="button" aria-label={`Add comment to ${task.title}`} disabled={saving || !draft.trim()} onClick={add}>Comment</button></div>
   </section>;
 }
 
@@ -48,7 +51,7 @@ export function TaskCard({ task, user, doctor, expanded, editing, taskEditActive
       {task.description ? <p className="task-description">{task.description}</p> : <p className="task-muted">No description.</p>}
       {task.patient && <button className="task-patient-link" type="button" onClick={() => openPatient(task.patient.id)}>Open Patient · {task.patient.full_name}</button>}
       {finished && <p className="task-completed-note">Done {formatTaskDateTime(task.completed_at)}{task.completed_by ? ` by ${task.completed_by.display_name}` : ""}</p>}
-      <div className="task-actions">{!finished && <button className="primary-button" type="button" onClick={() => done(task)}>Done</button>}{doctor && <button className="secondary-button" type="button" disabled={taskEditActive} onClick={() => edit(task)}>Edit</button>}{doctor && <button className="danger-button" type="button" onClick={() => remove(task)}>Delete</button>}</div>
+      <div className="task-actions">{!finished && <button className="primary-button" type="button" aria-label={`Mark ${task.title} done`} onClick={() => done(task)}>Done</button>}{doctor && <button className="secondary-button" type="button" aria-label={`Edit task ${task.title}`} disabled={taskEditActive} onClick={() => edit(task)}>Edit</button>}{doctor && <button className="danger-button" type="button" aria-label={`Delete task ${task.title}`} onClick={() => remove(task)}>Delete</button>}</div>
       <Comments task={task} user={user} props={comments} />
     </div>)}
   </article>;
