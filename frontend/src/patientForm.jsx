@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 import { ApiError } from "./api.js";
+import { dateValueInTimeZone } from "./clinicTime.js";
+import { validatePatientDateOfBirth } from "./patientDateOfBirth.js";
 import {
   COUNTRY_CODES,
   countryForCallingCode,
@@ -56,7 +58,7 @@ export function formatTime(value) {
   return value.slice(0, 5);
 }
 
-export function PatientFields({ form, onChange, includeNote = true, includeName = true }) {
+export function PatientFields({ form, onChange, includeNote = true, includeName = true, maxDate }) {
   const update = (event) => onChange(event.target.name, event.target.value);
   const phonePlaceholder = phonePlaceholderForCallingCode(form.country_calling_code);
 
@@ -102,7 +104,7 @@ export function PatientFields({ form, onChange, includeNote = true, includeName 
             <small>Enter a domestic number or a matching full international number. Health Hub saves it in E.164 format.</small>
           </label>
         </div>
-        <Field label="Date of birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={update} />
+        <Field label="Date of birth (optional)" name="date_of_birth" type="date" value={form.date_of_birth} max={maxDate} onChange={update} />
       </div>
       {includeNote && (
         <TextAreaField
@@ -140,11 +142,12 @@ export function DuplicateWarning({ warning, onUseExisting, onCreateSeparate }) {
   );
 }
 
-export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting }) {
+export function PatientProfileForm({ patient, clinic, onSave, onCancel, onUseExisting }) {
   const [form, setForm] = useState(patientFormValue(patient));
   const [error, setError] = useState(null);
   const [warning, setWarning] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const clinicToday = dateValueInTimeZone(clinic?.timezone || "UTC");
 
   function update(name, value) {
     setError(null);
@@ -156,6 +159,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
     setError(null);
     setSubmitting(true);
     try {
+      validatePatientDateOfBirth(form.date_of_birth, clinicToday);
       const phone = normalizePatientPhone(form.country_calling_code, form.phone_number);
       await onSave({
         ...form,
@@ -189,7 +193,7 @@ export function PatientProfileForm({ patient, onSave, onCancel, onUseExisting })
         onUseExisting={(match) => onUseExisting(match.id)}
         onCreateSeparate={() => save(true)}
       />
-      <PatientFields form={form} onChange={update} />
+      <PatientFields form={form} onChange={update} maxDate={clinicToday} />
       <div className="form-actions">
         <button className="secondary-button" type="button" onClick={onCancel}>Cancel</button>
         <button className="primary-button primary-button--compact" type="submit" disabled={submitting}>

@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from .normalization import normalize_name
@@ -33,6 +34,11 @@ class PatientSerializer(serializers.ModelSerializer):
 
     def validate_patient_note(self, value):
         return value.strip()
+
+    def validate_date_of_birth(self, value):
+        if value is not None and value > timezone.localdate():
+            raise serializers.ValidationError("Date of birth cannot be in the future.")
+        return value
 
     def validate(self, attrs):
         instance = self.instance

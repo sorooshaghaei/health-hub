@@ -125,6 +125,38 @@ class PatientApiTests(APITestCase):
         self.assertEqual(edit.data["patient_note"], "Changed")
         self.assertEqual(delete.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_future_date_of_birth_is_rejected_on_create_and_edit(self):
+        patient = self.create_patient(date_of_birth=None)
+        future_date = (timezone.localdate() + timedelta(days=1)).isoformat()
+
+        create = self.request_as(
+            self.assistant_token,
+            "post",
+            "/api/patients/",
+            self.patient_payload(
+                full_name="Future Patient",
+                phone_number="09125556677",
+                date_of_birth=future_date,
+            ),
+        )
+        edit = self.request_as(
+            self.doctor_token,
+            "patch",
+            f"/api/patients/{patient['id']}/",
+            {"date_of_birth": future_date},
+        )
+
+        self.assertEqual(create.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(edit.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            str(create.data["date_of_birth"][0]),
+            "Date of birth cannot be in the future.",
+        )
+        self.assertEqual(
+            str(edit.data["date_of_birth"][0]),
+            "Date of birth cannot be in the future.",
+        )
+
     def test_assistant_and_doctor_admin_assistant_workspace_manage_patients(self):
         created = self.create_patient()
         edited = self.request_as(

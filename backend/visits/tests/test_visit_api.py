@@ -157,6 +157,35 @@ class VisitApiTests(APITestCase):
         self.assertEqual(response.data["status"], "planned")
         self.assertTrue(Patient.objects.filter(full_name="Ali Moradi").exists())
 
+    def test_inline_patient_rejects_future_date_of_birth_atomically(self):
+        patient_count = Patient.objects.count()
+        response = self.client.post(
+            "/api/visits/",
+            {
+                "date": timezone.localdate().isoformat(),
+                "scheduled_time": "12:15",
+                "reason": "First appointment",
+                "new_patient": {
+                    "full_name": "Future Patient",
+                    "gender": "Woman",
+                    "country_calling_code": "+98",
+                    "phone_number": "09125556677",
+                    "date_of_birth": (timezone.localdate() + timedelta(days=1)).isoformat(),
+                    "patient_note": "",
+                },
+            },
+            format="json",
+            **self.authorization(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            str(response.data["date_of_birth"][0]),
+            "Date of birth cannot be in the future.",
+        )
+        self.assertEqual(Patient.objects.count(), patient_count)
+        self.assertFalse(Visit.objects.exists())
+
     def test_only_todays_appointment_can_check_in(self):
         patient = self.create_patient()
         today = self.create_appointment(patient["id"])

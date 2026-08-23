@@ -258,7 +258,7 @@ A travelling browser does not change the clinic's operational day.
 ### Patients
 
 - clinic-scoped reusable Patient records;
-- full name, `Man`/`Woman`, country/phone, optional DOB, optional shared Patient note;
+- full name, `Man`/`Woman`, country/phone, optional DOB limited to clinic today or earlier, optional shared Patient note;
 - automatic search + one duplicate warning;
 - Doctor workspace may edit;
 - Assistant workspace may create/edit/delete;

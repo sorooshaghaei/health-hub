@@ -8,6 +8,7 @@ import {
 } from "./appointmentPatientFlow.js";
 import { dateValueInTimeZone } from "./clinicTime.js";
 import { suggestedAppointmentTimes, workingHoursForDate } from "./clinicWorkingHours.js";
+import { validatePatientDateOfBirth } from "./patientDateOfBirth.js";
 import { normalizePatientPhone } from "./patientPhoneFormats.js";
 import {
   DuplicateWarning,
@@ -272,12 +273,13 @@ export default function VisitForm({
     let normalizedPatientDraft = patientDraft;
     if (!workflowStarted && !selectedPatient) {
       try {
+        validatePatientDateOfBirth(patientDraft.date_of_birth, clinicToday);
         normalizedPatientDraft = {
           ...patientDraft,
           ...normalizePatientPhone(patientDraft.country_calling_code, patientDraft.phone_number),
         };
-      } catch (phoneError) {
-        setError(new ApiError(phoneError.message));
+      } catch (patientError) {
+        setError(new ApiError(patientError.message));
         return;
       }
     }
@@ -399,7 +401,7 @@ export default function VisitForm({
                 Back to patient search
               </button>
             </div>
-            <PatientFields form={patientDraft} onChange={updatePatientDraft} />
+            <PatientFields form={patientDraft} onChange={updatePatientDraft} maxDate={clinicToday} />
           </div>
         ) : (
           <div className="patient-search-workflow">

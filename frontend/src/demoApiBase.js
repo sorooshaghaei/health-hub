@@ -1,4 +1,5 @@
 import { browserTimeZone, dateValueInTimeZone, timeValueInTimeZone } from "./clinicTime.js";
+import { validatePatientDateOfBirth } from "./patientDateOfBirth.js";
 import { normalizePatientPhone, patientPhoneParts } from "./patientPhoneFormats.js";
 
 const STORE_KEY = "health-hub.demo-store.v1";
@@ -265,6 +266,11 @@ function validatePatient(data, current = null) {
   if (!["Man", "Woman"].includes(gender)) fail({ gender: ["Choose Man or Woman."] });
   if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
     fail({ date_of_birth: ["Enter a valid date of birth."] });
+  }
+  try {
+    validatePatientDateOfBirth(dateOfBirth, localDateValue());
+  } catch (error) {
+    fail({ date_of_birth: [error.message] });
   }
   return {
     full_name: fullName.replace(/\s+/g, " "),

@@ -127,7 +127,7 @@ That timezone determines clinic **today**, today's Appointments, check-in eligib
 ### Patients
 
 - clinic-scoped reusable Patient records;
-- full name, `Man`/`Woman`, phone country or region plus domestic/international phone input, optional DOB, optional shared Patient note;
+- full name, `Man`/`Woman`, phone country or region plus domestic/international phone input, optional DOB limited to clinic today or earlier, optional shared Patient note;
 - Patient phone validation uses country metadata and stores one canonical E.164 value while retaining the selected country and national number;
 - Iran `+98` default;
 - automatic search + one duplicate warning;
