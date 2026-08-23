@@ -58,7 +58,7 @@ A Doctor or Assistant travelling with a browser in another timezone does not cha
 
 ## Doctor Room ready action
 
-The Doctor workspace provides one **Room ready** button.
+The Doctor workspace provides one Room-ready action. With no current Patient, its button reads **Room ready**. While a Patient is current, the button reads **Complete Patient and signal room ready** and is accompanied by: **This completes the current Patient and signals that the room is ready for the next Patient.**
 
 When tapped:
 
@@ -97,6 +97,8 @@ Choosing another Patient does not change the original queue order of the Patient
 ### Undo Room ready
 
 During the first five seconds, the Doctor may undo **Room ready**.
+
+The confirmation and Undo notification retain the completed Patient identity. The Undo label names both the Patient completion and the pending room call that it reverses.
 
 - the pending call is removed;
 - the Assistant-side workspace never receives that call;

@@ -220,10 +220,11 @@ test("next Room ready finishes the current Patient and Doctor Undo restores them
     store.room_call.consumed_at = past;
   });
 
-  await demoApiRequest("/api/visits/room-ready/", {
+  const readyAgain = await demoApiRequest("/api/visits/room-ready/", {
     method: "POST",
     staffToken: doctor.session_token,
   });
+  assert.equal(readyAgain.previous_visit.patient.full_name, "Current Patient");
   const finished = await demoApiRequest(`/api/visits/${current.id}/`, {
     staffToken: assistant.session_token,
   });

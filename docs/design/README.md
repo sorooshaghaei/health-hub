@@ -41,7 +41,7 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 
 - Queue-first Assistant workspace
 - Consultation-first Doctor workspace
-- One decisive **Room ready** action: it completes the current `WITH_DOCTOR` consultation, if any, and creates the call for the next Patient
+- One decisive Room-ready action: with a current Patient it is labeled **Complete Patient and signal room ready**, explicitly discloses both effects, and retains the Patient identity in confirmation and Undo feedback
 - No separate Doctor **Finished** or **Checkout** action
 - No separate Call next patient action
 - No duplicate Start consultation action

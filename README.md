@@ -169,6 +169,7 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
 - **Room ready** requires Doctor account + Doctor workspace + active membership;
+- when a Patient is current, the control reads **Complete Patient and signal room ready**, and helper text discloses both consequences before the Doctor acts;
 - **With doctor** is an Assistant-workspace action, including Doctor administrator access;
 - one pending Room-ready call maximum per clinic;
 - Room ready has five-second Undo before Assistant notification;
@@ -182,7 +183,7 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 
 - no Checkout workflow;
 - Doctor's next Room ready completes the current consultation;
-- five-second Undo Room ready is the only reversal;
+- its feedback retains the completed Patient identity, and five-second Undo names and reverses both Patient completion and the pending room call;
 - Completed remains in date list + Patient history but leaves queue/current Doctor card;
 - Completed cannot be deleted.
 

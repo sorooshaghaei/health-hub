@@ -34,6 +34,8 @@ When the Doctor taps **Room ready** in Doctor workspace while an Appointment is 
 
 The previous Patient's completion and the next Room-ready call are part of the same Doctor action. The Assistant does not perform a second confirmation.
 
+The Doctor sees this consequence before acting: the control reads **Complete Patient and signal room ready**, and the helper explains that it completes the current Patient and signals the room for the next Patient. After the action, feedback and Undo retain the completed Patient identity and name both effects.
+
 ## Finality and Undo
 
 There is no checkout-specific Undo because there is no checkout action.

@@ -360,8 +360,8 @@ export default function ScheduleWorkspace({
         kind: "room_ready",
         resourceId: null,
         message: payload.previous_visit
-          ? `${payload.previous_visit.patient.full_name} finished. Room ready called.`
-          : "Room ready called.",
+          ? `Completed ${payload.previous_visit.patient.full_name} and signaled room ready for the next Patient.`
+          : "Signaled room ready for the next Patient.",
         undoUntil: payload.room_call.undo_until,
       });
       await refreshAll();
@@ -424,6 +424,7 @@ export default function ScheduleWorkspace({
   const dismissed = availableRoomCall
     ? dismissedRoomCall === availableRoomCall.requested_at
     : false;
+  const currentPatient = roomState.current_visit?.patient ?? null;
 
   return (
     <section className="schedule-workspace">
@@ -433,6 +434,11 @@ export default function ScheduleWorkspace({
             <div>
               <p className="eyebrow">Consultation room</p>
               <h2>Current Patient</h2>
+              {currentPatient && (
+                <p className="room-ready-action-copy">
+                  This completes the current Patient and signals that the room is ready for the next Patient.
+                </p>
+              )}
             </div>
             <button
               className="room-ready-button"
@@ -444,7 +450,9 @@ export default function ScheduleWorkspace({
                 ? "Sending…"
                 : roomState.room_call
                   ? "Room call pending"
-                  : "Room ready"}
+                  : currentPatient
+                    ? "Complete Patient and signal room ready"
+                    : "Room ready"}
             </button>
           </div>
           <DoctorConsultationCard visit={roomState.current_visit} onOpenPatient={onOpenPatient} />

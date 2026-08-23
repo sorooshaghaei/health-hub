@@ -391,6 +391,7 @@ function signalRoomReady(store, session) {
     detail: "The Assistant will receive the room-ready call after the Undo period.",
     undo_until: roomCallAvailableAt(store.room_call),
     room_call: publicRoomCall(store, store.room_call),
+    previous_visit: currentVisit ? publicVisit(store, currentVisit) : null,
   };
 }
 

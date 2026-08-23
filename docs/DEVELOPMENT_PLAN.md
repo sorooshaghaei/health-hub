@@ -128,6 +128,7 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
 - Room ready requires permanent Doctor account + Doctor workspace + active membership;
+- with a current Patient, the action reads **Complete Patient and signal room ready** and discloses both effects before submission;
 - Doctor administrator access in Assistant workspace cannot Room ready;
 - With doctor is an Assistant-workspace action, including Doctor administrator access;
 - one pending Room-ready call maximum per clinic;
@@ -146,6 +147,7 @@ See [`PHASE_4_CONSULTATION.md`](PHASE_4_CONSULTATION.md).
 
 - no Checkout state/action/form/queue/timestamp;
 - next Room ready completes the current `WITH_DOCTOR` Appointment;
+- confirmation and Undo feedback retain the completed Patient identity and name both completion and the next room call;
 - `doctor_finished_at` records completion;
 - five-second Undo Room ready is the only reversal;
 - after expiry, Completed cannot reopen;
@@ -266,7 +268,8 @@ Audit remediation status:
 6. **Private sticky safety — implemented:** no Reset control, viewport-constrained pointer/keyboard movement and resizing, reachable header/Minimize controls, and a reserved bottom-right Undo lane;
 7. **Appointment creation simplification — implemented:** dedicated existing-Patient search, explicit existing/new choice, and deferred new-Patient fields with clear creation wording;
 8. **Keyboard, dialog, and repeated-action accessibility — implemented:** topmost-dialog isolation and focus containment, nested-dialog restoration, Account-menu Escape/arrow behavior, contained Patient-deletion errors, focused active-form errors, and contextual Undo/task/comment names;
-9. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+9. **Room-ready completion disclosure — implemented:** the combined action is explicit before submission, production/demo feedback retains the completed Patient identity, and Undo names both completion and the pending room call;
+10. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

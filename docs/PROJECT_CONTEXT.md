@@ -300,6 +300,7 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 ```
 
 - Room ready = Doctor account in Doctor workspace only;
+- with a current Patient, the action reads **Complete Patient and signal room ready** and explains both consequences before submission;
 - With doctor = Assistant workspace, including Doctor administrator access;
 - one pending room call per clinic;
 - five-second Undo before Assistant notification;
@@ -312,7 +313,7 @@ CHECKED_IN → WITH_DOCTOR → DOCTOR_FINISHED
 
 `DOCTOR_FINISHED` displays as **Completed** and is final.
 
-No Checkout state/action exists. Five-second Room-ready Undo is the only reversal.
+No Checkout state/action exists. Completion feedback retains the Patient identity; five-second Room-ready Undo names and reverses both that completion and the pending room call.
 
 ### Shared tasks
 

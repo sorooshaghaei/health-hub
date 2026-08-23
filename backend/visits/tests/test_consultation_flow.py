@@ -250,6 +250,10 @@ class ConsultationFlowApiTests(APITestCase):
         restored = Visit.objects.get(pk=patient["id"])
 
         self.assertEqual(ready_again.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            ready_again.data["previous_visit"]["patient"]["full_name"],
+            "Current Patient",
+        )
         self.assertEqual(finished.status, Visit.Status.DOCTOR_FINISHED)
         self.assertIsNotNone(finished.doctor_finished_at)
         self.assertEqual(undone.status_code, status.HTTP_200_OK)
