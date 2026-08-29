@@ -20,6 +20,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
   const [open, setOpen] = useState(false), [tab, setTab] = useState("profile"), [error, setError] = useState(null);
   const [dangerOpen, setDangerOpen] = useState(false);
   const [profile, setProfile] = useState({ first_name: user.first_name ?? "", last_name: user.last_name ?? "" });
+  const [profileSaved, setProfileSaved] = useState(false);
   const [contact, setContact] = useState(() => emptyContactState());
   const [password, setPassword] = useState({ channel: "email", code: "", password: "", confirm: "", requested: false, devCode: "" });
   const [verificationState, setVerificationState] = useState({});
@@ -30,6 +31,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
   const passwordResend = useResendCountdown();
 
   useEffect(() => { setProfile({ first_name: user.first_name ?? "", last_name: user.last_name ?? "" }); }, [user]);
+  useEffect(() => { if (!open) setProfileSaved(false); }, [open]);
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -85,9 +87,12 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
   }, [dangerOpen, staffToken, user.role]);
 
   async function saveProfile(event) {
-    event.preventDefault(); setError(null);
-    try { const payload = await apiRequest("/api/staff/profile/", { method: "PATCH", staffToken, data: profile }); onUserChange(payload.user); }
-    catch (reason) { setError(errorOf(reason, "Profile could not be updated.")); }
+    event.preventDefault(); setError(null); setProfileSaved(false);
+    try {
+      const payload = await apiRequest("/api/staff/profile/", { method: "PATCH", staffToken, data: profile });
+      onUserChange(payload.user);
+      setProfileSaved(true);
+    } catch (reason) { setError(errorOf(reason, "Profile could not be updated.")); }
   }
 
   async function explicitPasskeyReauth(forDeletion = false) {
@@ -243,7 +248,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
           key={name}
           className={tab === name ? "phase8-settings-tab phase8-settings-tab--active" : "phase8-settings-tab"}
           aria-current={tab === name ? "page" : undefined}
-          onClick={() => { setTab(name); setError(null); }}
+          onClick={() => { setTab(name); setError(null); setProfileSaved(false); }}
         >{name[0].toUpperCase() + name.slice(1)}</button>)}
       </nav>
       <ErrorMessage error={error} focus />
@@ -251,10 +256,13 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
       {tab === "profile" && <div className="phase8-settings-section">
         <form className="form" onSubmit={saveProfile}>
           <div className="field-row">
-            <Field label="First name" value={profile.first_name} onChange={(event) => { setProfile({ ...profile, first_name: event.target.value }); setError(null); }} required />
-            <Field label="Last name" value={profile.last_name} onChange={(event) => { setProfile({ ...profile, last_name: event.target.value }); setError(null); }} required />
+            <Field label="First name" value={profile.first_name} onChange={(event) => { setProfile({ ...profile, first_name: event.target.value }); setError(null); setProfileSaved(false); }} required />
+            <Field label="Last name" value={profile.last_name} onChange={(event) => { setProfile({ ...profile, last_name: event.target.value }); setError(null); setProfileSaved(false); }} required />
           </div>
-          <Button variant="primary">Save profile</Button>
+          <div className="phase8-profile-actions">
+            <Button variant="primary">Save profile</Button>
+            {profileSaved && <span className="phase8-profile-saved" role="status" aria-live="polite" aria-atomic="true">Profile saved.</span>}
+          </div>
         </form>
         <div className="phase8-contact-card"><strong>Email</strong><span>{user.email} · {user.email_verified ? "Verified" : "Not verified"}</span></div>
         <div className="phase8-contact-card"><strong>Phone</strong><span>{user.phone} · {user.phone_verified ? "Verified" : "Not verified"}</span></div>

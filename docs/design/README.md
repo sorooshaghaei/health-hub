@@ -63,6 +63,7 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 - Mutually exclusive recovery workflows use radio cards rather than checkboxes.
 - Modal surfaces use one topmost-dialog stack for background isolation, nested-dialog pausing, initial focus, contained Tab order, Escape closing, and restoration to a connected visible opener. Icon-only close controls have contextual accessible names.
 - Permanent account deletion is isolated in a Danger zone rather than presented as an ordinary settings tab.
+- Successful Profile updates show and politely announce **Profile saved.** beside the save action, and stale confirmation clears on further editing or section navigation.
 - Movable utility surfaces provide keyboard movement/resizing within safe viewport bounds, and autosave state is announced without revealing private content.
 
 The broader visual-direction tokens remain in `frontend/src/design-tokens.css`. Approved live-screen control tokens are integrated in `frontend/src/styles.css` screen by screen.

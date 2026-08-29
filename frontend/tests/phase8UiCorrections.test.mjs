@@ -60,6 +60,18 @@ test("pending account contact replacement can be restored, edited, or explicitly
   assert.match(account, /passwordValid/);
 });
 
+test("profile save success is visible, announced, and cleared before it becomes stale", async () => {
+  const account = await source("../src/AccountSettings.jsx");
+  const styles = await source("../src/accountSettings.css");
+
+  assert.match(account, /const \[profileSaved, setProfileSaved\] = useState\(false\)/);
+  assert.match(account, /onUserChange\(payload\.user\);\s*setProfileSaved\(true\)/);
+  assert.match(account, /className="phase8-profile-saved" role="status" aria-live="polite" aria-atomic="true">Profile saved\.<\/span>/);
+  assert.ok((account.match(/setProfileSaved\(false\)/g) ?? []).length >= 4);
+  assert.match(styles, /\.phase8-profile-actions[\s\S]*?display: flex;/);
+  assert.match(styles, /\.phase8-profile-actions \.primary-button[\s\S]*?width: auto;/);
+});
+
 test("mobile authentication replaces the oversized hero with a compact titled header", async () => {
   const styles = await source("../src/styles.css");
   assert.match(styles, /@media \(max-width: 900px\)[\s\S]*?\.auth-intro \{ min-height: 128px;[^}]*flex-direction: row;/);

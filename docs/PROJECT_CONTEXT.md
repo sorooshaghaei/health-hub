@@ -180,6 +180,8 @@ New-password pairs show Django-aligned requirements, live strength/match feedbac
 
 The workspace Account menu supports Up/Down/Home/End navigation and Escape-to-trigger focus restoration. Routine Account settings are separated from permanent Doctor-account deletion in a nested Danger zone dialog. A shared topmost-dialog stack makes the app and parent dialogs inert, contains focus, applies Escape only to the active dialog, and restores focus to a connected visible opener.
 
+After a successful Profile update, Account settings displays and politely announces **Profile saved.** beside the save action. Editing either name field or leaving the Profile section clears the confirmation so stale success is not presented as current state.
+
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
 Doctor recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes. Assistant recovery never offers the Doctor-only method and shows verified personal email/SMS only.

@@ -1,3 +1,21 @@
+.phase8-profile-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.phase8-profile-actions .primary-button {
+  margin-top: 0;
+  width: auto;
+}
+
+.phase8-profile-saved {
+  color: var(--green, #176448);
+  font-size: 13px;
+  font-weight: 750;
+}
+
 .phase8-danger-zone {
   align-items: center;
   background: #fff7f5;

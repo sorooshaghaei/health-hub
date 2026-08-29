@@ -114,6 +114,7 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - New-password forms provide live requirements, match/strength feedback, accessible Show/Hide controls, and remain disabled until the client-known requirements and confirmation match pass. Production validation remains authoritative.
 - The Account menu supports arrow-key navigation and closes on Escape with focus returned to its visible Account trigger.
 - Routine Account settings stay open beneath the Doctor-account Danger zone. Only the top dialog is interactive; modal surfaces isolate the background, contain focus, close on Escape when allowed, and restore focus to a visible opener.
+- A successful Profile update displays and politely announces **Profile saved.** beside the save action; the confirmation clears when the profile is edited again or the person leaves the section.
 - Broader login/recovery/IP throttling is deferred to Phase 10 production hardening.
 
 ## Clinic operational timezone
