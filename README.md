@@ -159,6 +159,7 @@ PLANNED → CHECKED_IN
 
 - check-in only for clinic-operational-today Appointments;
 - original persisted check-in sequence controls queue order;
+- queue check-in times show seconds only when multiple arrivals share a minute, making their persisted order visible without adding seconds to every row;
 - Assistant queue shows Patient phone; Doctor queue omits it;
 - check-in has five-second Undo;
 - authenticated three-second polling.

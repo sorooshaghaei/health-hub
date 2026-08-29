@@ -62,6 +62,8 @@ The sequence is assigned while holding a clinic-level database lock. Therefore, 
 
 Displayed queue position is recalculated from the active ordered queue, so positions close automatically when an Appointment is removed or enters consultation.
 
+Check-in times normally display hours and minutes. When two or more active queue entries were checked in during the same minute, every affected row also displays seconds so the visible times explain their persisted sequence. This is display-only and does not recalculate or replace queue ordering.
+
 Scheduled time is planning information only and never determines queue position.
 
 ## Queue row

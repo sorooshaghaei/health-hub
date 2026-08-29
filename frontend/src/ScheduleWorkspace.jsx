@@ -4,6 +4,7 @@ import { ApiError, apiRequest } from "./api.js";
 import { dateValueInTimeZone, timeValueInTimeZone } from "./clinicTime.js";
 import Dialog from "./Dialog.jsx";
 import { formatDate, formatTime } from "./patientForm.jsx";
+import { checkInMinuteKey, sharedCheckInMinuteKeys } from "./queueCheckInTimes.js";
 import VisitForm from "./VisitForm.jsx";
 import { ErrorMessage, Field } from "./ui.jsx";
 
@@ -18,11 +19,12 @@ function statusLabel(status) {
   return STATUS_LABELS[status] ?? status;
 }
 
-function formatCheckInTime(value) {
+function formatCheckInTime(value, showSeconds = false) {
   if (!value) return "Not checked in";
   return new Intl.DateTimeFormat(undefined, {
     hour: "2-digit",
     minute: "2-digit",
+    ...(showSeconds ? { second: "2-digit" } : {}),
   }).format(new Date(value));
 }
 
@@ -92,7 +94,7 @@ function AppointmentRow({ visit, readOnly, onCheckIn, onEdit, onDelete }) {
   );
 }
 
-function QueueRow({ item, roomReady, suggested, sending, onWithDoctor }) {
+function QueueRow({ item, roomReady, suggested, sending, showCheckInSeconds, onWithDoctor }) {
   return (
     <div className={suggested ? "queue-row queue-row--suggested" : "queue-row"}>
       <div className="queue-position" aria-label={`Queue position ${item.queue_position}`}>{item.queue_position}</div>
@@ -103,7 +105,7 @@ function QueueRow({ item, roomReady, suggested, sending, onWithDoctor }) {
       </div>
       <div className="queue-fact">
         <small>Checked in</small>
-        <strong>{formatCheckInTime(item.checked_in_at)}</strong>
+        <strong>{formatCheckInTime(item.checked_in_at, showCheckInSeconds)}</strong>
       </div>
       <div className="queue-reason">
         <small>Reason</small>
@@ -228,6 +230,7 @@ export default function ScheduleWorkspace({
   const [error, setError] = useState(null);
   const [roomReadySubmitting, setRoomReadySubmitting] = useState(false);
   const [sendingVisitId, setSendingVisitId] = useState(null);
+  const sharedCheckInMinutes = sharedCheckInMinuteKeys(queue);
 
   async function loadVisits(date = selectedDate, { quiet = false } = {}) {
     if (!quiet) setLoading(true);
@@ -495,6 +498,7 @@ export default function ScheduleWorkspace({
                   roomReady={Boolean(availableRoomCall)}
                   suggested={availableRoomCall?.suggested_visit_id === item.id}
                   sending={sendingVisitId === item.id}
+                  showCheckInSeconds={sharedCheckInMinutes.has(checkInMinuteKey(item.checked_in_at))}
                   onWithDoctor={sendWithDoctor}
                 />
               ))}
