@@ -131,6 +131,7 @@ That timezone determines clinic **today**, today's Appointments, check-in eligib
 - Patient phone validation uses country metadata and stores one canonical E.164 value while retaining the selected country and national number;
 - Iran `+98` default;
 - automatic search + one duplicate warning;
+- Appointment search, daily-list, and queue Patient names wrap to two visible lines before truncation; hovering a shortened name reveals the full value, while the complete text remains available to assistive technology;
 - Doctor workspace may edit approved Patient data;
 - Assistant workspace administers Patient creation/deletion;
 - Doctor in Assistant workspace gets Assistant-side administrator controls;

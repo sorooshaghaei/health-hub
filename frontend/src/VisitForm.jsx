@@ -75,7 +75,7 @@ function PatientSuggestion({ patient, onSelect }) {
       onClick={() => onSelect(patient)}
     >
       <span className="patient-suggestion__identity">
-        <strong>{patient.full_name}</strong>
+        <strong title={patient.full_name}>{patient.full_name}</strong>
         <span>{patient.phone_e164 || "No phone recorded"}</span>
       </span>
       <span className="patient-suggestion__details">

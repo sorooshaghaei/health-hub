@@ -88,6 +88,8 @@ After two typed characters, matching active Patients from the current clinic app
 - gender;
 - date of birth when available.
 
+Long Patient names in search results and daily Appointment rows wrap to two visible lines before truncation. The complete name remains in the document for assistive technology and is also exposed as hover text for pointer users.
+
 Selecting an existing Patient attaches the Appointment to that clinic's Patient record and collapses the Patient section into a compact selected-Patient card with **Change** and **Open profile** actions. Patient details are not edited from the Appointment form.
 
 The full name, gender, country/phone, optional date of birth, and optional Patient note fields remain hidden until the Assistant explicitly chooses **Create new patient**. The date-of-birth maximum is clinic today, and the atomic production and browser-demo paths reject future birth dates before either record is created. The searched name is carried into the new profile and remains editable. Patient and Appointment creation then occurs atomically. The standard duplicate warning and explicit separate-profile action remain active. If the selected Patient already has an Appointment on the chosen date, the form shows the existing Appointment and provides **Open appointment**.

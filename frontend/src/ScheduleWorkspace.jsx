@@ -50,7 +50,7 @@ function playRoomReadySound() {
 function PatientContext({ patient, showPhone = false }) {
   return (
     <span className="patient-context">
-      <strong>{patient.full_name}</strong>
+      <strong title={patient.full_name}>{patient.full_name}</strong>
       <small>
         {patient.gender}
         {showPhone && patient.phone_e164 ? ` · ${patient.phone_e164}` : ""}

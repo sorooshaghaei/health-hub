@@ -260,6 +260,7 @@ A travelling browser does not change the clinic's operational day.
 - clinic-scoped reusable Patient records;
 - full name, `Man`/`Woman`, country/phone, optional DOB limited to clinic today or earlier, optional shared Patient note;
 - automatic search + one duplicate warning;
+- long Patient names in Appointment search, daily lists, and queues wrap to two visible lines before truncation, retain their complete assistive text, and expose the full value on hover;
 - Doctor workspace may edit;
 - Assistant workspace may create/edit/delete;
 - Doctor in Assistant workspace gets Assistant-side administrator controls;

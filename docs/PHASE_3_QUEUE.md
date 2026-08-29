@@ -75,6 +75,8 @@ Every row shows:
 - check-in time;
 - optional visit reason.
 
+Long Patient names wrap to two visible lines before truncation. The complete name remains in the document for assistive technology and is also exposed as hover text for pointer users.
+
 The Assistant queue also shows the Patient phone number. The Doctor queue omits the phone number. The Assistant daily Appointment list shows phone numbers so absent Patients can be called.
 
 There are no early, on-time, or late labels.

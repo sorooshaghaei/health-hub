@@ -270,7 +270,8 @@ Audit remediation status:
 8. **Keyboard, dialog, and repeated-action accessibility — implemented:** topmost-dialog isolation and focus containment, nested-dialog restoration, Account-menu Escape/arrow behavior, contained Patient-deletion errors, focused active-form errors, and contextual Undo/task/comment names;
 9. **Room-ready completion disclosure — implemented:** the combined action is explicit before submission, production/demo feedback retains the completed Patient identity, and Undo names both completion and the pending room call;
 10. **Patient date-of-birth validation — implemented:** profile and inline Appointment forms use clinic today as the maximum, while frontend, production backend, and browser demo reject future birth dates;
-11. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+11. **Long Patient-name display — implemented:** Appointment search, daily-list, and queue identities wrap to two visible lines before truncation, expose the full value on hover, and retain the complete text for assistive technology;
+12. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 
