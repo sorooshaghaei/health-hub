@@ -68,6 +68,21 @@ test("shared form controls and operational metadata meet the corrected type scal
   assert.match(workspaceUsability, /\.task-field \{\s*font-size: 14px;/);
 });
 
+test("schedule, settings, and dialog touch controls expose 44px targets without denser hour rows", async () => {
+  const hours = await source("../src/workingHours.css");
+  const settings = await source("../src/phase8.css");
+  const devices = await source("../src/deviceAccess.css");
+  const consultation = await source("../src/phase4.css");
+
+  assert.match(hours, /\.clinic-hours-row \{\s*padding-block: 8px;/);
+  assert.match(hours, /\.clinic-hours-toggle \{\s*min-height: var\(--control-height-standard\);\s*width: 100%;/);
+  assert.match(hours, /\.clinic-hours-times label \{\s*font-size: 14px;/);
+  assert.match(hours, /\.clinic-hours-times input \{\s*min-height: var\(--control-height-standard\);/);
+  assert.match(settings, /\.phase8-settings-tab \{\s*min-width: var\(--control-height-standard\);\s*min-height: var\(--control-height-standard\);\s*font-size: 15px;/);
+  assert.match(devices, /\.device-icon-button \{[\s\S]*?width: var\(--control-height-standard\);\s*height: var\(--control-height-standard\);/);
+  assert.match(consultation, /\.modal-close-button \{[\s\S]*?width: var\(--control-height-standard\);\s*height: var\(--control-height-standard\);/);
+});
+
 test("the private note starts below the workspace header and reserves the Undo lane", async () => {
   const sticky = await source("../src/PrivateSticky.jsx");
   const geometry = await source("../src/privateStickyGeometry.js");

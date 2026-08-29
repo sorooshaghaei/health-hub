@@ -55,7 +55,7 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 - Reversal, undo, and confirmation behavior must be approved for each workflow before implementation
 - Frequent actions use direct verbs rather than technical terminology
 - Workspace headings stay within a compact 32–40px scale so operational controls remain above the fold.
-- Standard controls use a 44px minimum height and 12px radius; compact header and row controls use a 38px minimum height and 10px radius; status chips remain pill-shaped and are never used as action buttons.
+- Standard controls use a 44px minimum height and 12px radius. Working-day selectors, working-time inputs, settings tabs, and dialog close controls always retain a 44px target; other compact header and dense operational-row controls may use a 38px minimum and 10px radius. Status chips remain pill-shaped and are never used as action buttons.
 - Form controls use at least 15px text on desktop and 16px on mobile. Secondary metadata uses at least 12px, while operational times, queue facts, and statuses use 12–14px according to hierarchy.
 - Empty operational content uses a compact roughly 100–130px state and its containing card grows naturally when records exist; the empty live queue is content-driven with no forced minimum height.
 - Verification code screens reserve visible space for the resend countdown and a change-contact/channel action; people must never be trapped in a code-entry state.

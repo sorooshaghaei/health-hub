@@ -115,6 +115,7 @@ Default session policy is 12-hour absolute lifetime, 2-hour inactivity timeout, 
 - The Account menu supports arrow-key navigation and closes on Escape with focus returned to its visible Account trigger.
 - Routine Account settings stay open beneath the Doctor-account Danger zone. Only the top dialog is interactive; modal surfaces isolate the background, contain focus, close on Escape when allowed, and restore focus to a visible opener.
 - A successful Profile update displays and politely announces **Profile saved.** beside the save action; the confirmation clears when the profile is edited again or the person leaves the section.
+- Working-day selectors, working-time fields, Account settings tabs, and dialog close controls provide at least 44×44px touch areas. Form controls use at least 15px text on desktop and 16px on compact/mobile layouts.
 - Broader login/recovery/IP throttling is deferred to Phase 10 production hardening.
 
 ## Clinic operational timezone

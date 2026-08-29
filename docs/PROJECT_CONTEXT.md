@@ -182,6 +182,8 @@ The workspace Account menu supports Up/Down/Home/End navigation and Escape-to-tr
 
 After a successful Profile update, Account settings displays and politely announces **Profile saved.** beside the save action. Editing either name field or leaving the Profile section clears the confirmation so stale success is not presented as current state.
 
+Working-day selectors, working-time inputs, Account settings tabs, and dialog close controls expose at least 44×44px interactive areas. Form controls remain at least 15px on desktop and 16px on compact/mobile layouts; secondary metadata may remain 12–14px. The weekly-hours rows keep their existing 62px density while their interactive children grow to the required target.
+
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
 Doctor recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes. Assistant recovery never offers the Doctor-only method and shows verified personal email/SMS only.

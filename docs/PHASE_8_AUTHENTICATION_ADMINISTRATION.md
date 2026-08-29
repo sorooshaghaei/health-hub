@@ -101,6 +101,7 @@ Authentication and account-administration controls use the shared UI components 
 - Doctor access to the Assistant workspace has a persistent **Viewing Assistant workspace as Doctor administrator** banner and a direct **Return to Doctor workspace** action.
 - Account settings keeps routine Profile, Security, Passkeys, and Recovery sections together. Permanent Doctor-account deletion is isolated in a visually distinct Danger zone and opens a nested final-review dialog while Account settings remains mounted beneath it.
 - A successful Profile update displays **Profile saved.** beside its save action and announces that confirmation through a polite status region. Editing the profile or leaving its section clears the prior confirmation.
+- Account settings tabs and dialog close controls expose at least 44×44px interactive areas. Settings-tab text is at least 15px, while form inputs remain at least 15px on desktop and 16px on compact/mobile layouts.
 - Account, trusted-device, clinic-team, task-creation, Patient-deletion, and consultation-detail dialogs share a topmost-dialog stack. The app and any parent dialog become inert and hidden from assistive technology, focus enters and remains in the top dialog, Escape affects only that dialog when closing is allowed, and closing restores focus to a connected visible opener. Visual × controls have contextual accessible names.
 
 These are shared production/Pages UI rules; the browser demo must not maintain a separate layout.

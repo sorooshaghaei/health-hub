@@ -275,7 +275,8 @@ Audit remediation status:
 13. **Appointment-status deduplication — implemented:** daily Appointment rows show workflow status once in the status chip, while the scheduled-time column contains only the time;
 14. **Compact empty live queue — implemented:** the empty queue removes its forced content minimum and uses compact vertical padding while populated queue layout remains unchanged;
 15. **Profile-save feedback — implemented:** successful Profile updates display and politely announce confirmation beside the save action, then clear it when the profile changes or the person leaves the section;
-16. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+16. **Touch-target and control typography — implemented:** working-day selectors, working-time inputs, settings tabs, and dialog close controls provide 44px targets; desktop/mobile form controls retain 15px/16px text without increasing working-hours row density;
+17. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

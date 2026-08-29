@@ -85,6 +85,7 @@ The full-update payload represents the complete enabled-weekday set. Sending the
 - Extend the Clinics area with a selected-clinic detail view.
 - Add a **Working days and hours** section containing seven weekday rows.
 - For the Doctor, each row has a working-day selector and start/end fields; disabled days do not expose active time inputs.
+- Working-day labels and start/end fields provide at least 44px interactive height. The labels use readable form text, and the row remains at its existing 62px density.
 - Save the weekly set as one operation and show normal saving, success, validation, and error states.
 - For the Assistant, render the same weekday information as read-only content with no edit controls.
 - Show a simple not-configured state before the Doctor saves any working days.

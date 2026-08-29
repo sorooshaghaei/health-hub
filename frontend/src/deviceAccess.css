@@ -63,8 +63,8 @@
 }
 
 .device-icon-button {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: var(--control-height-standard);
+  height: var(--control-height-standard);
   flex: 0 0 auto;
   border-radius: 999px;
   font-size: 1.35rem;
