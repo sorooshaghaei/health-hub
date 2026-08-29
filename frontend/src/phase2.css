@@ -170,7 +170,6 @@ textarea {
 }
 
 .visit-time strong,
-.visit-time small,
 .patient-context strong,
 .patient-context small,
 .visit-reason small,
@@ -182,7 +181,6 @@ textarea {
   font-size: 15px;
 }
 
-.visit-time small,
 .patient-context small,
 .visit-reason small {
   margin-top: 4px;

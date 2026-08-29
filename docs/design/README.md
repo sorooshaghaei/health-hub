@@ -46,6 +46,7 @@ The Doctor uses evergreen identity accents. The Assistant uses clay only for rol
 - No separate Call next patient action
 - No duplicate Start consultation action
 - Current workflow labels are **Planned**, **Checked in**, **With doctor**, and **Completed**
+- Appointment rows show the workflow label once in the status chip rather than repeating it beneath the scheduled time
 - Scheduled appointment time is informational; actual check-in order controls the live waiting queue
 - Queue check-in times remain compact unless same-minute arrivals require seconds to explain their visible order
 - New Appointment creation searches existing Patients first and reveals the complete new-Patient form only after an explicit **Create new patient** choice

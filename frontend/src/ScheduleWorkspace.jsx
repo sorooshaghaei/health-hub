@@ -67,7 +67,6 @@ function AppointmentRow({ visit, readOnly, onCheckIn, onEdit, onDelete }) {
     <div className="visit-row appointment-row">
       <div className="visit-time">
         <strong>{formatTime(visit.scheduled_time)}</strong>
-        <small>{statusLabel(visit.status)}</small>
       </div>
       <PatientContext patient={visit.patient} showPhone={!readOnly} />
       <div className="visit-reason">

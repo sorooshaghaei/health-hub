@@ -31,6 +31,19 @@ test("empty clinic cards collapse naturally and empty content stays compact", as
   assert.match(queue, /\.live-queue-card \{\s*min-height: 0;/);
 });
 
+test("Appointment rows show workflow status once in the status chip", async () => {
+  const schedule = await source("../src/ScheduleWorkspace.jsx");
+  const visitTime = schedule.match(/<div className="visit-time">[\s\S]*?<\/div>/)?.[0];
+
+  assert.ok(visitTime);
+  assert.match(visitTime, /<strong>\{formatTime\(visit\.scheduled_time\)\}<\/strong>/);
+  assert.doesNotMatch(visitTime, /statusLabel\(visit\.status\)/);
+  assert.match(
+    schedule,
+    /<span className=\{`status-chip status-chip--\$\{visit\.status\}`\}>\s*\{statusLabel\(visit\.status\)\}/,
+  );
+});
+
 test("shared form controls and operational metadata meet the corrected type scale", async () => {
   const base = await source("../src/styles.css");
   const appointments = await source("../src/phase2.css");
@@ -40,7 +53,7 @@ test("shared form controls and operational metadata meet the corrected type scal
   assert.match(base, /input, select, textarea \{ font-size: 15px; \}/);
   assert.match(base, /@media \(max-width: 680px\)[\s\S]*?input, select, textarea \{ font-size: 16px; \}/);
   assert.match(base, /--control-height-standard: 44px;/);
-  assert.match(appointments, /\.visit-time small,[\s\S]*?font-size: 12px;/);
+  assert.match(appointments, /\.patient-context small,[\s\S]*?font-size: 12px;/);
   assert.match(queue, /\.status-chip \{[\s\S]*?font-size: 12px;/);
   assert.match(queue, /\.queue-fact small,[\s\S]*?font-size: 12px;/);
   assert.match(workspaceUsability, /\.task-status,[\s\S]*?font-size: 12px;/);

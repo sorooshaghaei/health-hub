@@ -20,6 +20,8 @@ Optional:
 
 Scheduled time is planning information. It does not determine live queue order.
 
+Daily Appointment rows show the current workflow state once in the status chip. The scheduled-time column contains only the time and does not repeat **Planned**, **Checked in**, **With doctor**, or **Completed** beneath it.
+
 ## One Appointment per Patient per clinic date
 
 A Patient may have Appointments on different dates, but may have at most one active Appointment on any single date within that Patient's clinic.
