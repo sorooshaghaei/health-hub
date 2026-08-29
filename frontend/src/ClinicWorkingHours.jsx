@@ -105,7 +105,7 @@ export default function ClinicWorkingHours({ clinic, editable, staffToken }) {
         <div>
           <p className="eyebrow">Clinic schedule</p>
           <h2 id="working-hours-heading">Working days and hours</h2>
-          <p>{editable ? "Choose one working-time range for each day the clinic works." : "The clinic Doctor manages this weekly schedule."}</p>
+          <p>{editable ? "Set one working-hours range for each day the clinic is open." : "The clinic Doctor manages this weekly schedule."}</p>
         </div>
         {!editable && <span className="clinic-hours-readonly">Read only</span>}
       </div>

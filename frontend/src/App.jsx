@@ -63,10 +63,10 @@ function RoleChoice({ onChoose }) {
 
 function RoleEntry({ role, onLogin, onCreate, onBack }) {
   const label = role === "doctor" ? "Doctor" : "Assistant";
-  return <AuthShell title={`${label} account`} description={`Continue with your ${label} personal account.`} onBack={onBack}>
+  return <AuthShell title={`${label} account`} description={`Sign in or create your ${label} account.`} onBack={onBack}>
     <div className="choice-stack">
       <button className="choice-card" type="button" onClick={onLogin}>
-        <span className="choice-card__icon">→</span><span><strong>Sign in</strong><small>Email or phone + password, or a passkey.</small></span><span>→</span>
+        <span className="choice-card__icon">→</span><span><strong>Sign in</strong><small>Use your email address or phone number with a password, or use a passkey.</small></span><span>→</span>
       </button>
       <button className="choice-card" type="button" onClick={onCreate}>
         <span className="choice-card__icon">+</span><span><strong>Create {label} account</strong><small>Both email and phone will be verified.</small></span><span>→</span>
@@ -118,7 +118,7 @@ function AccountCreateForm({ role, onSubmit, onBack }) {
       await onSubmit({ ...form, phone: normalizeInternationalPhone(form.phone) });
     } catch (reason) { setError(asError(reason, "Account could not be created.")); } finally { setBusy(false); }
   }
-  return <AuthShell title={`Create your ${label} account.`} description="Your role is permanent. Both personal email and phone must be verified before clinic access." onBack={onBack}>
+  return <AuthShell title={`Create your ${label} account.`} description="Your role is permanent. Verify both your personal email address and phone number before accessing a clinic." onBack={onBack}>
     <form className="form" onSubmit={submit}>
       <ErrorMessage error={error} focus />
       <div className="field-row">
@@ -209,11 +209,12 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
 
   function renderContact(kind, state, setter, countdown) {
     const label = kind === "email" ? "Email" : "Phone";
+    const editLabel = kind === "email" ? "Edit email address" : "Edit phone number";
     const verified = user[`${kind}_verified`];
     return <>
       <div className="phase8-contact-card">
         <div><strong>{label}</strong><span>{user[kind]} · {verified ? "Verified" : "Verification required"}</span></div>
-        <Button compact type="button" disabled={busy || restoring} onClick={() => { setError(null); setter((current) => ({ ...current, editing: true, sent: false, code: "", dev: "", value: user[kind] })); }}>Edit {kind}</Button>
+        <Button compact type="button" disabled={busy || restoring} onClick={() => { setError(null); setter((current) => ({ ...current, editing: true, sent: false, code: "", dev: "", value: user[kind] })); }}>{editLabel}</Button>
       </div>
       {state.editing ? <form className="verification-contact-editor" onSubmit={(event) => saveContact(event, kind, state)}>
         <Field label={kind === "email" ? "New email" : "New phone number"} type={kind === "email" ? "email" : "tel"} value={state.value} onChange={(event) => { setter({ ...state, value: event.target.value }); setError(null); }} hint={kind === "phone" ? "Use the full international format beginning with +." : undefined} inputMode={kind === "phone" ? "tel" : undefined} autoComplete={kind === "email" ? "email" : "tel"} required />
@@ -221,7 +222,7 @@ function VerificationGate({ user, staffToken, onUser, onDone, onSignOut }) {
         <div className="phase8-inline-actions"><Button variant="primary" compact disabled={busy}>Save {kind}</Button><Button type="button" disabled={busy} onClick={() => { setError(null); setter(initialContactState(user[kind])); }}>Cancel</Button></div>
       </form> : !verified && (!state.sent ? <Button compact type="button" disabled={busy || restoring} onClick={() => request(kind)}>{kind === "email" ? "Send code" : "Send SMS code"}</Button> : <div className="verification-contact-editor">
         <Field label={`${label} verification code`} inputMode="numeric" autoComplete="one-time-code" value={state.code} onChange={(event) => { setter({ ...state, code: verificationCodeValue(event.target.value) }); setError(null); }} maxLength={6} required />
-        <div className="verification-code-actions"><Button compact type="button" disabled={busy || !verificationCodeComplete(state.code)} onClick={() => confirm(kind, state)}>Verify</Button><Button variant="text" type="button" disabled={busy || countdown.seconds > 0} onClick={() => request(kind)}>{countdown.seconds > 0 ? `Resend code in ${countdown.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setError(null); setter({ ...state, editing: true, sent: false, code: "", dev: "", value: user[kind] }); }}>Change {kind}</Button></div>
+        <div className="verification-code-actions"><Button compact type="button" disabled={busy || !verificationCodeComplete(state.code)} onClick={() => confirm(kind, state)}>Verify</Button><Button variant="text" type="button" disabled={busy || countdown.seconds > 0} onClick={() => request(kind)}>{countdown.seconds > 0 ? `Resend code in ${countdown.seconds}s` : "Resend code"}</Button><Button variant="text" type="button" disabled={busy} onClick={() => { setError(null); setter({ ...state, editing: true, sent: false, code: "", dev: "", value: user[kind] }); }}>{editLabel}</Button></div>
       </div>)}
       {state.dev && <p className="security-note">Development code: {state.dev}</p>}
     </>;

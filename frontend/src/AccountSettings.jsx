@@ -358,6 +358,6 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
       </div>
     </Dialog>}
 
-    <Button id="account-settings-trigger" role="menuitem" type="button" onClick={openSettings} disabled={open || dangerOpen}>Account</Button>
+    <Button id="account-settings-trigger" role="menuitem" type="button" onClick={openSettings} disabled={open || dangerOpen}>Account settings</Button>
   </>;
 }

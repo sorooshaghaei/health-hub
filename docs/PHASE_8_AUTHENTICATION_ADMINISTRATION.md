@@ -92,10 +92,12 @@ The chosen role is part of authentication. A Doctor account presented as Assista
 Authentication and account-administration controls use the shared UI components rather than browser-default form controls.
 
 - **Back** is the only absolutely positioned authentication navigation control.
+- Role entry uses **Sign in or create your Doctor/Assistant account.** The sign-in choice explains **Use your email address or phone number with a password, or use a passkey.** Registration says **Verify both your personal email address and phone number before accessing a clinic.**
 - **Forgot password?** appears only on the actual sign-in form. It is a normal text link and never reuses `.back-button`.
 - Recovery uses mutually exclusive radio cards for verified email/SMS versus a Doctor offline code, followed by the shared select-field control where applicable.
 - On screens up to 900px wide, the large desktop authentication introduction collapses to a compact roughly 100–140px header. The current screen title remains visible; the long decorative description is hidden.
-- Workspace headers use one account menu at every width for Clinics, Account, Clinic team, trusted devices, and Sign out. The trigger exposes menu state, Up/Down/Home/End move through its actions, outside activation closes it, and Escape closes it and returns focus to the visible Account trigger. This avoids duplicating the same action components in separate desktop and mobile trees.
+- Workspace headers use one account menu at every width for Clinics, Account settings, Clinic team, trusted devices, and Sign out. The trigger exposes menu state, Up/Down/Home/End move through its actions, outside activation closes it, and Escape closes it and returns focus to the visible Account trigger. This avoids duplicating the same action components in separate desktop and mobile trees.
+- The workspace menu item is labelled **Account settings**. Pending onboarding verification uses **Edit email address** and **Edit phone number** for contact correction.
 - The Doctor/Assistant workspace switch remains directly visible. At widths up to 1200px the secondary clinic/workspace context collapses, leaving the brand, workspace switch when applicable, and account trigger.
 - The clinic name appears once in the wide header and in the account-menu identity. It is not repeated beside the page title with an unlabeled status dot.
 - Doctor access to the Assistant workspace has a persistent **Viewing Assistant workspace as Doctor administrator** banner and a direct **Return to Doctor workspace** action.

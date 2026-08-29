@@ -108,7 +108,7 @@ export function PatientFields({ form, onChange, includeNote = true, includeName 
       </div>
       {includeNote && (
         <TextAreaField
-          label="Patient note"
+          label="Patient note (optional)"
           name="patient_note"
           value={form.patient_note}
           onChange={update}

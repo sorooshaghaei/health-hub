@@ -21,14 +21,14 @@ Patient identity is **clinic-scoped**, not global. The same real-world person ap
 | Gender | Yes | `Man` or `Woman`. |
 | Phone country or region | Yes | Compact selector shows flag and country name. Iran defaults. |
 | Phone number | Yes | Accepts a domestic number or a full international number matching the selected country or region. Canonical national and E.164 values are stored. |
-| Date of birth | No | May be empty; when provided, it cannot be later than the active clinic's current date. |
-| Patient note | No | Shared plain text attached to the Patient. |
+| Date of birth (optional) | No | May be empty; when provided, it cannot be later than the active clinic's current date. |
+| Patient note (optional) | No | Shared plain text attached to the Patient. |
 
 The Patient profile displays one combined phone value. Separate Country code and National number cards are not shown.
 
 Patient phone parsing and validation use libphonenumber metadata in both the frontend demo and production backend. Domestic trunk prefixes such as the French leading `0` are accepted correctly, while an entered international country code must match the selector. The backend remains authoritative and stores the canonical E.164 value used by search, duplicate detection, and Appointment snapshots.
 
-The UI labels the field **Date of birth (optional)** and sets its maximum to clinic today using the active clinic timezone. Frontend, browser-demo, and backend validation all reject a later date with **Date of birth cannot be in the future.**
+The UI labels the optional fields **Date of birth (optional)** and **Patient note (optional)**. Date of birth has a maximum of clinic today using the active clinic timezone. Frontend, browser-demo, and backend validation all reject a later date with **Date of birth cannot be in the future.**
 
 Every active Patient API representation includes
 `country_calling_code`, `phone_number`, and `phone_e164`. The edit form also

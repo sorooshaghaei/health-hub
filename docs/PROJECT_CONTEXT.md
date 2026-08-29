@@ -184,6 +184,8 @@ After a successful Profile update, Account settings displays and politely announ
 
 Working-day selectors, working-time inputs, Account settings tabs, and dialog close controls expose at least 44×44px interactive areas. Form controls remain at least 15px on desktop and 16px on compact/mobile layouts; secondary metadata may remain 12–14px. The weekly-hours rows keep their existing 62px density while their interactive children grow to the required target.
 
+Release-facing UI copy follows the approved audit wording table. Role entry says **Sign in or create your Doctor/Assistant account.** Account-menu navigation uses **Account settings**; verification correction uses **Edit email address** and **Edit phone number**; optional Patient labels state **(optional)**; and the editable weekly schedule says **Set one working-hours range for each day the clinic is open.**
+
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
 Doctor recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes. Assistant recovery never offers the Doctor-only method and shows verified personal email/SMS only.
