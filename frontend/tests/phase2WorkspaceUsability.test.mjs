@@ -29,6 +29,14 @@ test("empty clinic cards collapse naturally and empty content stays compact", as
   assert.match(appointments, /\.phase2-card \{\s*min-height: 0;/);
   assert.match(appointments, /\.schedule-empty \{[\s\S]*?min-height: 100px;/);
   assert.match(queue, /\.live-queue-card \{\s*min-height: 0;/);
+  assert.match(
+    queue,
+    /\.live-queue-card\.workspace-card--empty \.schedule-empty \{\s*min-height: 0;\s*padding: 18px 12px 0;/,
+  );
+  assert.doesNotMatch(
+    queue,
+    /\.live-queue-card\.workspace-card--empty \.schedule-empty \{\s*min-height: 100px;/,
+  );
 });
 
 test("Appointment rows show workflow status once in the status chip", async () => {

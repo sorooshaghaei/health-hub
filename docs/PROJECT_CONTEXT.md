@@ -290,6 +290,7 @@ PLANNED → CHECKED_IN
 - clinic-today only;
 - queue order is original persisted check-in sequence;
 - check-in times add seconds only for active queue arrivals sharing the same minute, without changing the authoritative sequence;
+- the empty live queue uses compact content padding without a forced minimum height;
 - Assistant queue shows phone; Doctor queue omits it;
 - check-in has five-second Undo;
 - three-second polling;

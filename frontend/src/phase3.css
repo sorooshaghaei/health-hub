@@ -12,7 +12,8 @@
 }
 
 .live-queue-card.workspace-card--empty .schedule-empty {
-  min-height: 100px;
+  min-height: 0;
+  padding: 18px 12px 0;
 }
 
 .phase3-content {

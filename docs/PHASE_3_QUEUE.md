@@ -83,6 +83,8 @@ The Assistant queue also shows the Patient phone number. The Doctor queue omits 
 
 There are no early, on-time, or late labels.
 
+When the live queue is empty, its message uses compact content padding and no forced minimum height. This affects only the empty presentation; populated rows, ordering, and polling remain unchanged.
+
 ## Editing after check-in
 
 While checked in:
