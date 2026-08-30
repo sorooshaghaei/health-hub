@@ -12,7 +12,7 @@ Quality validation includes Node unit/contract tests, Django tests against Postg
 
 ## Current status
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. A hands-on browser audit identified unresolved release issues. Product Phase 9 has not started.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. The approved hands-on browser-audit findings are remediated, with critical release paths covered by the rendered-browser gate. Product Phase 9 has not started.**
 
 Source-of-truth documents:
 

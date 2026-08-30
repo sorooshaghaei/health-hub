@@ -250,7 +250,7 @@ Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no 
 
 ## Current work
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented. Release-readiness audit remediation is now the active work and is split into reviewable parts with one validated commit per part.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented. The approved release-readiness audit remediation is complete; Product Phase 9 remains unstarted and requires explicit clarification and approval.**
 
 1. **Design Step 1 — complete:** critical onboarding and Patient-edit data safety;
 2. **Design Step 2 — complete:** workspace usability and visual hierarchy;
@@ -278,7 +278,7 @@ Audit remediation status:
 16. **Touch-target and control typography — implemented:** working-day selectors, working-time inputs, settings tabs, and dialog close controls provide 44px targets; desktop/mobile form controls retain 15px/16px text without increasing working-hours row density;
 17. **Release-ready wording — implemented:** production and demo UI use the audit-approved role, sign-in, registration, Account settings, Patient optional-field, Appointment, working-hours, contact-correction, setup-code, Room-ready, and Profile-feedback wording;
 18. **Rendered-browser release gate — implemented:** Quality runs a focused Chromium suite for reload recovery, alternating account trust, Account-menu and nested-dialog keyboard behavior, future Patient date-of-birth rejection, and contextual repeated-action names. Validation claims are limited to the paths each test layer actually exercises;
-19. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+19. **Audit closeout — implemented:** the original findings are reconciled with the implementation ledger, stale unresolved/pending status statements are removed, and Product Phase 9 remains explicitly outside this work.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

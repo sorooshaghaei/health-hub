@@ -10,11 +10,11 @@ This is the handoff entry point for a new chat or development session.
 - Clarify product/workflow changes with the product owner before implementing them.
 - Do not re-ask decisions already explicit in the current product-phase or design-step specifications.
 - Reconcile specification, implementation, tests, browser adapter, and handoff documentation together.
-- Phase 8 is implemented, but release-readiness audit remediation remains active. Do not begin Phase 9 until the audit parts are complete and Phase 9 behavior is explicitly clarified.
+- Phase 8 and the approved release-readiness audit remediation are complete. Do not begin Phase 9 until its behavior is explicitly clarified and approved.
 
 ## Current phase status
 
-Phases 0–8 have approved product contracts and are implemented on `main`. Release-readiness audit corrections are being applied in separately validated parts with one commit per part.
+Phases 0–8 have approved product contracts and are implemented on `main`. The approved release-readiness audit corrections are complete and were applied in separately validated parts with one commit per part.
 
 - Phase 0 — Foundation: reconciled to the final permanent-role/global-device architecture.
 - Phase 1 — Patient records: reconciled; metadata-backed international phone normalization complete.
@@ -24,7 +24,7 @@ Phases 0–8 have approved product contracts and are implemented on `main`. Rele
 - Phase 5 — Completed consultation behavior: reconciled.
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
-- Phase 8 — Authentication/administration/security: implemented; verification/password lifecycle, multi-account trusted-device/recovery-routing, and personal-phone normalization audit corrections complete, remaining audit corrections pending.
+- Phase 8 — Authentication/administration/security: implemented; approved release-readiness audit corrections and the rendered-browser gate are complete.
 - Phase 9 — not started; clarification required before implementation.
 
 The post-Phase-8 usability corrections are named **Design Steps**, not phases:

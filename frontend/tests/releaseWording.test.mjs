@@ -16,7 +16,7 @@ test("release-ready UI wording matches the approved replacement table", async ()
   const hours = await source("../src/ClinicWorkingHours.jsx");
   const team = await source("../src/ClinicTeam.jsx");
 
-  assert.match(readme, /Product Phases 0–8 and Design Steps 1–5 are implemented on `main`\. A hands-on browser audit identified unresolved release issues\. Product Phase 9 has not started\./);
+  assert.match(readme, /Product Phases 0–8 and Design Steps 1–5 are implemented on `main`\. The approved hands-on browser-audit findings are remediated, with critical release paths covered by the rendered-browser gate\. Product Phase 9 has not started\./);
   assert.match(app, /Sign in or create your \$\{label\} account\./);
   assert.match(app, /Use your email address or phone number with a password, or use a passkey\./);
   assert.match(app, /Verify both your personal email address and phone number before accessing a clinic\./);
