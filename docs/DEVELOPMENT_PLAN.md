@@ -277,7 +277,8 @@ Audit remediation status:
 15. **Profile-save feedback — implemented:** successful Profile updates display and politely announce confirmation beside the save action, then clear it when the profile changes or the person leaves the section;
 16. **Touch-target and control typography — implemented:** working-day selectors, working-time inputs, settings tabs, and dialog close controls provide 44px targets; desktop/mobile form controls retain 15px/16px text without increasing working-hours row density;
 17. **Release-ready wording — implemented:** production and demo UI use the audit-approved role, sign-in, registration, Account settings, Patient optional-field, Appointment, working-hours, contact-correction, setup-code, Room-ready, and Profile-feedback wording;
-18. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
+18. **Rendered-browser release gate — implemented:** Quality runs a focused Chromium suite for reload recovery, alternating account trust, Account-menu and nested-dialog keyboard behavior, future Patient date-of-birth rejection, and contextual repeated-action names. Validation claims are limited to the paths each test layer actually exercises;
+19. **Remaining approved audit parts — pending:** continue in the agreed order without starting Product Phase 9.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 

@@ -186,6 +186,8 @@ Working-day selectors, working-time inputs, Account settings tabs, and dialog cl
 
 Release-facing UI copy follows the approved audit wording table. Role entry says **Sign in or create your Doctor/Assistant account.** Account-menu navigation uses **Account settings**; verification correction uses **Edit email address** and **Edit phone number**; optional Patient labels state **(optional)**; and the editable weekly schedule says **Set one working-hours range for each day the clinic is open.**
 
+The Quality workflow includes a rendered Chromium release-smoke layer in addition to Node unit/contract tests, PostgreSQL-backed Django tests, and both frontend builds. The rendered layer covers challenge restoration after reload, alternating Doctor/Assistant trusted credentials, Account-menu Escape and nested-dialog focus containment/restoration, visible future-DOB rejection, and contextual task/comment/Undo names. Other product claims are not described as browser-validated unless a rendered test exercises them.
+
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
 Doctor recovery chooses one exclusive method: verified email/SMS or a Doctor offline code. Doctor accounts have ten one-time offline recovery codes; regeneration invalidates unused previous codes. Assistant recovery never offers the Doctor-only method and shows verified personal email/SMS only.

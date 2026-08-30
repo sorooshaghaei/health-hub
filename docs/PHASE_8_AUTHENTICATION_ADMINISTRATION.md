@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implemented on `main`; final automated validation is recorded separately and must not be inferred from this document.**
+**Implemented on `main`. Rendered-browser validation is limited to the explicit release-smoke paths recorded in the project context and Quality workflow.**
 
 Phase 8 defines the final staff identity and authentication architecture for Health Hub. It supersedes earlier temporary assumptions that role belonged to a clinic membership or that trusted devices belonged to individual clinics.
 

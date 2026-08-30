@@ -39,6 +39,23 @@ jobs:
         working-directory: frontend
         run: npm test
 
+      - name: Install rendered-browser test dependencies
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Test critical release paths in Chromium
+        working-directory: frontend
+        run: npm run test:browser
+
+      - name: Upload rendered-browser failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-browser-failures
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Build application frontend
         working-directory: frontend
         run: npm run build

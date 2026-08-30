@@ -8,6 +8,8 @@ Health Hub is a deliberately simple clinic workflow application for Doctor and A
 
 Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
+Quality validation includes Node unit/contract tests, Django tests against PostgreSQL, production/demo builds, and a rendered Chromium smoke suite. The rendered suite exercises pending-verification reload recovery, alternating trusted accounts, Account-menu Escape and nested-dialog focus behavior, future Patient date-of-birth rejection, and contextual task/comment/Undo names. Claims outside those paths remain specification- or lower-level-test backed rather than browser-validated.
+
 ## Current status
 
 **Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. A hands-on browser audit identified unresolved release issues. Product Phase 9 has not started.**
