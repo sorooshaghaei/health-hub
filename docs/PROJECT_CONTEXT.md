@@ -25,7 +25,10 @@ Phases 0–8 have approved product contracts and are implemented on `main`. The 
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
 - Phase 8 — Authentication/administration/security: implemented; approved release-readiness audit corrections and the rendered-browser gate are complete.
-- Phase 9 — not started; clarification required before implementation.
+- Phase 9 — Secure patient attachments: not started; clarification required before implementation.
+- Phase 10 — Production infrastructure and security: not started.
+- Phase 11 — Legal, privacy, and website completion: not started.
+- Phase 12 — Final testing and stable production release: not started.
 
 The post-Phase-8 usability corrections are named **Design Steps**, not phases:
 
@@ -362,11 +365,28 @@ OPEN → DONE
 
 ## Browser demo invariant
 
-GitHub Pages uses the same production React product UI. `VITE_DEMO_API=true` substitutes a browser-local API/storage adapter only.
+GitHub Pages is only the product-owner review demo. It uses the same production React product UI, while `VITE_DEMO_API=true` substitutes a browser-local API/storage adapter only.
 
 The adapter mirrors product-level permanent roles, global trusted-device simulation, clinic ownership/memberships, setup codes, Assistant replacement, and Doctor account cascade.
 
 It does not claim real security infrastructure. Real Patient information must never be entered into the public demo.
+
+## Production deployment and data boundaries
+
+- Intended production use may include clinics in France and Iran with real Patient and clinic data.
+- Health Hub remains one product and one codebase.
+- The starting architecture is shared, securely tenant-scoped storage: records may share PostgreSQL tables and file-storage infrastructure, but every access must be restricted to the authorized clinic and Patient.
+- Do not assume one database per user, clinic, or country.
+- Keep the storage provider and region configurable. Separate regional database/file-storage environments are introduced only if confirmed legal, regulatory, provider, availability, or operational requirements justify them.
+- Terms, privacy information, consent where applicable, and cookie choices are separate from technical data security; they do not replace access control, encryption, backups, or auditing.
+- Every product, security, legal, and cookie behavior must be clarified against the finished system before implementation rather than added speculatively.
+
+Phase boundaries:
+
+- Phase 9 builds secure Patient attachments without choosing a country-specific hosting structure.
+- Phase 10 chooses and hardens the real production environment: hosting and data-location requirements for France and Iran, managed PostgreSQL, private file storage, encryption, secrets, backups and restoration tests, audit/logging, monitoring, retention operations, communication providers, and incident/recovery operations.
+- Phase 11 completes terms and conditions, privacy information, user acceptance, Patient-data information or consent responsibilities where applicable, the actual cookie inventory and only the notice/settings/consent that inventory requires, and remaining small production website details.
+- Phase 12 performs final end-to-end testing and produces the stable production release.
 
 ## Key migrations / maintenance
 

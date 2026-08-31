@@ -232,7 +232,7 @@ OPEN → DONE
 
 ## Browser demo
 
-GitHub Pages uses the same production React product UI and substitutes only browser-local API/storage behavior.
+GitHub Pages is only the product-owner review demo. It uses the same production React product UI and substitutes only browser-local API/storage behavior.
 
 The adapter mirrors permanent account roles, global trusted-device simulation, clinic ownership/memberships, Assistant setup/replacement, and Doctor account deletion at the product-workflow level.
 
@@ -312,6 +312,6 @@ npm run build:demo
 
 ## Production boundary
 
-This repository is not yet a production medical-data deployment. Production use still requires Phase 9 attachment/security decisions and Phase 10 hardening including broader auth throttling, security/privacy review, communication providers, backups, audit/logging, monitoring, retention operations, and deployment review.
+This repository is not yet a production medical-data deployment. Intended production use may include clinics in France and Iran with real Patient and clinic data, but Health Hub remains one product and codebase. Securely tenant-scoped shared storage is the starting assumption; separate regional storage is added only if Phase 10 confirms a real requirement.
 
-Phase 9 sensitive attachment architecture has not started.
+Phase 9 secure Patient attachments has not started. Phase 10 covers production infrastructure and security, Phase 11 covers legal/privacy/cookie decisions and remaining website details, and Phase 12 covers final testing and the stable production release.

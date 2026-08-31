@@ -32,7 +32,10 @@ Do not add speculative features, duplicate workflows, or unapproved dependencies
 - clinic operational data remains strictly tenant-scoped;
 - one stored IANA operational timezone per clinic;
 - React/Vite frontend, Django REST Framework backend, PostgreSQL primary database;
-- GitHub Pages renders the production React UI through a browser-local API/storage adapter.
+- GitHub Pages is only the product-owner review demo and renders the production React UI through a browser-local API/storage adapter;
+- intended production use may include clinics in France and Iran with real Patient and clinic data;
+- one product and codebase, with securely tenant-scoped shared storage as the default starting point;
+- no per-user, per-clinic, or per-country database is assumed; regional separation is added only if Phase 10 confirms a real requirement.
 
 ## Global action rule
 
@@ -53,9 +56,10 @@ Security/account actions do not use five-second Undo.
 | 6 | Shared tasks | **Complete and reconciled** |
 | 7 | Private sticky | **Complete and reconciled** |
 | 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented; release-audit remediation complete** |
-| 9 | Sensitive attachment architecture | Not started |
-| 10 | Production hardening | Not started |
-| 11 | First stable release | Not started |
+| 9 | Secure Patient attachments | Not started |
+| 10 | Production infrastructure and security | Not started |
+| 11 | Legal, privacy, and website completion | Not started |
+| 12 | Final testing and stable production release | Not started |
 
 ## Phase 0 — Foundation
 
@@ -234,19 +238,29 @@ Final contract:
 
 See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md).
 
-## Phase 9 — Sensitive attachment architecture
+## Phase 9 — Secure Patient attachments
 
-**Not started. Do not implement before clarification.**
+**Not started. Do not implement before clarification and approval.**
 
-Before implementation, approve storage, access control, encryption, file types/limits, malware scanning, retention/deletion, backups, audit, Patient privacy boundaries, and deployment constraints.
+Build secure Patient attachments while keeping the design storage-provider-neutral and region-neutral. Before implementation, clarify and approve the user-visible attachment workflow, role permissions, clinic/Patient boundaries, file types and limits, organization and viewing/downloading behavior, replacement/deletion behavior, demo behavior, errors, and any applicable Undo behavior.
 
-## Phase 10 — Production hardening
+The implementation must enforce authenticated clinic-scoped access and safe file validation without choosing separate France/Iran production databases or a country-specific hosting provider.
 
-Review authorization, validation, race conditions, accessibility, security headers, secrets, login/recovery/IP throttling, backups, logging/audit, monitoring, privacy/retention, recovery operations, production communication providers, and deployment.
+## Phase 10 — Production infrastructure and security
 
-## Phase 11 — First stable release
+Choose and configure the real production environment only after its requirements are confirmed. Cover the hosting provider and any France/Iran data-location requirements, managed PostgreSQL, private file storage, encryption in transit and at rest, secrets and key handling, authorization and tenant-isolation review, security headers, validation and race conditions, login/recovery/IP throttling, malware-scanning integration, backups and restoration tests, logging/audit, monitoring, retention operations, incident/recovery procedures, production email/SMS providers, accessibility, and deployment documentation.
 
-Review the complete Doctor/Assistant workflow, remove unfinished UI, confirm no unapproved behavior, verify demo parity, finalize deployment documentation, and release only after approval.
+Use one application and securely shared data storage as the starting assumption. Introduce separate regional database or file-storage environments only if confirmed legal, regulatory, provider, availability, or operational requirements justify them.
+
+## Phase 11 — Legal, privacy, and website completion
+
+After the production behavior and hosting structure are known, complete the terms and conditions, privacy information, user agreement/acceptance and version records, Patient-data information or consent responsibilities where applicable, and remaining small production website pages and details.
+
+Inventory the cookies and similar storage the finished application actually uses before deciding what notice, settings, or consent is necessary. Do not add a generic cookie banner or consent flow without that decision.
+
+## Phase 12 — Final testing and stable production release
+
+Review the complete Doctor/Assistant workflow, attachment security, production configuration, backup restoration, legal/privacy surfaces, accessibility, and responsive behavior. Remove unfinished UI, confirm no unapproved behavior, verify the demo/production boundary, finalize deployment documentation, and publish the stable production release only after approval.
 
 ## Current work
 
