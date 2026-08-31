@@ -304,6 +304,8 @@ Frontend verification:
 
 ```bash
 npm test
+npx playwright install --with-deps chromium
+npm run test:browser
 npm run build
 npm run build:demo
 ```

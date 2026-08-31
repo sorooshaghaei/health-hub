@@ -52,7 +52,7 @@ Security/account actions do not use five-second Undo.
 | 5 | Completed consultation behavior | **Complete and reconciled** |
 | 6 | Shared tasks | **Complete and reconciled** |
 | 7 | Private sticky | **Complete and reconciled** |
-| 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented; release-audit remediation in progress** |
+| 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented; release-audit remediation complete** |
 | 9 | Sensitive attachment architecture | Not started |
 | 10 | Production hardening | Not started |
 | 11 | First stable release | Not started |

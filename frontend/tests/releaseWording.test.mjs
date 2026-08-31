@@ -37,3 +37,16 @@ test("release-ready UI wording matches the approved replacement table", async ()
   assert.match(team, /This code is shown once and expires at/);
   assert.match(team, /activeSetup \? "Replace setup code"/);
 });
+
+test("handoff documentation is ready for Phase 9 clarification", async () => {
+  const readme = await source("../../README.md");
+  const plan = await source("../../docs/DEVELOPMENT_PLAN.md");
+  const context = await source("../../docs/PROJECT_CONTEXT.md");
+
+  assert.match(readme, /npx playwright install --with-deps chromium[\s\S]*npm run test:browser/);
+  assert.match(plan, /\| 8 \| Authentication, administration, recovery, multi-clinic identity \| \*\*Implemented; release-audit remediation complete\*\* \|/);
+  assert.doesNotMatch(plan, /release-audit remediation in progress/);
+  assert.match(context, /accounts\.0011_trusted_device_last_used_at/);
+  assert.match(context, /Product Phase 9 is the next product phase, but it remains unstarted\./);
+  assert.doesNotMatch(context, /Continue the approved release-readiness audit remediation/);
+});

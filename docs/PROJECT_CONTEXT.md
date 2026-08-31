@@ -373,6 +373,7 @@ It does not claim real security infrastructure. Real Patient information must ne
 - `accounts.0008_clinic_timezone` — clinic operational timezone.
 - `accounts.0009_final_phase8_identity` — permanent account roles, explicit clinic ownership, global trusted devices, Assistant dormancy/anonymization fields, removal of persisted membership role.
 - `accounts.0010_clinic_working_hours` — one clinic-scoped start/end range per enabled weekday.
+- `accounts.0011_trusted_device_last_used_at` — trusted-device last-used tracking and recency ordering.
 - `python manage.py cleanup_dormant_assistants` — anonymizes eligible zero-membership Assistants after the two-year retention period; production scheduling belongs to deployment/operations.
 
 ## Phase specifications
@@ -393,4 +394,4 @@ It does not claim real security infrastructure. Real Patient information must ne
 
 ## Next action
 
-Continue the approved release-readiness audit remediation one part and one validated commit at a time. Stop before Product Phase 9; it has not started and requires its own clarification pass before implementation.
+Product Phase 9 is the next product phase, but it remains unstarted. Complete and approve its sensitive-attachment clarification pass before implementing any Phase 9 code.
