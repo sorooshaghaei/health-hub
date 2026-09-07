@@ -33,7 +33,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install
+        run: npm ci
 
       - name: Test browser demo flow
         working-directory: frontend

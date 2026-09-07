@@ -37,6 +37,12 @@
   justify-content: flex-end;
 }
 
+.patient-attachments__count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
 .patient-attachments__heading-actions .secondary-button {
   min-height: var(--control-height-standard);
 }
@@ -98,7 +104,8 @@
   margin-bottom: 10px;
 }
 
-.attachment-upload-queue__heading strong {
+.attachment-upload-queue__heading h4 {
+  margin: 0;
   font-size: 13px;
 }
 
@@ -232,6 +239,7 @@
 .attachment-upload-item__rename input,
 .attachment-search input {
   width: 100%;
+  min-height: var(--control-height-standard);
   border: 1px solid var(--line);
   border-radius: 11px;
   background: white;
@@ -415,6 +423,18 @@
   max-width: 580px;
 }
 
+.attachment-rename-dialog .device-modal__header > div,
+.attachment-delete-dialog .device-modal__header > div,
+.attachment-preview-dialog .device-modal__header > div {
+  min-width: 0;
+}
+
+.attachment-rename-dialog .device-modal__header h2,
+.attachment-delete-dialog .device-modal__header h2,
+.attachment-preview-dialog .device-modal__header h2 {
+  overflow-wrap: anywhere;
+}
+
 .attachment-delete-dialog__warning {
   margin: 0;
   border: 1px solid #efc5c0;
@@ -486,6 +506,13 @@
 
   .attachment-drop-zone__mobile {
     display: block;
+  }
+
+  .attachment-row__actions .secondary-button,
+  .attachment-row__actions .text-button,
+  .attachment-upload-item__actions .secondary-button,
+  .attachment-upload-item__actions .text-button {
+    min-height: var(--control-height-standard);
   }
 }
 

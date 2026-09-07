@@ -46,6 +46,7 @@ test("production Patient profiles expose the complete shared attachment workflow
   const detail = await source("../src/PatientDetail.jsx");
   const workspace = await source("../src/PatientWorkspaceView.jsx");
   const attachments = await source("../src/PatientAttachments.jsx");
+  const attachmentStyles = await source("../src/phase9.css");
   const controller = await source("../src/usePatientWorkspace.js");
   const account = await source("../src/AccountSettings.jsx");
 
@@ -62,8 +63,16 @@ test("production Patient profiles expose the complete shared attachment workflow
   assert.match(attachments, /Math\.min\(2, entries\.length\)/);
   assert.match(attachments, /<progress aria-label=\{`Upload progress/);
   assert.match(attachments, /Document name for retry/);
-  assert.match(attachments, />Retry<\/button>/);
+  assert.match(attachments, /aria-label=\{`Retry upload of \$\{item\.file\.name\}`\}/);
+  assert.match(attachments, /upload entry for \$\{item\.file\.name\}/);
   assert.match(attachments, /complete \? "Dismiss" : "Remove"/);
+  assert.match(attachments, /aria-describedby="attachment-upload-limits"/);
+  assert.match(attachments, /aria-labelledby="attachment-upload-queue-title"/);
+  assert.match(attachments, /role="status" aria-label="Loading attachments"/);
+  assert.match(attachments, /className="patient-attachments__count"/);
+  assert.doesNotMatch(attachments, /className="count-badge"/);
+  assert.match(attachmentStyles, /@media \(hover: none\), \(pointer: coarse\)[\s\S]*attachment-row__actions[\s\S]*min-height: var\(--control-height-standard\)/);
+  assert.match(attachmentStyles, /attachment-search input \{[\s\S]*min-height: var\(--control-height-standard\)/);
 
   assert.match(attachments, /Search document names/);
   assert.match(attachments, /Original: \{attachment\.original_filename\}/);

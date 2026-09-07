@@ -8,11 +8,11 @@ Health Hub is a deliberately simple clinic workflow application for Doctor and A
 
 Public frontend demo: <https://sorooshaghaei.github.io/health-hub/>
 
-Quality validation includes Node unit/contract tests, Django tests against PostgreSQL, production/demo builds, and a rendered Chromium smoke suite. The rendered suite exercises pending-verification reload recovery, alternating trusted accounts, Account-menu Escape and nested-dialog focus behavior, future Patient date-of-birth rejection, and contextual task/comment/Undo names. Claims outside those paths remain specification- or lower-level-test backed rather than browser-validated.
+Quality validation includes Node unit/contract tests, Django tests against PostgreSQL, production/demo builds, and a rendered Chromium smoke suite. The rendered suite exercises pending-verification reload recovery, alternating trusted accounts, Account-menu Escape and nested-dialog focus behavior, future Patient date-of-birth rejection, contextual task/comment/Undo names, and the actual-byte Patient attachment workflow with dialog focus return and compact-screen checks. Claims outside those paths remain specification- or lower-level-test backed rather than browser-validated.
 
 ## Current status
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. Phase 9 Parts 1–3—the approved contract, private backend storage/API foundation, production Patient-profile attachment interface, and actual-file Pages demo parity—are implemented. Final Phase 9 reconciliation remains.**
+**Product Phases 0–9 and Design Steps 1–5 are implemented and reconciled on `main`. Phase 10—production infrastructure and security—is next and has not started.**
 
 Source-of-truth documents:
 
@@ -308,7 +308,7 @@ Use Node.js 22.
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -326,4 +326,4 @@ npm run build:demo
 
 This repository is not yet a production medical-data deployment. Intended production use may include clinics in France and Iran with real Patient and clinic data, but Health Hub remains one product and codebase. Securely tenant-scoped shared storage is the starting assumption; separate regional storage is added only if Phase 10 confirms a real requirement.
 
-Phase 9 is in progress: its approved contract, private backend storage/API foundation, production Patient-profile interface, and actual-file Pages demo parity are complete; final reconciliation remains. Phase 10 covers production infrastructure and security, Phase 11 covers legal/privacy/cookie decisions and remaining website details, and Phase 12 covers final testing and the stable production release.
+Phase 9 is complete and reconciled: its approved contract, private backend storage/API foundation, production Patient-profile interface, actual-file Pages demo parity, accessibility/responsive corrections, and cross-layer validation are implemented. Phase 10 covers production infrastructure and security, Phase 11 covers legal/privacy/cookie decisions and remaining website details, and Phase 12 covers final testing and the stable production release.

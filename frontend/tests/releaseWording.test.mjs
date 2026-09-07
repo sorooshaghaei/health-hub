@@ -16,7 +16,7 @@ test("release-ready UI wording matches the approved replacement table", async ()
   const hours = await source("../src/ClinicWorkingHours.jsx");
   const team = await source("../src/ClinicTeam.jsx");
 
-  assert.match(readme, /Phase 9 Parts 1–3—the approved contract, private backend storage\/API foundation, production Patient-profile attachment interface, and actual-file Pages demo parity—are implemented\./);
+  assert.match(readme, /Product Phases 0–9 and Design Steps 1–5 are implemented and reconciled on `main`\./);
   assert.match(app, /Sign in or create your \$\{label\} account\./);
   assert.match(app, /Use your email address or phone number with a password, or use a passkey\./);
   assert.match(app, /Verify both your personal email address and phone number before accessing a clinic\./);
@@ -38,16 +38,23 @@ test("release-ready UI wording matches the approved replacement table", async ()
   assert.match(team, /activeSetup \? "Replace setup code"/);
 });
 
-test("handoff documentation identifies the next Phase 9 part", async () => {
+test("handoff documentation identifies Phase 10 as the next clarified unit", async () => {
   const readme = await source("../../README.md");
   const plan = await source("../../docs/DEVELOPMENT_PLAN.md");
   const context = await source("../../docs/PROJECT_CONTEXT.md");
+  const phase9 = await source("../../docs/PHASE_9_PATIENT_ATTACHMENTS.md");
+  const qualityWorkflow = await source("../../.github/workflows/quality.yml");
+  const pagesWorkflow = await source("../../.github/workflows/pages.yml");
 
   assert.match(readme, /npx playwright install --with-deps chromium[\s\S]*npm run test:browser/);
   assert.match(plan, /\| 8 \| Authentication, administration, recovery, multi-clinic identity \| \*\*Implemented; release-audit remediation complete\*\* \|/);
-  assert.match(plan, /\| 9 \| Secure Patient attachments \| \*\*In progress; Parts 1–3 complete, final reconciliation next\*\* \|/);
+  assert.match(plan, /\| 9 \| Secure Patient attachments \| \*\*Complete and reconciled\*\* \|/);
+  assert.match(phase9, /\*\*Phase 9 is complete and reconciled\.\*\*/);
   assert.doesNotMatch(plan, /release-audit remediation in progress/);
   assert.match(context, /accounts\.0011_trusted_device_last_used_at/);
-  assert.match(context, /Parts 1–3 are complete; Part 4 is full validation, accessibility\/responsive review, and final documentation reconciliation\./);
+  assert.match(context, /Start Product Phase 10 by reading this context and `DEVELOPMENT_PLAN\.md`, then ask the product owner the production-infrastructure and security clarification questions before implementing anything\./);
   assert.doesNotMatch(context, /Continue the approved release-readiness audit remediation/);
+  assert.match(qualityWorkflow, /run: npm ci/);
+  assert.match(pagesWorkflow, /run: npm ci/);
+  assert.doesNotMatch(`${qualityWorkflow}\n${pagesWorkflow}`, /run: npm install/);
 });

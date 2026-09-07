@@ -4,12 +4,14 @@
 
 The product contract was clarified and approved before implementation.
 
+**Phase 9 is complete and reconciled.**
+
 Phase 9 is being delivered in four separately reviewed parts:
 
 1. **Specification and backend foundation — implemented:** private provider-neutral storage, attachment metadata, validation/conversion, duplicate protection, clinic-scoped APIs, preview/download streaming, rename, five-second delete Undo, permanent cleanup, migrations, and backend tests.
 2. **Production Patient-profile interface — implemented:** shared Doctor/Assistant attachment UI, picker, desktop drag/drop, progress, preview/download, search, rename, delete, and Undo.
 3. **GitHub Pages demo parity — implemented:** the same production React UI backed by actual browser-local file bytes in IndexedDB, with local HEIC/HEIF conversion and lifecycle parity.
-4. **Full reconciliation — pending:** end-to-end validation, responsive/accessibility review, and final documentation reconciliation.
+4. **Full reconciliation — implemented:** cross-layer validation, responsive/accessibility corrections, deterministic dependency installation, expanded regression coverage, and final documentation alignment.
 
 This document is the approved Phase 9 contract. Later parts must not reinterpret it without explicit product-owner approval.
 
@@ -161,6 +163,23 @@ The demo retains actual selected file bytes and metadata in browser IndexedDB so
 
 The demo still provides no production security guarantee, and real Patient information must never be entered into it.
 
+## Final reconciliation
+
+The final pass reconciles the approved contract across the private Django storage/API, shared React interface, IndexedDB demo adapter, cleanup lifecycle, tests, CI workflows, and handoff documentation.
+
+Attachment-specific accessibility and responsive behavior includes:
+
+- descriptive context on the visible **Add files** control;
+- contextual names for repeated upload Retry, Remove, and Dismiss actions;
+- semantic upload-queue and loading status regions;
+- a plain document count rather than an attachment badge;
+- at least 44px attachment action targets on coarse-pointer devices;
+- long document names that wrap safely in rows and dialogs;
+- dialog focus containment and restoration for preview, rename, and delete;
+- compact 320px layout coverage for horizontal overflow and action targets.
+
+The Quality and Pages workflows install the committed frontend dependency graph with `npm ci`. The Quality gate runs Node contract/demo tests, the rendered Chromium release-smoke suite, both frontend builds, Django system and migration checks, and the PostgreSQL-backed backend suite. The attachment browser path covers actual IndexedDB bytes, preview, rename, download naming, delete/Undo, focus restoration, and compact-screen behavior.
+
 ## Explicit exclusions
 
 Phase 9 does not add:
@@ -173,4 +192,4 @@ Phase 9 does not add:
 - country-specific databases, storage providers, or regions;
 - production malware scanning, audit trails, backups, retention policy, or operational scheduling.
 
-The final group remains Phase 10 work.
+These exclusions remain Phase 10 work where applicable.

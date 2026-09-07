@@ -532,6 +532,11 @@ class PatientAttachmentApiTests(APITestCase):
             "get",
             self.detail_path(attachment["id"], "preview/"),
         )
+        download = self.request_as(
+            self.assistant_token,
+            "get",
+            self.detail_path(attachment["id"], "download/"),
+        )
 
         self.assertEqual(preview.status_code, status.HTTP_200_OK)
         self.assertEqual(b"".join(preview.streaming_content), content)
@@ -539,6 +544,11 @@ class PatientAttachmentApiTests(APITestCase):
         self.assertEqual(preview["Cache-Control"], "private, no-store")
         self.assertEqual(preview["X-Content-Type-Options"], "nosniff")
         self.assertEqual(preview["Content-Security-Policy"], "sandbox")
+        self.assertEqual(download.status_code, status.HTTP_200_OK)
+        self.assertIn("attachment", download["Content-Disposition"])
+        self.assertIn("preview.pdf", download["Content-Disposition"])
+        self.assertEqual(download["Cache-Control"], "private, no-store")
+        self.assertEqual(download["X-Content-Type-Options"], "nosniff")
 
     def test_delete_has_five_second_undo_then_hard_deletes_row_and_stored_file(self):
         attachment = self.uploaded_attachment(

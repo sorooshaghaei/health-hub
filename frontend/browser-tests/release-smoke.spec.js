@@ -316,6 +316,9 @@ test("Patient attachments retain actual IndexedDB bytes through the shared demo 
   await page.getByRole("button", { name: "Patients" }).click();
   await page.getByRole("button", { name: /Attachment Patient/ }).click();
   await expect(page.getByRole("heading", { name: "Attachments" })).toBeVisible();
+  const addFiles = page.getByRole("button", { name: "Add files" });
+  await expect(addFiles).toHaveAttribute("aria-describedby", "attachment-upload-limits");
+  await expect(page.locator("#attachment-upload-limits")).toContainText("up to 10 files at once");
 
   await page.locator("input[type='file'][multiple]").setInputFiles({
     name: "clinic-letter.pdf",
@@ -340,11 +343,19 @@ test("Patient attachments retain actual IndexedDB bytes through the shared demo 
   });
   expect(stored).toEqual({ count: 1, text: "%PDF-1.7\nrendered attachment bytes" });
 
-  await page.getByRole("button", { name: "Preview clinic-letter.pdf" }).click();
+  const previewButton = page.getByRole("button", { name: "Preview clinic-letter.pdf" });
+  await previewButton.click();
   await expect(page.getByRole("dialog", { name: "clinic-letter.pdf" })).toBeVisible();
-  await page.getByRole("button", { name: "Close preview of clinic-letter.pdf" }).click();
+  await expect(page.getByRole("button", { name: "Close preview of clinic-letter.pdf" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(previewButton).toBeFocused();
 
-  await page.getByRole("button", { name: "Rename clinic-letter.pdf" }).click();
+  const renameButton = page.getByRole("button", { name: "Rename clinic-letter.pdf" });
+  await renameButton.click();
+  await expect(page.getByLabel("Document name")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(renameButton).toBeFocused();
+  await renameButton.click();
   await page.getByLabel("Document name").fill("Clinic referral");
   await page.getByRole("button", { name: "Save name" }).click();
   await expect(page.locator(".attachment-row__identity strong")).toHaveText("Clinic referral.pdf");
@@ -353,11 +364,25 @@ test("Patient attachments retain actual IndexedDB bytes through the shared demo 
   await page.getByRole("button", { name: "Download Clinic referral.pdf" }).click();
   expect((await downloadEvent).suggestedFilename()).toBe("Clinic referral.pdf");
 
-  await page.getByRole("button", { name: "Delete Clinic referral.pdf" }).click();
+  const deleteButton = page.getByRole("button", { name: "Delete Clinic referral.pdf" });
+  await deleteButton.click();
+  await expect(page.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(deleteButton).toBeFocused();
+  await deleteButton.click();
   await page.getByRole("button", { name: "Delete Clinic referral.pdf", exact: true }).click();
   await expect(page.getByRole("button", { name: "Undo: Clinic referral.pdf deleted." })).toBeVisible();
   await page.getByRole("button", { name: "Undo: Clinic referral.pdf deleted." }).click();
   await expect(page.locator(".attachment-row__identity strong")).toHaveText("Clinic referral.pdf");
+
+  await page.setViewportSize({ width: 320, height: 700 });
+  const compactLayout = await page.locator(".patient-attachments").evaluate((section) => ({
+    horizontalOverflow: section.scrollWidth - section.clientWidth,
+    actionHeights: [...section.querySelectorAll(".attachment-row__actions button")]
+      .map((button) => button.getBoundingClientRect().height),
+  }));
+  expect(compactLayout.horizontalOverflow).toBeLessThanOrEqual(1);
+  expect(Math.min(...compactLayout.actionHeights)).toBeGreaterThanOrEqual(44);
 });
 
 test("rendered task, comment, and Undo controls have contextual names", async ({ page }) => {

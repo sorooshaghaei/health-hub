@@ -9,7 +9,11 @@ import {
   demoUploadPatientAttachment,
   processDemoAttachmentUpload,
 } from "../src/demoAttachments.js";
-import { getDemoAttachment, resetDemoAttachmentDatabase } from "../src/demoAttachmentStore.js";
+import {
+  getDemoAttachment,
+  putDemoAttachment,
+  resetDemoAttachmentDatabase,
+} from "../src/demoAttachmentStore.js";
 
 const CLINIC_ID = "10000000-0000-4000-8000-000000000001";
 const OTHER_CLINIC_ID = "10000000-0000-4000-8000-000000000002";
@@ -213,6 +217,37 @@ test("search, rename, delete, and five-second Undo mirror the production routes"
     staffToken: ASSISTANT_TOKEN,
   });
   assert.equal(restored.document_name, "Referral.pdf");
+});
+
+test("expired demo deletion permanently removes bytes and releases duplicate reservations", async () => {
+  const uploaded = await demoUploadPatientAttachment({
+    patientId: PATIENT_ID,
+    file: pdfFile("expired.pdf", "%PDF-1.7\nexpired"),
+    staffToken: DOCTOR_TOKEN,
+  });
+  await demoAttachmentApiRequest(attachmentPath(uploaded), {
+    method: "DELETE",
+    staffToken: ASSISTANT_TOKEN,
+  });
+  const deleted = await getDemoAttachment(uploaded.id);
+  await putDemoAttachment({
+    ...deleted,
+    deleted_at: new Date(Date.now() - 6000).toISOString(),
+  });
+
+  const listing = await demoAttachmentApiRequest(
+    `/api/patients/${PATIENT_ID}/attachments/?page=1`,
+    { staffToken: DOCTOR_TOKEN },
+  );
+  assert.equal(listing.count, 0);
+  assert.equal(await getDemoAttachment(uploaded.id), undefined);
+
+  const replacement = await demoUploadPatientAttachment({
+    patientId: PATIENT_ID,
+    file: pdfFile("expired.pdf", "%PDF-1.7\nexpired"),
+    staffToken: ASSISTANT_TOKEN,
+  });
+  assert.notEqual(replacement.id, uploaded.id);
 });
 
 test("Patient deletion hides bytes, Patient Undo restores access, and Doctor-account cascade removes them", async () => {

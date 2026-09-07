@@ -65,8 +65,8 @@ function UploadQueueItem({ item, onDocumentNameChange, onRemove, onRetry, retryD
       <p className={failed ? "attachment-upload-item__error" : "attachment-upload-item__message"} role={failed ? "alert" : complete ? "status" : undefined}>{status}</p>
       {(failed || complete) && (
         <div className="attachment-upload-item__actions">
-          {failed && <button className="secondary-button" type="button" disabled={retryDisabled} onClick={() => onRetry(item)}>Retry</button>}
-          <button className="text-button" type="button" onClick={() => onRemove(item.id)}>{complete ? "Dismiss" : "Remove"}</button>
+          {failed && <button className="secondary-button" type="button" disabled={retryDisabled} aria-label={`Retry upload of ${item.file.name}`} onClick={() => onRetry(item)}>Retry</button>}
+          <button className="text-button" type="button" aria-label={`${complete ? "Dismiss" : "Remove"} upload entry for ${item.file.name}`} onClick={() => onRemove(item.id)}>{complete ? "Dismiss" : "Remove"}</button>
         </div>
       )}
     </li>
@@ -447,12 +447,13 @@ export default function PatientAttachments({
           <h3 id="patient-attachments-title">Attachments</h3>
         </div>
         <div className="patient-attachments__heading-actions">
-          <span className="count-badge" aria-label={`${count} attachment${count === 1 ? "" : "s"}`}>{count}</span>
+          <span className="patient-attachments__count">{count} document{count === 1 ? "" : "s"}</span>
           <button
             id="attachment-add-files"
             className="secondary-button"
             type="button"
             disabled={uploadInProgress}
+            aria-describedby="attachment-upload-limits"
             onClick={() => inputRef.current?.click()}
           >Add files</button>
           <input
@@ -485,9 +486,9 @@ export default function PatientAttachments({
 
       <ErrorMessage error={selectionError} />
       {uploadItems.length > 0 && (
-        <div className="attachment-upload-queue" aria-label="Attachment uploads">
+        <section className="attachment-upload-queue" aria-labelledby="attachment-upload-queue-title">
           <div className="attachment-upload-queue__heading">
-            <strong>Uploads</strong>
+            <h4 id="attachment-upload-queue-title">Uploads</h4>
             <span>{uploadItems.length}</span>
           </div>
           <ul>
@@ -502,7 +503,7 @@ export default function PatientAttachments({
               />
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       <div className="attachment-list-toolbar">
@@ -526,7 +527,7 @@ export default function PatientAttachments({
           <button className="secondary-button" type="button" onClick={() => setListRevision((version) => version + 1)}>Try again</button>
         </div>
       ) : loading ? (
-        <div className="attachment-loading"><div className="loader" aria-label="Loading attachments" /></div>
+        <div className="attachment-loading" role="status" aria-label="Loading attachments"><div className="loader" aria-hidden="true" /></div>
       ) : attachments.length ? (
         <ul className="attachment-list">
           {attachments.map((attachment) => (
@@ -631,7 +632,7 @@ export default function PatientAttachments({
             <button className="device-icon-button" type="button" data-dialog-initial-focus="true" onClick={closePreview} aria-label={`Close preview of ${previewTarget.document_name}`}>×</button>
           </div>
           {previewState.loading ? (
-            <div className="attachment-preview__loading"><div className="loader" aria-label={`Loading preview of ${previewTarget.document_name}`} /></div>
+            <div className="attachment-preview__loading" role="status" aria-label={`Loading preview of ${previewTarget.document_name}`}><div className="loader" aria-hidden="true" /></div>
           ) : previewState.error ? (
             <ErrorMessage error={previewState.error} focus />
           ) : previewState.url && previewTarget.content_type === "application/pdf" ? (

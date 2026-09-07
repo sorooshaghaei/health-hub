@@ -10,11 +10,11 @@ This is the handoff entry point for a new chat or development session.
 - Clarify product/workflow changes with the product owner before implementing them.
 - Do not re-ask decisions already explicit in the current product-phase or design-step specifications.
 - Reconcile specification, implementation, tests, browser adapter, and handoff documentation together.
-- Phase 8 and the approved release-readiness audit remediation are complete. The Phase 9 behavior is explicitly clarified and approved; implement its remaining parts without changing that contract unless the product owner approves a revision.
+- Phase 8 and the approved release-readiness audit remediation are complete. Phase 9 is also complete and reconciled to its approved contract. Clarify Phase 10 production-infrastructure decisions with the product owner before implementing them.
 
 ## Current phase status
 
-Phases 0–8 have approved product contracts and are implemented on `main`. The approved release-readiness audit corrections are complete and were applied in separately validated parts with one commit per part.
+Phases 0–9 have approved product contracts and are implemented on `main`. The approved release-readiness audit corrections are complete and were applied in separately validated parts with one commit per part.
 
 - Phase 0 — Foundation: reconciled to the final permanent-role/global-device architecture.
 - Phase 1 — Patient records: reconciled; metadata-backed international phone normalization complete.
@@ -25,7 +25,7 @@ Phases 0–8 have approved product contracts and are implemented on `main`. The 
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
 - Phase 8 — Authentication/administration/security: implemented; approved release-readiness audit corrections and the rendered-browser gate are complete.
-- Phase 9 — Secure Patient attachments: in progress; approved specification, backend foundation, production Patient-profile interface, and actual-file demo parity complete; final reconciliation pending.
+- Phase 9 — Secure Patient attachments: complete and reconciled; approved private backend, shared Patient-profile interface, actual-file IndexedDB demo parity, accessibility/responsive corrections, and validation coverage implemented.
 - Phase 10 — Production infrastructure and security: not started.
 - Phase 11 — Legal, privacy, and website completion: not started.
 - Phase 12 — Final testing and stable production release: not started.
@@ -34,7 +34,7 @@ The post-Phase-8 usability corrections are named **Design Steps**, not phases:
 
 - Design Steps 1–4 — complete and merged;
 - Design Step 5 — weekly clinic working days/hours and optional Appointment-time suggestions; implemented, merged, and validated on `main`;
-- Product Phase 9 remains separate from the Design Steps and is now in progress.
+- Product Phase 9 remains separate from the Design Steps and is complete.
 
 ## Final identity architecture
 
@@ -189,7 +189,7 @@ Working-day selectors, working-time inputs, Account settings tabs, and dialog cl
 
 Release-facing UI copy follows the approved audit wording table. Role entry says **Sign in or create your Doctor/Assistant account.** Account-menu navigation uses **Account settings**; verification correction uses **Edit email address** and **Edit phone number**; optional Patient labels state **(optional)**; and the editable weekly schedule says **Set one working-hours range for each day the clinic is open.**
 
-The Quality workflow includes a rendered Chromium release-smoke layer in addition to Node unit/contract tests, PostgreSQL-backed Django tests, and both frontend builds. The rendered layer covers challenge restoration after reload, alternating Doctor/Assistant trusted credentials, Account-menu Escape and nested-dialog focus containment/restoration, visible future-DOB rejection, and contextual task/comment/Undo names. Other product claims are not described as browser-validated unless a rendered test exercises them.
+The Quality workflow includes a rendered Chromium release-smoke layer in addition to Node unit/contract tests, PostgreSQL-backed Django tests, and both frontend builds. The rendered layer covers challenge restoration after reload, alternating Doctor/Assistant trusted credentials, Account-menu Escape and nested-dialog focus containment/restoration, visible future-DOB rejection, contextual task/comment/Undo names, and the actual-byte Patient attachment workflow with dialog focus restoration and compact-screen overflow/touch-target checks. Other product claims are not described as browser-validated unless a rendered test exercises them.
 
 Forgotten-password recovery uses verified email/SMS and a 30-minute recovery grant.
 
@@ -419,4 +419,4 @@ Phase boundaries:
 
 ## Next action
 
-Continue Product Phase 9 one approved part at a time. Parts 1–3 are complete; Part 4 is full validation, accessibility/responsive review, and final documentation reconciliation. Do not start it before Part 3 is validated, committed, and explicitly continued by the product owner.
+Start Product Phase 10 by reading this context and `DEVELOPMENT_PLAN.md`, then ask the product owner the production-infrastructure and security clarification questions before implementing anything. Do not choose hosting, storage, regions, communication providers, retention operations, or other Phase 10 infrastructure speculatively.

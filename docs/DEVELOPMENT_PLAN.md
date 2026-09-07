@@ -56,7 +56,7 @@ Security/account actions do not use five-second Undo.
 | 6 | Shared tasks | **Complete and reconciled** |
 | 7 | Private sticky | **Complete and reconciled** |
 | 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented; release-audit remediation complete** |
-| 9 | Secure Patient attachments | **In progress; Parts 1–3 complete, final reconciliation next** |
+| 9 | Secure Patient attachments | **Complete and reconciled** |
 | 10 | Production infrastructure and security | Not started |
 | 11 | Legal, privacy, and website completion | Not started |
 | 12 | Final testing and stable production release | Not started |
@@ -240,7 +240,7 @@ See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINIST
 
 ## Phase 9 — Secure Patient attachments
 
-**In progress. The product contract and Parts 1–3 are implemented.**
+**Complete and reconciled.**
 
 The approved contract is recorded in [`PHASE_9_PATIENT_ATTACHMENTS.md`](PHASE_9_PATIENT_ATTACHMENTS.md). It defines Patient-only ownership, equal Doctor/Assistant permissions, authenticated clinic isolation, private storage, PDF/JPEG/PNG plus HEIC/HEIF conversion, 100 MB and 10-file limits, current-name search, Patient-local duplicate rules, preview/download/rename, five-second delete Undo followed by hard deletion, and actual-file IndexedDB demo parity.
 
@@ -249,7 +249,7 @@ Delivery parts:
 1. **Implemented:** specification and backend storage/API foundation, migration, cleanup command, and backend tests.
 2. **Implemented:** production Patient-profile attachment interface with equal role access, desktop drag/drop, multi-file selection, per-file progress/results, current-name search, metadata, authenticated preview/download, rename/retry, delete confirmation, and global five-second Undo.
 3. **Implemented:** actual-file GitHub Pages demo adapter parity through IndexedDB, including the shared production UI, local preview/download bytes, SHA-256 content duplicates, HEIC/HEIF conversion, delete/Undo, Patient delete/restore, uploader identity, clinic isolation, and clinic/account cleanup.
-4. **Next:** full validation, accessibility/responsive review, and documentation reconciliation.
+4. **Implemented:** full contract reconciliation, attachment-specific accessibility and responsive corrections, deterministic dependency installation, expanded backend/demo/browser coverage, and final documentation alignment.
 
 The implementation remains storage-provider-neutral and region-neutral. Phase 10 chooses and operates production storage, malware scanning, backup, audit, monitoring, retention, and any justified regional deployment.
 
@@ -271,7 +271,7 @@ Review the complete Doctor/Assistant workflow, attachment security, production c
 
 ## Current work
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented. Product Phase 9 is in progress: its contract, backend foundation, production Patient-profile interface, and actual-file GitHub Pages demo parity are complete; final reconciliation is next.**
+**Product Phases 0–9 and Design Steps 1–5 are implemented and reconciled. Product Phase 10 is next and must begin with clarification of production infrastructure and security decisions before implementation.**
 
 1. **Design Step 1 — complete:** critical onboarding and Patient-edit data safety;
 2. **Design Step 2 — complete:** workspace usability and visual hierarchy;
@@ -298,7 +298,7 @@ Audit remediation status:
 15. **Profile-save feedback — implemented:** successful Profile updates display and politely announce confirmation beside the save action, then clear it when the profile changes or the person leaves the section;
 16. **Touch-target and control typography — implemented:** working-day selectors, working-time inputs, settings tabs, and dialog close controls provide 44px targets; desktop/mobile form controls retain 15px/16px text without increasing working-hours row density;
 17. **Release-ready wording — implemented:** production and demo UI use the audit-approved role, sign-in, registration, Account settings, Patient optional-field, Appointment, working-hours, contact-correction, setup-code, Room-ready, and Profile-feedback wording;
-18. **Rendered-browser release gate — implemented:** Quality runs a focused Chromium suite for reload recovery, alternating account trust, Account-menu and nested-dialog keyboard behavior, future Patient date-of-birth rejection, and contextual repeated-action names. Validation claims are limited to the paths each test layer actually exercises;
+18. **Rendered-browser release gate — implemented:** Quality runs a focused Chromium suite for reload recovery, alternating account trust, Account-menu and nested-dialog keyboard behavior, future Patient date-of-birth rejection, contextual repeated-action names, and actual-byte Patient attachment behavior with dialog-focus and compact-screen checks. Validation claims are limited to the paths each test layer actually exercises;
 19. **Audit closeout — implemented:** the original findings are reconciled with the implementation ledger, stale unresolved/pending status statements are removed, and Product Phase 9 remains explicitly outside this work.
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
