@@ -401,6 +401,7 @@
   min-height: var(--control-height-compact);
   padding: 7px 9px;
   font-size: 12px;
+  transition-property: background-color, border-color, box-shadow, color;
 }
 
 .attachment-pagination {

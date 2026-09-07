@@ -72,6 +72,7 @@ test("production Patient profiles expose the complete shared attachment workflow
   assert.match(attachments, /className="patient-attachments__count"/);
   assert.doesNotMatch(attachments, /className="count-badge"/);
   assert.match(attachmentStyles, /@media \(hover: none\), \(pointer: coarse\)[\s\S]*attachment-row__actions[\s\S]*min-height: var\(--control-height-standard\)/);
+  assert.match(attachmentStyles, /transition-property: background-color, border-color, box-shadow, color;/);
   assert.match(attachmentStyles, /attachment-search input \{[\s\S]*min-height: var\(--control-height-standard\)/);
 
   assert.match(attachments, /Search document names/);
