@@ -6,14 +6,14 @@ The product contract was clarified and approved before implementation.
 
 **Phase 9 is complete and reconciled.**
 
-Phase 9 is being delivered in four separately reviewed parts:
+Phase 9 was delivered in four separately reviewed parts:
 
 1. **Specification and backend foundation — implemented:** private provider-neutral storage, attachment metadata, validation/conversion, duplicate protection, clinic-scoped APIs, preview/download streaming, rename, five-second delete Undo, permanent cleanup, migrations, and backend tests.
 2. **Production Patient-profile interface — implemented:** shared Doctor/Assistant attachment UI, picker, desktop drag/drop, progress, preview/download, search, rename, delete, and Undo.
 3. **GitHub Pages demo parity — implemented:** the same production React UI backed by actual browser-local file bytes in IndexedDB, with local HEIC/HEIF conversion and lifecycle parity.
 4. **Full reconciliation — implemented:** cross-layer validation, responsive/accessibility corrections, deterministic dependency installation, expanded regression coverage, and final documentation alignment.
 
-This document is the approved Phase 9 contract. Later parts must not reinterpret it without explicit product-owner approval.
+This document remains the approved Phase 9 contract. Subsequent changes must not reinterpret it without explicit product-owner approval.
 
 ## Scope and ownership
 
