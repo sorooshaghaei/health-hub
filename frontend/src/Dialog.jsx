@@ -101,27 +101,25 @@ function focusInside(entry, preferInitial = false) {
 
 function returnFocus(entry) {
   window.requestAnimationFrame(() => {
-    // A removed iframe (including Chromium's PDF viewer) can move focus back to
-    // the document after the first frame. Wait for that teardown to settle
-    // before restoring focus to the dialog opener.
-    window.requestAnimationFrame(() => {
-      const activeDialog = topDialog();
-      if (activeDialog) {
-        if (activeDialog.panel.contains(entry.opener) && focusElement(entry.opener)) return;
-        if (!activeDialog.panel.contains(document.activeElement)) focusInside(activeDialog);
-        return;
-      }
+    const activeDialog = topDialog();
+    if (activeDialog) {
+      if (activeDialog.panel.contains(entry.opener) && focusElement(entry.opener)) return;
+      if (!activeDialog.panel.contains(document.activeElement)) focusInside(activeDialog);
+      return;
+    }
 
-      let selected = null;
-      if (entry.returnFocusSelector) {
-        try {
-          selected = document.querySelector(entry.returnFocusSelector);
-        } catch {
-          selected = null;
-        }
+    let selected = null;
+    if (entry.returnFocusSelector) {
+      try {
+        selected = document.querySelector(entry.returnFocusSelector);
+      } catch {
+        selected = null;
       }
-      focusElement(selected) || focusElement(entry.opener);
-    });
+    }
+    // Prefer the captured opener. A comma-separated selector fallback follows
+    // document order, not selector order, and can otherwise focus an earlier
+    // but lower-priority control such as the attachment Add files button.
+    focusElement(entry.opener) || focusElement(selected);
   });
 }
 

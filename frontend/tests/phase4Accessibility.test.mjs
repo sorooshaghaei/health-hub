@@ -22,7 +22,7 @@ test("shared Dialog isolates the background and only the top dialog owns focus",
   assert.match(dialog, /document\.addEventListener\("focusin"/);
   assert.match(dialog, /returnFocusSelector/);
   assert.match(dialog, /activeDialog\.panel\.contains\(entry\.opener\)/);
-  assert.match(dialog, /focusElement\(selected\) \|\| focusElement\(entry\.opener\)/);
+  assert.match(dialog, /focusElement\(entry\.opener\) \|\| focusElement\(selected\)/);
   assert.match(dialogStyles, /\[data-dialog-layer="true"\][\s\S]*?z-index: 1200 !important/);
 
   for (const file of ["AccountSettings.jsx", "ClinicTeam.jsx", "TrustedDevices.jsx", "TaskWorkspace.jsx", "ScheduleWorkspace.jsx", "PatientDetail.jsx"]) {
