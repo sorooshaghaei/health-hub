@@ -517,4 +517,4 @@ Broader login/recovery/IP throttling belongs to Phase 10 production hardening.
 
 Phase 8 ends with this account/security contract and its implementation. Stop before Phase 9.
 
-Phase 9 concerns sensitive attachment architecture and must be clarified before implementation.
+Phase 9's sensitive-attachment architecture was subsequently clarified and approved in [`PHASE_9_PATIENT_ATTACHMENTS.md`](PHASE_9_PATIENT_ATTACHMENTS.md). This Phase 8 boundary remains unchanged.

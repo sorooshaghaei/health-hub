@@ -12,7 +12,7 @@ Quality validation includes Node unit/contract tests, Django tests against Postg
 
 ## Current status
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. The approved hands-on browser-audit findings are remediated, with critical release paths covered by the rendered-browser gate. Product Phase 9 has not started.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. The Phase 9 attachment contract is approved, and Part 1—the private backend storage/API foundation—is implemented. The production Patient-profile interface, actual-file Pages demo parity, and final Phase 9 reconciliation remain.**
 
 Source-of-truth documents:
 
@@ -27,6 +27,7 @@ Source-of-truth documents:
 - [`docs/PHASE_6_SHARED_TASKS.md`](docs/PHASE_6_SHARED_TASKS.md)
 - [`docs/PHASE_7_PRIVATE_NOTES.md`](docs/PHASE_7_PRIVATE_NOTES.md)
 - [`docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](docs/PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
+- [`docs/PHASE_9_PATIENT_ATTACHMENTS.md`](docs/PHASE_9_PATIENT_ATTACHMENTS.md)
 - [`docs/DESIGN_STEP_5_WORKING_HOURS.md`](docs/DESIGN_STEP_5_WORKING_HOURS.md)
 
 ## Account and clinic architecture
@@ -236,6 +237,8 @@ GitHub Pages is only the product-owner review demo. It uses the same production 
 
 The adapter mirrors permanent account roles, global trusted-device simulation, clinic ownership/memberships, Assistant setup/replacement, and Doctor account deletion at the product-workflow level.
 
+Phase 9 actual-file demo parity is still pending. Its approved implementation will keep selected attachment bytes in IndexedDB and use the same production React attachment interface.
+
 It does not claim real trusted-device authority, email/SMS delivery, WebAuthn security, or medical-data guarantees. Real Patient information must not be entered into the public demo.
 
 ## Repository structure
@@ -245,6 +248,7 @@ backend/accounts/        accounts, memberships, ownership, sessions, devices, ve
 backend/patients/        Patient records and deletion Undo
 backend/visits/          Appointments, queue, room calls, consultation handoff
 backend/tasks/           clinic-scoped shared tasks/comments
+backend/attachments/     private Patient attachment metadata, validation, conversion, streaming, and cleanup
 backend/health_hub/      Django project configuration and test runner
 frontend/                React/Vite app and browser adapter
 docs/                    product specifications and handoff
@@ -290,6 +294,14 @@ python manage.py cleanup_dormant_assistants
 
 Production scheduling of this cleanup command belongs to deployment/operations configuration.
 
+Expired Patient-attachment cleanup:
+
+```bash
+python manage.py cleanup_deleted_attachments
+```
+
+Attachment requests also purge expired attachment deletions opportunistically. Phase 10 owns production scheduling and monitoring of the cleanup command.
+
 ### Frontend
 
 Use Node.js 22.
@@ -314,4 +326,4 @@ npm run build:demo
 
 This repository is not yet a production medical-data deployment. Intended production use may include clinics in France and Iran with real Patient and clinic data, but Health Hub remains one product and codebase. Securely tenant-scoped shared storage is the starting assumption; separate regional storage is added only if Phase 10 confirms a real requirement.
 
-Phase 9 secure Patient attachments has not started. Phase 10 covers production infrastructure and security, Phase 11 covers legal/privacy/cookie decisions and remaining website details, and Phase 12 covers final testing and the stable production release.
+Phase 9 is in progress: its approved contract and private backend storage/API foundation are complete, while the production Patient-profile interface, actual-file Pages demo parity, and final reconciliation remain. Phase 10 covers production infrastructure and security, Phase 11 covers legal/privacy/cookie decisions and remaining website details, and Phase 12 covers final testing and the stable production release.

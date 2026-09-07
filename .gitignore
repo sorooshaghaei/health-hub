@@ -9,6 +9,7 @@ venv/
 # Django
 backend/staticfiles/
 backend/media/
+backend/private_media/
 
 # Node
 frontend/node_modules/

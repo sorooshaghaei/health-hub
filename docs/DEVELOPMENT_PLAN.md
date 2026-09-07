@@ -56,7 +56,7 @@ Security/account actions do not use five-second Undo.
 | 6 | Shared tasks | **Complete and reconciled** |
 | 7 | Private sticky | **Complete and reconciled** |
 | 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented; release-audit remediation complete** |
-| 9 | Secure Patient attachments | Not started |
+| 9 | Secure Patient attachments | **In progress; approved contract and backend foundation complete** |
 | 10 | Production infrastructure and security | Not started |
 | 11 | Legal, privacy, and website completion | Not started |
 | 12 | Final testing and stable production release | Not started |
@@ -240,11 +240,18 @@ See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINIST
 
 ## Phase 9 — Secure Patient attachments
 
-**Not started. Do not implement before clarification and approval.**
+**In progress. The product contract is approved and Part 1 is implemented.**
 
-Build secure Patient attachments while keeping the design storage-provider-neutral and region-neutral. Before implementation, clarify and approve the user-visible attachment workflow, role permissions, clinic/Patient boundaries, file types and limits, organization and viewing/downloading behavior, replacement/deletion behavior, demo behavior, errors, and any applicable Undo behavior.
+The approved contract is recorded in [`PHASE_9_PATIENT_ATTACHMENTS.md`](PHASE_9_PATIENT_ATTACHMENTS.md). It defines Patient-only ownership, equal Doctor/Assistant permissions, authenticated clinic isolation, private storage, PDF/JPEG/PNG plus HEIC/HEIF conversion, 100 MB and 10-file limits, current-name search, Patient-local duplicate rules, preview/download/rename, five-second delete Undo followed by hard deletion, and actual-file IndexedDB demo parity.
 
-The implementation must enforce authenticated clinic-scoped access and safe file validation without choosing separate France/Iran production databases or a country-specific hosting provider.
+Delivery parts:
+
+1. **Implemented:** specification and backend storage/API foundation, migration, cleanup command, and backend tests.
+2. **Next:** production Patient-profile attachment interface.
+3. **Pending:** actual-file GitHub Pages demo adapter parity.
+4. **Pending:** full validation, accessibility/responsive review, and documentation reconciliation.
+
+The implementation remains storage-provider-neutral and region-neutral. Phase 10 chooses and operates production storage, malware scanning, backup, audit, monitoring, retention, and any justified regional deployment.
 
 ## Phase 10 — Production infrastructure and security
 
@@ -264,7 +271,7 @@ Review the complete Doctor/Assistant workflow, attachment security, production c
 
 ## Current work
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented. The approved release-readiness audit remediation is complete; Product Phase 9 remains unstarted and requires explicit clarification and approval.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented. Product Phase 9 is in progress: its contract and backend foundation are complete, and its production Patient-profile interface is next.**
 
 1. **Design Step 1 — complete:** critical onboarding and Patient-edit data safety;
 2. **Design Step 2 — complete:** workspace usability and visual hierarchy;
@@ -296,4 +303,4 @@ Audit remediation status:
 
 Design Step 5 is intentionally limited to one working-time range per enabled weekday, a **Today** shortcut, and 15-minute suggestions that preserve unrestricted manual time entry. It does not add holidays, date-specific closures, recurring exceptions, public booking, capacity, or changes to task due dates and date filters.
 
-See [`DESIGN_STEP_5_WORKING_HOURS.md`](DESIGN_STEP_5_WORKING_HOURS.md) for the approved contract and implementation plan. Product Phase 9 remains the reserved sensitive-attachment phase and is not part of these Design Steps.
+See [`DESIGN_STEP_5_WORKING_HOURS.md`](DESIGN_STEP_5_WORKING_HOURS.md) for that approved contract and implementation plan. Product Phase 9 remains separate from the Design Steps; see [`PHASE_9_PATIENT_ATTACHMENTS.md`](PHASE_9_PATIENT_ATTACHMENTS.md) for its approved attachment contract and current implementation state.

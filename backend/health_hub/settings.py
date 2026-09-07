@@ -11,6 +11,7 @@ INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "rest_framework", "accounts", "patients", "visits", "tasks",
+    "attachments.apps.AttachmentsConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware", "django.contrib.sessions.middleware.SessionMiddleware",
@@ -41,6 +42,23 @@ TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = "static/"
+PRIVATE_MEDIA_PATH = Path(os.getenv("PRIVATE_MEDIA_ROOT", "private_media"))
+MEDIA_ROOT = (
+    PRIVATE_MEDIA_PATH
+    if PRIVATE_MEDIA_PATH.is_absolute()
+    else BASE_DIR / PRIVATE_MEDIA_PATH
+)
+STORAGES = {
+    "default": {
+        "BACKEND": os.getenv(
+            "PRIVATE_FILE_STORAGE_BACKEND",
+            "django.core.files.storage.FileSystemStorage",
+        ),
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -65,3 +83,12 @@ WEBAUTHN_ORIGIN = os.getenv("WEBAUTHN_ORIGIN", "http://localhost:5173")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@health-hub.local")
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.locmem.EmailBackend")
 SMS_SENDER = os.getenv("SMS_SENDER", "")
+
+PATIENT_ATTACHMENT_MAX_BYTES = int(
+    os.getenv("PATIENT_ATTACHMENT_MAX_BYTES", str(100 * 1024 * 1024))
+)
+PATIENT_ATTACHMENT_MAX_BATCH = int(os.getenv("PATIENT_ATTACHMENT_MAX_BATCH", "10"))
+PATIENT_ATTACHMENT_PAGE_SIZE = int(os.getenv("PATIENT_ATTACHMENT_PAGE_SIZE", "50"))
+PATIENT_ATTACHMENT_DELETE_UNDO_SECONDS = int(
+    os.getenv("PATIENT_ATTACHMENT_DELETE_UNDO_SECONDS", "5")
+)

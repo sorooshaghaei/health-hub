@@ -10,7 +10,7 @@ This is the handoff entry point for a new chat or development session.
 - Clarify product/workflow changes with the product owner before implementing them.
 - Do not re-ask decisions already explicit in the current product-phase or design-step specifications.
 - Reconcile specification, implementation, tests, browser adapter, and handoff documentation together.
-- Phase 8 and the approved release-readiness audit remediation are complete. Do not begin Phase 9 until its behavior is explicitly clarified and approved.
+- Phase 8 and the approved release-readiness audit remediation are complete. The Phase 9 behavior is explicitly clarified and approved; implement its remaining parts without changing that contract unless the product owner approves a revision.
 
 ## Current phase status
 
@@ -25,7 +25,7 @@ Phases 0–8 have approved product contracts and are implemented on `main`. The 
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
 - Phase 8 — Authentication/administration/security: implemented; approved release-readiness audit corrections and the rendered-browser gate are complete.
-- Phase 9 — Secure patient attachments: not started; clarification required before implementation.
+- Phase 9 — Secure Patient attachments: in progress; approved specification and backend foundation complete, production UI/demo parity/final reconciliation pending.
 - Phase 10 — Production infrastructure and security: not started.
 - Phase 11 — Legal, privacy, and website completion: not started.
 - Phase 12 — Final testing and stable production release: not started.
@@ -34,7 +34,7 @@ The post-Phase-8 usability corrections are named **Design Steps**, not phases:
 
 - Design Steps 1–4 — complete and merged;
 - Design Step 5 — weekly clinic working days/hours and optional Appointment-time suggestions; implemented, merged, and validated on `main`;
-- Product Phase 9 remains separate and has not started.
+- Product Phase 9 remains separate from the Design Steps and is now in progress.
 
 ## Final identity architecture
 
@@ -369,6 +369,8 @@ GitHub Pages is only the product-owner review demo. It uses the same production 
 
 The adapter mirrors product-level permanent roles, global trusted-device simulation, clinic ownership/memberships, setup codes, Assistant replacement, and Doctor account cascade.
 
+Phase 9 demo parity is not complete yet. Its approved implementation must use the same production React attachment interface and retain actual browser-local file bytes in IndexedDB; metadata-only attachment simulation is prohibited.
+
 It does not claim real security infrastructure. Real Patient information must never be entered into the public demo.
 
 ## Production deployment and data boundaries
@@ -394,7 +396,9 @@ Phase boundaries:
 - `accounts.0009_final_phase8_identity` — permanent account roles, explicit clinic ownership, global trusted devices, Assistant dormancy/anonymization fields, removal of persisted membership role.
 - `accounts.0010_clinic_working_hours` — one clinic-scoped start/end range per enabled weekday.
 - `accounts.0011_trusted_device_last_used_at` — trusted-device last-used tracking and recency ordering.
+- `attachments.0001_initial` — clinic- and Patient-scoped private attachment metadata, immutable original filenames, source-content hashes, uploader attribution, and five-second soft-delete state.
 - `python manage.py cleanup_dormant_assistants` — anonymizes eligible zero-membership Assistants after the two-year retention period; production scheduling belongs to deployment/operations.
+- `python manage.py cleanup_deleted_attachments` — permanently deletes expired attachment rows and stored objects; attachment APIs also purge opportunistically, while production scheduling belongs to Phase 10 operations.
 
 ## Phase specifications
 
@@ -407,6 +411,7 @@ Phase boundaries:
 - [`PHASE_6_SHARED_TASKS.md`](PHASE_6_SHARED_TASKS.md)
 - [`PHASE_7_PRIVATE_NOTES.md`](PHASE_7_PRIVATE_NOTES.md)
 - [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINISTRATION.md)
+- [`PHASE_9_PATIENT_ATTACHMENTS.md`](PHASE_9_PATIENT_ATTACHMENTS.md)
 
 ## Design-step specifications
 
@@ -414,4 +419,4 @@ Phase boundaries:
 
 ## Next action
 
-Product Phase 9 is the next product phase, but it remains unstarted. Complete and approve its sensitive-attachment clarification pass before implementing any Phase 9 code.
+Continue Product Phase 9 one approved part at a time. Part 1 is the completed backend attachment foundation; Part 2 is the production Patient-profile attachment interface. Do not start a later part before the current part is validated, committed, and explicitly continued by the product owner.
