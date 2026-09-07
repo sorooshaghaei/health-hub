@@ -50,7 +50,7 @@ test("production Patient profiles expose the complete shared attachment workflow
   const account = await source("../src/AccountSettings.jsx");
 
   assert.match(detail, /<PatientAttachments/);
-  assert.match(workspace, /attachmentsEnabled=\{!BROWSER_DEMO_API\}/);
+  assert.match(workspace, /attachmentsEnabled attachmentRefreshVersion/);
   assert.match(workspace, /onRegisterUndo=\{registerUndo\}/);
   assert.doesNotMatch(workspace, /attachmentsEnabled=\{doctorAccount|attachmentsEnabled=\{assistantWorkspace/);
 
@@ -96,6 +96,8 @@ test("production attachment transport uses authenticated multipart upload and pr
   assert.match(transport, /authenticatedApiHeaders\(\{ staffToken \}\)/);
   assert.match(transport, /cache: "no-store"/);
   assert.match(transport, /return response\.blob\(\)/);
+  assert.match(transport, /demoUploadPatientAttachment/);
+  assert.match(transport, /demoFetchPatientAttachmentContent/);
   assert.match(api, /headers\.Authorization = `Bearer \$\{staffToken\}`/);
   assert.match(api, /headers\["X-Device-Token"\]/);
 });
@@ -223,13 +225,19 @@ test("private content reads use authenticated no-store fetches and return file b
   }
 });
 
-test("Pages does not receive a forbidden metadata-only attachment substitute before Part 3", async () => {
+test("Pages uses the shared UI with actual attachment bytes in IndexedDB", async () => {
   const workspace = await source("../src/PatientWorkspaceView.jsx");
-  const demoApi = await source("../src/demoApi.js");
+  const demoAttachments = await source("../src/demoAttachments.js");
+  const demoStore = await source("../src/demoAttachmentStore.js");
   const phase9 = await source("../../docs/PHASE_9_PATIENT_ATTACHMENTS.md");
 
-  assert.match(workspace, /attachmentsEnabled=\{!BROWSER_DEMO_API\}/);
-  assert.doesNotMatch(demoApi, /patientAttachment|attachments\/\?/);
+  assert.match(workspace, /attachmentsEnabled attachmentRefreshVersion/);
+  assert.match(demoStore, /createObjectStore\(STORE_NAME/);
+  assert.match(demoStore, /unique_patient_name/);
+  assert.match(demoStore, /unique_patient_content/);
+  assert.match(demoAttachments, /blob: processed\.blob/);
+  assert.match(demoAttachments, /source_sha256/);
+  assert.match(demoAttachments, /deleteDemoAttachmentsForClinics/);
   assert.match(phase9, /actual browser-local file bytes in IndexedDB/);
-  assert.match(phase9, /Metadata-only simulation is not acceptable/);
+  assert.match(phase9, /Metadata-only simulation is not used/);
 });

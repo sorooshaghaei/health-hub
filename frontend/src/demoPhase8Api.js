@@ -247,6 +247,7 @@ function syncLegacyForSession(store, staffToken) {
   activateLegacyClinic(store, session.clinic_id); saveAuthStore(store); return { session, account };
 }
 function isTaskPath(pathname) { return pathname.startsWith("/api/tasks/") || pathname.startsWith("/api/task-comments/"); }
+function isAttachmentPath(pathname) { return /^\/api\/patients\/[0-9a-f-]+\/attachments\//i.test(pathname); }
 function isOperationalPath(pathname) { return pathname.startsWith("/api/patients/") || pathname.startsWith("/api/visits/"); }
 
 async function registerStaff(store, data) {
@@ -420,7 +421,7 @@ function accountDeletePreview(store, staffToken) { const { session, account } = 
 async function deleteDoctorAccount(store, staffToken, data) {
   const { session, account } = sessionFor(store, staffToken); if (account.role !== "doctor") fail({ detail: "Assistant accounts cannot be deleted from account settings." }, 403); currentTrustedDevice(store, session, account); if (clean(data.confirmation).toUpperCase() !== "DELETE") fail({ confirmation: ["Type DELETE to confirm permanent account deletion."] });
   if (data.current_password) await reauthenticatePassword(store, staffToken, data.current_password); else if (!recentReauth(session)) fail({ detail: "Reauthenticate with your password or a passkey first." }, 403);
-  const clinicIds = store.clinics.filter((c) => c.owner_doctor_id === account.id).map((c) => c.id); archiveLegacyStore(store); store.clinics = store.clinics.filter((c) => !clinicIds.includes(c.id)); const removedMemberships = store.memberships.filter((m) => clinicIds.includes(m.clinic_id)); store.memberships = store.memberships.filter((m) => !clinicIds.includes(m.clinic_id)); for (const m of removedMemberships) if (accountFor(store, m.user_id)?.role === "assistant") markDormantIfNeeded(store, m.user_id); for (const clinicId of clinicIds) delete store.clinic_data[clinicId]; store.devices = store.devices.filter((d) => d.user_id !== account.id); for (const [token, s] of Object.entries(store.sessions)) if (s.user_id === account.id) delete store.sessions[token]; store.accounts = store.accounts.filter((a) => a.id !== account.id); saveAuthStore(store); return null;
+  const clinicIds = store.clinics.filter((c) => c.owner_doctor_id === account.id).map((c) => c.id); const { deleteDemoAttachmentsForClinics } = await import("./demoAttachments.js"); await deleteDemoAttachmentsForClinics(clinicIds); archiveLegacyStore(store); store.clinics = store.clinics.filter((c) => !clinicIds.includes(c.id)); const removedMemberships = store.memberships.filter((m) => clinicIds.includes(m.clinic_id)); store.memberships = store.memberships.filter((m) => !clinicIds.includes(m.clinic_id)); for (const m of removedMemberships) if (accountFor(store, m.user_id)?.role === "assistant") markDormantIfNeeded(store, m.user_id); for (const clinicId of clinicIds) delete store.clinic_data[clinicId]; store.devices = store.devices.filter((d) => d.user_id !== account.id); for (const [token, s] of Object.entries(store.sessions)) if (s.user_id === account.id) delete store.sessions[token]; store.accounts = store.accounts.filter((a) => a.id !== account.id); saveAuthStore(store); return null;
 }
 
 export async function demoPhase8ApiRequest(path, { method = "GET", data = {}, staffToken, deviceToken } = {}) {
@@ -477,6 +478,7 @@ export async function demoPhase8ApiRequest(path, { method = "GET", data = {}, st
   if (pathname === "/api/staff/account/" && method === "GET") return accountDeletePreview(store, staffToken);
   if (pathname === "/api/staff/account/" && method === "DELETE") return deleteDoctorAccount(store, staffToken, data);
 
+  if (isAttachmentPath(pathname)) { syncLegacyForSession(store, staffToken); const { demoAttachmentApiRequest } = await import("./demoAttachments.js"); return demoAttachmentApiRequest(path, { method, data, staffToken }); }
   if (isTaskPath(pathname)) { syncLegacyForSession(store, staffToken); return demoTaskApiRequest(path, { method, data, staffToken }); }
   if (isOperationalPath(pathname)) { syncLegacyForSession(store, staffToken); return demoOperationalApiRequest(path, { method, data, staffToken }); }
   fail({ detail: "This API route is not available in the browser demo." }, 404);

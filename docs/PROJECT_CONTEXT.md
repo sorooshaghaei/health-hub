@@ -25,7 +25,7 @@ Phases 0–8 have approved product contracts and are implemented on `main`. The 
 - Phase 6 — Shared tasks: reconciled to permanent account roles with membership-scoped attention state.
 - Phase 7 — Private sticky: reconciled; minimized sticky never exposes private text.
 - Phase 8 — Authentication/administration/security: implemented; approved release-readiness audit corrections and the rendered-browser gate are complete.
-- Phase 9 — Secure Patient attachments: in progress; approved specification, backend foundation, and production Patient-profile interface complete; actual-file demo parity and final reconciliation pending.
+- Phase 9 — Secure Patient attachments: in progress; approved specification, backend foundation, production Patient-profile interface, and actual-file demo parity complete; final reconciliation pending.
 - Phase 10 — Production infrastructure and security: not started.
 - Phase 11 — Legal, privacy, and website completion: not started.
 - Phase 12 — Final testing and stable production release: not started.
@@ -369,7 +369,7 @@ GitHub Pages is only the product-owner review demo. It uses the same production 
 
 The adapter mirrors product-level permanent roles, global trusted-device simulation, clinic ownership/memberships, setup codes, Assistant replacement, and Doctor account cascade.
 
-Phase 9 demo parity is not complete yet. Demo builds temporarily withhold the attachment area rather than expose broken requests or prohibited metadata-only behavior. Part 3 must remove that guard, use the same production React attachment interface, and retain actual browser-local file bytes in IndexedDB.
+Phase 9 demo parity uses the same production React attachment interface and retains actual browser-local file bytes plus metadata in IndexedDB. It supports local preview/download, Patient-local name and SHA-256 content duplicates, rename, five-second delete Undo and hard cleanup, Patient delete/restore, clinic isolation, uploader identity, Doctor-account/clinic cascades, and lazy HEIC/HEIF conversion to JPEG or transparency-preserving PNG. The browser's available IndexedDB quota is the public demo's environmental storage limit.
 
 It does not claim real security infrastructure. Real Patient information must never be entered into the public demo.
 
@@ -419,4 +419,4 @@ Phase boundaries:
 
 ## Next action
 
-Continue Product Phase 9 one approved part at a time. Parts 1–2 are complete; Part 3 is actual-file GitHub Pages demo parity through IndexedDB. Do not start a later part before the current part is validated, committed, and explicitly continued by the product owner.
+Continue Product Phase 9 one approved part at a time. Parts 1–3 are complete; Part 4 is full validation, accessibility/responsive review, and final documentation reconciliation. Do not start it before Part 3 is validated, committed, and explicitly continued by the product owner.

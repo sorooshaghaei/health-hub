@@ -1,6 +1,7 @@
 import {
   API_BASE_URL,
   ApiError,
+  BROWSER_DEMO_API,
   authenticatedApiHeaders,
   firstError,
 } from "./api.js";
@@ -14,13 +15,28 @@ function parseJson(value) {
   }
 }
 
-export function uploadPatientAttachment({
+export async function uploadPatientAttachment({
   patientId,
   file,
   documentName,
   staffToken,
   onProgress,
 }) {
+  if (BROWSER_DEMO_API) {
+    try {
+      const { demoUploadPatientAttachment } = await import("./demoAttachments.js");
+      return await demoUploadPatientAttachment({
+        patientId,
+        file,
+        documentName,
+        staffToken,
+        onProgress,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(firstError(error?.payload), error?.payload ?? null, error?.status ?? 0);
+    }
+  }
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     const form = new FormData();
@@ -65,6 +81,15 @@ export function uploadPatientAttachment({
 }
 
 export async function fetchPatientAttachmentContent(path, staffToken) {
+  if (BROWSER_DEMO_API) {
+    try {
+      const { demoFetchPatientAttachmentContent } = await import("./demoAttachments.js");
+      return await demoFetchPatientAttachmentContent(path, staffToken);
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(firstError(error?.payload), error?.payload ?? null, error?.status ?? 0);
+    }
+  }
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {

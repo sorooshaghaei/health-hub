@@ -12,12 +12,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "heic-to": "1.5.2",
     "libphonenumber-js": "1.13.11",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
+    "fake-indexeddb": "6.2.5",
     "vite": "8.1.5"
   }
 }

@@ -21,6 +21,7 @@ const IDS = {
   assistantDevice: "77777777-7777-4777-8777-777777777777",
   task: "88888888-8888-4888-8888-888888888888",
   comment: "99999999-9999-4999-8999-999999999999",
+  patient: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 };
 
 const doctor = {
@@ -92,7 +93,7 @@ function emptyAuthStore(overrides = {}) {
   };
 }
 
-function operationalStore({ sessionToken = null, workspaceRole = "doctor", tasks = [] } = {}) {
+function operationalStore({ sessionToken = null, workspaceRole = "doctor", tasks = [], patients = [] } = {}) {
   return {
     clinic: { id: clinic.id, name: clinic.name, timezone: clinic.timezone, email: "", phone: "" },
     staff: [doctor, assistant].map((account) => ({
@@ -106,7 +107,7 @@ function operationalStore({ sessionToken = null, workspaceRole = "doctor", tasks
       private_note: "",
     })),
     sessions: sessionToken ? { [sessionToken]: { user_id: IDS.doctor, workspace_role: workspaceRole } } : {},
-    patients: [],
+    patients,
     visits: [],
     tasks,
     room_call: null,
@@ -133,7 +134,7 @@ async function replaceStorage(page, entries) {
   await page.reload();
 }
 
-async function openReadyWorkspace(page, { workspaceRole = "doctor", tasks = [] } = {}) {
+async function openReadyWorkspace(page, { workspaceRole = "doctor", tasks = [], patients = [] } = {}) {
   const sessionToken = "ready-doctor-session";
   const authStore = emptyAuthStore({
     accounts: [doctor, assistant],
@@ -153,7 +154,7 @@ async function openReadyWorkspace(page, { workspaceRole = "doctor", tasks = [] }
   });
   await replaceStorage(page, {
     [AUTH_STORE_KEY]: authStore,
-    [OPERATIONAL_STORE_KEY]: operationalStore({ sessionToken, workspaceRole, tasks }),
+    [OPERATIONAL_STORE_KEY]: operationalStore({ sessionToken, workspaceRole, tasks, patients }),
     [STAFF_TOKEN_KEY]: sessionToken,
     [ACTIVE_DEVICE_TOKEN_KEY]: "doctor-device-token",
     [DEVICE_REGISTRY_KEY]: registry(),
@@ -295,6 +296,68 @@ test("Patient creation visibly rejects a future date of birth", async ({ page })
   await expect(error).toHaveText("Date of birth cannot be in the future.");
   await expect(error).toBeFocused();
   await expect(page.getByRole("heading", { name: "Future Patient" })).toHaveCount(0);
+});
+
+test("Patient attachments retain actual IndexedDB bytes through the shared demo interface", async ({ page }) => {
+  const patient = {
+    id: IDS.patient,
+    clinic_id: IDS.clinic,
+    full_name: "Attachment Patient",
+    normalized_name: "attachment patient",
+    gender: "Woman",
+    country_calling_code: "+33",
+    phone_number: "612345678",
+    phone_e164: "+33612345678",
+    date_of_birth: null,
+    patient_note: "",
+    deleted_at: null,
+  };
+  await openReadyWorkspace(page, { patients: [patient] });
+  await page.getByRole("button", { name: "Patients" }).click();
+  await page.getByRole("button", { name: /Attachment Patient/ }).click();
+  await expect(page.getByRole("heading", { name: "Attachments" })).toBeVisible();
+
+  await page.locator("input[type='file'][multiple]").setInputFiles({
+    name: "clinic-letter.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.7\nrendered attachment bytes"),
+  });
+  await expect(page.locator(".attachment-row__identity strong")).toHaveText("clinic-letter.pdf");
+
+  const stored = await page.evaluate(async () => {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open("health-hub.demo-attachments.v1");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const request = database.transaction("attachments", "readonly").objectStore("attachments").getAll();
+      request.onsuccess = () => resolve(request.result[0]);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    return { count: record ? 1 : 0, text: record ? await record.blob.text() : null };
+  });
+  expect(stored).toEqual({ count: 1, text: "%PDF-1.7\nrendered attachment bytes" });
+
+  await page.getByRole("button", { name: "Preview clinic-letter.pdf" }).click();
+  await expect(page.getByRole("dialog", { name: "clinic-letter.pdf" })).toBeVisible();
+  await page.getByRole("button", { name: "Close preview of clinic-letter.pdf" }).click();
+
+  await page.getByRole("button", { name: "Rename clinic-letter.pdf" }).click();
+  await page.getByLabel("Document name").fill("Clinic referral");
+  await page.getByRole("button", { name: "Save name" }).click();
+  await expect(page.locator(".attachment-row__identity strong")).toHaveText("Clinic referral.pdf");
+
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download Clinic referral.pdf" }).click();
+  expect((await downloadEvent).suggestedFilename()).toBe("Clinic referral.pdf");
+
+  await page.getByRole("button", { name: "Delete Clinic referral.pdf" }).click();
+  await page.getByRole("button", { name: "Delete Clinic referral.pdf", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Undo: Clinic referral.pdf deleted." })).toBeVisible();
+  await page.getByRole("button", { name: "Undo: Clinic referral.pdf deleted." }).click();
+  await expect(page.locator(".attachment-row__identity strong")).toHaveText("Clinic referral.pdf");
 });
 
 test("rendered task, comment, and Undo controls have contextual names", async ({ page }) => {

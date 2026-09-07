@@ -12,7 +12,7 @@ Quality validation includes Node unit/contract tests, Django tests against Postg
 
 ## Current status
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. Phase 9 Parts 1–2—the approved contract, private backend storage/API foundation, and production Patient-profile attachment interface—are implemented. Actual-file Pages demo parity and final Phase 9 reconciliation remain.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented on `main`. Phase 9 Parts 1–3—the approved contract, private backend storage/API foundation, production Patient-profile attachment interface, and actual-file Pages demo parity—are implemented. Final Phase 9 reconciliation remains.**
 
 Source-of-truth documents:
 
@@ -237,7 +237,7 @@ GitHub Pages is only the product-owner review demo. It uses the same production 
 
 The adapter mirrors permanent account roles, global trusted-device simulation, clinic ownership/memberships, Assistant setup/replacement, and Doctor account deletion at the product-workflow level.
 
-Phase 9 actual-file demo parity is still pending. Demo builds deliberately withhold the attachment area until Part 3 can keep selected attachment bytes in IndexedDB; they do not provide a prohibited metadata-only substitute. Part 3 will expose the same production React attachment interface.
+Phase 9 attachment demo parity uses the same production React interface. Selected file bytes and metadata are retained in browser IndexedDB, enabling browser-local preview, download, duplicate-content detection, rename, delete, Undo, Patient delete/restore, and clinic/account cleanup. HEIC/HEIF files are converted locally to JPEG, or PNG when transparency is present. Browser storage quota remains an environmental limit for the public demo.
 
 It does not claim real trusted-device authority, email/SMS delivery, WebAuthn security, or medical-data guarantees. Real Patient information must not be entered into the public demo.
 
@@ -326,4 +326,4 @@ npm run build:demo
 
 This repository is not yet a production medical-data deployment. Intended production use may include clinics in France and Iran with real Patient and clinic data, but Health Hub remains one product and codebase. Securely tenant-scoped shared storage is the starting assumption; separate regional storage is added only if Phase 10 confirms a real requirement.
 
-Phase 9 is in progress: its approved contract, private backend storage/API foundation, and production Patient-profile interface are complete, while actual-file Pages demo parity and final reconciliation remain. Phase 10 covers production infrastructure and security, Phase 11 covers legal/privacy/cookie decisions and remaining website details, and Phase 12 covers final testing and the stable production release.
+Phase 9 is in progress: its approved contract, private backend storage/API foundation, production Patient-profile interface, and actual-file Pages demo parity are complete; final reconciliation remains. Phase 10 covers production infrastructure and security, Phase 11 covers legal/privacy/cookie decisions and remaining website details, and Phase 12 covers final testing and the stable production release.
