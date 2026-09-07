@@ -2,16 +2,16 @@ import { browserTimeZone } from "./clinicTime.js";
 import { demoPhase8ApiRequest } from "./demoPhase8Api.js";
 import { ACTIVE_DEVICE_TOKEN_KEY } from "./deviceCredentials.js";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? "";
 const DEMO_AUTH_STORE_KEY = "health-hub.demo-auth.v2";
 const DEMO_OPERATIONAL_STORE_KEY = "health-hub.demo-store.v1";
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
-const BROWSER_DEMO_API = import.meta.env.VITE_DEMO_API === "true";
+export const DEMO_MODE = import.meta.env?.VITE_DEMO_MODE === "true";
+export const BROWSER_DEMO_API = import.meta.env?.VITE_DEMO_API === "true";
 
 export class ApiError extends Error {
   constructor(message, fields = null, status = 0) { super(message); this.name = "ApiError"; this.fields = fields; this.status = status; }
 }
-function firstError(payload) {
+export function firstError(payload) {
   if (!payload) return "The request could not be completed.";
   if (typeof payload === "string") return payload;
   if (payload.detail) return payload.detail;
@@ -20,6 +20,15 @@ function firstError(payload) {
   if (Array.isArray(firstValue)) return firstValue[0];
   if (typeof firstValue === "string") return firstValue;
   return "The request could not be completed.";
+}
+
+export function authenticatedApiHeaders({ deviceToken, staffToken } = {}) {
+  const headers = { Accept: "application/json" };
+  const storedDeviceToken = staffToken && typeof localStorage !== "undefined" ? localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY) : null;
+  const activeDeviceToken = deviceToken ?? storedDeviceToken;
+  if (activeDeviceToken) headers["X-Device-Token"] = activeDeviceToken;
+  if (staffToken) headers.Authorization = `Bearer ${staffToken}`;
+  return headers;
 }
 
 function withClinicTimezone(path, method, data) {
@@ -88,12 +97,8 @@ export async function apiRequest(path, { method = "GET", data, deviceToken, staf
       throw new ApiError(firstError(error.payload), error.payload ?? null, error.status ?? 0);
     }
   }
-  const headers = { Accept: "application/json" };
+  const headers = authenticatedApiHeaders({ deviceToken, staffToken });
   if (requestData !== undefined) headers["Content-Type"] = "application/json";
-  const storedDeviceToken = staffToken && typeof localStorage !== "undefined" ? localStorage.getItem(ACTIVE_DEVICE_TOKEN_KEY) : null;
-  const activeDeviceToken = deviceToken ?? storedDeviceToken;
-  if (activeDeviceToken) headers["X-Device-Token"] = activeDeviceToken;
-  if (staffToken) headers.Authorization = `Bearer ${staffToken}`;
   let response;
   try { response = await fetch(`${API_BASE_URL}${path}`, { method, headers, body: requestData === undefined ? undefined : JSON.stringify(requestData) }); }
   catch { throw new ApiError("Health Hub could not reach the server."); }

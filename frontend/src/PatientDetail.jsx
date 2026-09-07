@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import Dialog from "./Dialog.jsx";
+import PatientAttachments from "./PatientAttachments.jsx";
 import { formatDate, formatPatientPhone, formatTime } from "./patientForm.jsx";
 import { ErrorMessage } from "./ui.jsx";
 
@@ -67,6 +68,10 @@ export default function PatientDetail({
   canEditPatient,
   canDeletePatient,
   canManageAppointments,
+  attachmentsEnabled,
+  attachmentRefreshVersion,
+  staffToken,
+  onRegisterUndo,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
@@ -112,6 +117,17 @@ export default function PatientDetail({
         <p>{patient.patient_note || "No patient note has been added."}</p>
       </section>
 
+      {attachmentsEnabled && (
+        <PatientAttachments
+          key={patient.id}
+          patientId={patient.id}
+          patientName={patient.full_name}
+          staffToken={staffToken}
+          onRegisterUndo={onRegisterUndo}
+          refreshVersion={attachmentRefreshVersion}
+        />
+      )}
+
       <section className="patient-history">
         <div className="schedule-section__heading">
           <div>
@@ -151,7 +167,7 @@ export default function PatientDetail({
             <div>
               <p className="eyebrow">Patient profile</p>
               <h2 id="delete-patient-title">Delete {patient.full_name}?</h2>
-              <p id="delete-patient-description">Current and future appointments must be deleted first. Past appointments remain historical.</p>
+              <p id="delete-patient-description">Current and future appointments must be deleted first. Past appointments remain historical. Attachments become inaccessible with the Patient and return if you Undo.</p>
             </div>
             <button className="device-icon-button" type="button" disabled={deleting} onClick={closeDeleteConfirmation} aria-label={`Close deletion confirmation for ${patient.full_name}`}>×</button>
           </div>

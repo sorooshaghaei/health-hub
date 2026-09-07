@@ -335,7 +335,7 @@ function AssistantJoinForm({ onSubmit, onAccount, onClinics, onSignOut, addition
 }
 
 function ClinicPicker({ user, onChoose, onCreate, onJoin, onSettings, onSignOut }) {
-  return <AuthShell title="Your clinics" description="Your account and trusted devices are global. Patient, appointment, queue, and task data remain isolated inside each clinic.">
+  return <AuthShell title="Your clinics" description="Your account and trusted devices are global. Patient records, attachments, appointments, queue, and task data remain isolated inside each clinic.">
     <div className="panel-heading"><p className="eyebrow">{user.display_name} · {user.role === "doctor" ? "Doctor" : "Assistant"}</p><h2>Choose a clinic</h2></div>
     <div className="phase8-clinic-list">
       {user.memberships?.map((membership) => <button className="choice-card phase8-clinic-button" key={membership.id} type="button" onClick={() => onChoose(membership)}>

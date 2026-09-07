@@ -343,7 +343,7 @@ export default function AccountSettings({ user, staffToken, onOpen, onUserChange
       </div>
       <ErrorMessage error={error} focus />
       <div className="phase8-settings-section">
-        <p>This permanently deletes every clinic owned by this Doctor account and the Patient, appointment, queue, consultation, and task data inside those clinics. Connected Assistant memberships are removed, but Assistant personal accounts are not deleted.</p>
+        <p>This permanently deletes every clinic owned by this Doctor account and the Patient records, attachments, appointments, queue, consultation, and task data inside those clinics. Connected Assistant memberships are removed, but Assistant personal accounts are not deleted.</p>
         {deletion.loading ? <p>Loading affected clinics…</p> : <div className="phase8-clinic-list">{deletion.clinics.map((clinic) => <div className="phase8-contact-card" key={clinic.id}><strong>{clinic.name}</strong><span>Clinic and clinic data will be permanently deleted.</span></div>)}</div>}
         <form className="form" onSubmit={deleteDoctorAccount}>
           <PasswordField label="Current password" value={deletion.password} onChange={(event) => { setDeletion({ ...deletion, password: event.target.value }); setError(null); }} autoComplete="current-password" />

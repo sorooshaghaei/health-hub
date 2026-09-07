@@ -7,7 +7,7 @@ export default function usePatientWorkspace({ user, staffToken }) {
   const [section, setSectionState] = useState("schedule"), [patients, setPatients] = useState([]), [search, setSearch] = useState("");
   const [patientView, setPatientView] = useState("list"), [selectedPatient, setSelectedPatient] = useState(null), [patientVisits, setPatientVisits] = useState([]), [requestedVisitId, setRequestedVisitId] = useState(null);
   const [loading, setLoading] = useState(true), [visitsLoading, setVisitsLoading] = useState(false), [error, setError] = useState(null), [deleting, setDeleting] = useState(false);
-  const [undoActions, setUndoActions] = useState([]), [undoingId, setUndoingId] = useState(null), [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0), [taskRefreshVersion, setTaskRefreshVersion] = useState(0), [taskAttention, setTaskAttention] = useState(false);
+  const [undoActions, setUndoActions] = useState([]), [undoingId, setUndoingId] = useState(null), [scheduleRefreshVersion, setScheduleRefreshVersion] = useState(0), [taskRefreshVersion, setTaskRefreshVersion] = useState(0), [attachmentRefreshVersion, setAttachmentRefreshVersion] = useState(0), [taskAttention, setTaskAttention] = useState(false);
   const requestRef = useRef(0);
   const asError = (e, message) => e instanceof ApiError ? e : new ApiError(message);
   const setSection = useCallback((next) => { if (next === "tasks") setTaskAttention(false); setSectionState(next); }, []);
@@ -59,10 +59,13 @@ export default function usePatientWorkspace({ user, staffToken }) {
   async function undoAction(a) {
     setUndoingId(a.id); setError(null);
     const map = { check_in: `/api/visits/${a.resourceId}/undo-check-in/`, with_doctor: `/api/visits/${a.resourceId}/undo-with-doctor/`, room_ready: "/api/visits/room-ready/undo/", appointment_delete: `/api/visits/${a.resourceId}/undo-delete/`, task_done: `/api/tasks/${a.resourceId}/undo-done/`, task_delete: `/api/tasks/${a.resourceId}/undo-delete/`, task_comment_delete: `/api/task-comments/${a.resourceId}/undo-delete/` };
-    const endpoint = map[a.kind] ?? `/api/patients/${a.resourceId}/undo-delete/`;
+    const endpoint = a.kind === "attachment_delete"
+      ? `/api/patients/${a.patientId}/attachments/${a.resourceId}/undo-delete/`
+      : map[a.kind] ?? `/api/patients/${a.resourceId}/undo-delete/`;
     try {
       await apiRequest(endpoint, { method: "POST", staffToken }); expireUndo(a.id);
       if (a.kind.startsWith("task_")) setTaskRefreshVersion((v) => v + 1);
+      else if (a.kind === "attachment_delete") setAttachmentRefreshVersion((v) => v + 1);
       else { setScheduleRefreshVersion((v) => v + 1); await loadPatients(search); if (selectedPatient && a.kind !== "patient_delete") await loadPatientVisits(selectedPatient.id); }
     } catch (e) { expireUndo(a.id); setError(asError(e, "The action could not be undone.")); }
     finally { setUndoingId(null); }
@@ -83,5 +86,5 @@ export default function usePatientWorkspace({ user, staffToken }) {
   const requestedHandled = useCallback(() => setRequestedVisitId(null), []);
   const clearSearch = () => setSearch("");
 
-  return { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients, canManageAppointments, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits };
+  return { doctorAccount, doctorWorkspace, assistantWorkspace, canEditPatient, canCreateDeletePatients, canManageAppointments, section, setSection, patients, search, setSearch, patientView, setPatientView, selectedPatient, setSelectedPatient, patientVisits, requestedVisitId, loading, visitsLoading, error, deleting, undoActions, undoingId, scheduleRefreshVersion, taskRefreshVersion, attachmentRefreshVersion, taskAttention, openPatient, savePatient, registerUndo, expireUndo, undoAction, deletePatient, deleteVisit, editVisit, requestedHandled, clearSearch, loadPatientVisits };
 }

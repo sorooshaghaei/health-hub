@@ -7,7 +7,7 @@ The product contract was clarified and approved before implementation.
 Phase 9 is being delivered in four separately reviewed parts:
 
 1. **Specification and backend foundation — implemented:** private provider-neutral storage, attachment metadata, validation/conversion, duplicate protection, clinic-scoped APIs, preview/download streaming, rename, five-second delete Undo, permanent cleanup, migrations, and backend tests.
-2. **Production Patient-profile interface — pending:** shared Doctor/Assistant attachment UI, picker, desktop drag/drop, progress, preview/download, search, rename, delete, and Undo.
+2. **Production Patient-profile interface — implemented:** shared Doctor/Assistant attachment UI, picker, desktop drag/drop, progress, preview/download, search, rename, delete, and Undo.
 3. **GitHub Pages demo parity — pending:** the same production React UI backed by actual browser-local file bytes in IndexedDB.
 4. **Full reconciliation — pending:** end-to-end validation, responsive/accessibility review, and final documentation reconciliation.
 
@@ -155,7 +155,9 @@ A fully successful upload returns `201`. A mixed batch returns `207` with one or
 
 ## GitHub Pages demo invariant
 
-The public demo is not a separate application. It renders the same production React attachment interface through the existing `VITE_DEMO_API=true` transport boundary.
+The public demo is not a separate application. It must render the same production React attachment interface through the existing `VITE_DEMO_API=true` transport boundary.
+
+Until Part 3 provides the required actual-file adapter, the attachment area is deliberately withheld from demo builds. It is not replaced with a metadata-only simulation or a broken production request. Part 3 removes that temporary guard when IndexedDB-backed file behavior is complete.
 
 The demo must retain actual selected file bytes in browser IndexedDB so preview, download, duplicate-content detection, rename, delete, Undo, Patient deletion/restore, and Doctor-account/clinic cascades behave like the production interface. Metadata-only simulation is not acceptable.
 

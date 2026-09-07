@@ -16,7 +16,7 @@ test("release-ready UI wording matches the approved replacement table", async ()
   const hours = await source("../src/ClinicWorkingHours.jsx");
   const team = await source("../src/ClinicTeam.jsx");
 
-  assert.match(readme, /The Phase 9 attachment contract is approved, and Part 1—the private backend storage\/API foundation—is implemented\./);
+  assert.match(readme, /Phase 9 Parts 1–2—the approved contract, private backend storage\/API foundation, and production Patient-profile attachment interface—are implemented\./);
   assert.match(app, /Sign in or create your \$\{label\} account\./);
   assert.match(app, /Use your email address or phone number with a password, or use a passkey\./);
   assert.match(app, /Verify both your personal email address and phone number before accessing a clinic\./);
@@ -45,9 +45,9 @@ test("handoff documentation identifies the next Phase 9 part", async () => {
 
   assert.match(readme, /npx playwright install --with-deps chromium[\s\S]*npm run test:browser/);
   assert.match(plan, /\| 8 \| Authentication, administration, recovery, multi-clinic identity \| \*\*Implemented; release-audit remediation complete\*\* \|/);
-  assert.match(plan, /\| 9 \| Secure Patient attachments \| \*\*In progress; approved contract and backend foundation complete\*\* \|/);
+  assert.match(plan, /\| 9 \| Secure Patient attachments \| \*\*In progress; contract, backend foundation, and production UI complete\*\* \|/);
   assert.doesNotMatch(plan, /release-audit remediation in progress/);
   assert.match(context, /accounts\.0011_trusted_device_last_used_at/);
-  assert.match(context, /Part 2 is the production Patient-profile attachment interface\./);
+  assert.match(context, /Parts 1–2 are complete; Part 3 is actual-file GitHub Pages demo parity through IndexedDB\./);
   assert.doesNotMatch(context, /Continue the approved release-readiness audit remediation/);
 });

@@ -56,7 +56,7 @@ Security/account actions do not use five-second Undo.
 | 6 | Shared tasks | **Complete and reconciled** |
 | 7 | Private sticky | **Complete and reconciled** |
 | 8 | Authentication, administration, recovery, multi-clinic identity | **Implemented; release-audit remediation complete** |
-| 9 | Secure Patient attachments | **In progress; approved contract and backend foundation complete** |
+| 9 | Secure Patient attachments | **In progress; contract, backend foundation, and production UI complete** |
 | 10 | Production infrastructure and security | Not started |
 | 11 | Legal, privacy, and website completion | Not started |
 | 12 | Final testing and stable production release | Not started |
@@ -240,15 +240,15 @@ See [`PHASE_8_AUTHENTICATION_ADMINISTRATION.md`](PHASE_8_AUTHENTICATION_ADMINIST
 
 ## Phase 9 — Secure Patient attachments
 
-**In progress. The product contract is approved and Part 1 is implemented.**
+**In progress. The product contract and Parts 1–2 are implemented.**
 
 The approved contract is recorded in [`PHASE_9_PATIENT_ATTACHMENTS.md`](PHASE_9_PATIENT_ATTACHMENTS.md). It defines Patient-only ownership, equal Doctor/Assistant permissions, authenticated clinic isolation, private storage, PDF/JPEG/PNG plus HEIC/HEIF conversion, 100 MB and 10-file limits, current-name search, Patient-local duplicate rules, preview/download/rename, five-second delete Undo followed by hard deletion, and actual-file IndexedDB demo parity.
 
 Delivery parts:
 
 1. **Implemented:** specification and backend storage/API foundation, migration, cleanup command, and backend tests.
-2. **Next:** production Patient-profile attachment interface.
-3. **Pending:** actual-file GitHub Pages demo adapter parity.
+2. **Implemented:** production Patient-profile attachment interface with equal role access, desktop drag/drop, multi-file selection, per-file progress/results, current-name search, metadata, authenticated preview/download, rename/retry, delete confirmation, and global five-second Undo.
+3. **Next:** actual-file GitHub Pages demo adapter parity. Until then, demo builds deliberately withhold the attachment area instead of using metadata-only simulation.
 4. **Pending:** full validation, accessibility/responsive review, and documentation reconciliation.
 
 The implementation remains storage-provider-neutral and region-neutral. Phase 10 chooses and operates production storage, malware scanning, backup, audit, monitoring, retention, and any justified regional deployment.
@@ -271,7 +271,7 @@ Review the complete Doctor/Assistant workflow, attachment security, production c
 
 ## Current work
 
-**Product Phases 0–8 and Design Steps 1–5 are implemented. Product Phase 9 is in progress: its contract and backend foundation are complete, and its production Patient-profile interface is next.**
+**Product Phases 0–8 and Design Steps 1–5 are implemented. Product Phase 9 is in progress: its contract, backend foundation, and production Patient-profile interface are complete; actual-file GitHub Pages demo parity is next.**
 
 1. **Design Step 1 — complete:** critical onboarding and Patient-edit data safety;
 2. **Design Step 2 — complete:** workspace usability and visual hierarchy;
