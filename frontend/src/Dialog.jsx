@@ -101,22 +101,27 @@ function focusInside(entry, preferInitial = false) {
 
 function returnFocus(entry) {
   window.requestAnimationFrame(() => {
-    const activeDialog = topDialog();
-    if (activeDialog) {
-      if (activeDialog.panel.contains(entry.opener) && focusElement(entry.opener)) return;
-      if (!activeDialog.panel.contains(document.activeElement)) focusInside(activeDialog);
-      return;
-    }
-
-    let selected = null;
-    if (entry.returnFocusSelector) {
-      try {
-        selected = document.querySelector(entry.returnFocusSelector);
-      } catch {
-        selected = null;
+    // A removed iframe (including Chromium's PDF viewer) can move focus back to
+    // the document after the first frame. Wait for that teardown to settle
+    // before restoring focus to the dialog opener.
+    window.requestAnimationFrame(() => {
+      const activeDialog = topDialog();
+      if (activeDialog) {
+        if (activeDialog.panel.contains(entry.opener) && focusElement(entry.opener)) return;
+        if (!activeDialog.panel.contains(document.activeElement)) focusInside(activeDialog);
+        return;
       }
-    }
-    focusElement(selected) || focusElement(entry.opener);
+
+      let selected = null;
+      if (entry.returnFocusSelector) {
+        try {
+          selected = document.querySelector(entry.returnFocusSelector);
+        } catch {
+          selected = null;
+        }
+      }
+      focusElement(selected) || focusElement(entry.opener);
+    });
   });
 }
 
